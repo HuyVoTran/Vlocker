@@ -1,0 +1,23 @@
+{
+  "devFiles": [],
+  "ampDevFiles": [],
+  "polyfillFiles": [],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [],
+  "pages": {
+    "/_error": [
+      "static/chunks/032f9_next_dist_compiled_bed75602._.js",
+      "static/chunks/032f9_next_dist_shared_lib_c3a0fe43._.js",
+      "static/chunks/032f9_next_dist_client_3001bb98._.js",
+      "static/chunks/032f9_next_dist_bdf4b1a5._.js",
+      "static/chunks/032f9_next_error_dac8412e.js",
+      "static/chunks/[next]_entry_page-loader_ts_569dacd4._.js",
+      "static/chunks/032f9_react-dom_0f14975b._.js",
+      "static/chunks/032f9_01227560._.js",
+      "static/chunks/[root-of-the-server]__13642d86._.js",
+      "static/chunks/OneDrive - VLG_VLocker_vlocker_pages__error_2da965e7._.js",
+      "static/chunks/turbopack-OneDrive - VLG_VLocker_vlocker_pages__error_b3af830d._.js"
+    ]
+  },
+  "ampFirstPages": []
+}
