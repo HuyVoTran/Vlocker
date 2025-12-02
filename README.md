@@ -8,17 +8,9 @@ First, run the development server:
 cd vlocker 
 npm run dev
 
-cd vlocker 
-npm run dev
-
-cd backend
-node server.js
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git add .
+git commit -m "mess"
+git push
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

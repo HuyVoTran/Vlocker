@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const LockerSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  lockerId: { type: String, required: true, unique: true },
 
   //Tòa A - Block 1 - [Default: Tầng 1]
   building: {
@@ -26,25 +26,25 @@ const LockerSchema = new mongoose.Schema({
   currentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' } // Link nhanh đến đơn hàng hiện tại
 }, { timestamps: true });
 
-//Hook ID Locker
+//Hook lockerId Locker
 LockerSchema.pre("save", async function (next) {
-  if (this.Id) return next();
+  if (this.lockerId) return next();
 
   const prefix = `${this.building}${this.block}-`;
 
   const lastLocker = await mongoose.models.Locker
-    .findOne({ Id: new RegExp(`^${prefix}`) })
-    .sort({ Id: -1 })
+    .findOne({ lockerId: new RegExp(`^${prefix}`) })
+    .sort({ lockerId: -1 })
     .lean();
 
   let nextNumber = 1;
 
   if (lastLocker) {
-    const lastNumber = parseInt(lastLocker.Id.replace(prefix, ""), 10);
+    const lastNumber = parseInt(lastLocker.lockerId.replace(prefix, ""), 10);
     nextNumber = lastNumber + 1;
   }
 
-  this.Id = `${prefix}${String(nextNumber).padStart(3, "0")}`;
+  this.lockerId = `${prefix}${String(nextNumber).padStart(3, "0")}`;
 
   next();
 });
