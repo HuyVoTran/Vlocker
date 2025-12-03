@@ -3,15 +3,13 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import clientPromise from '@/lib/mongodbClient'; 
-import { connectDB } from '@/lib/mongodb'; // Đảm bảo import đúng hàm connectDB (Mongoose)
-import User from '@/models/User'; // Giả sử Model User của bạn
+import { connectDB } from '@/lib/mongodb';
+import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 
 export const authOptions = {
-  // 1. Dùng MongoDB Adapter
   adapter: MongoDBAdapter(clientPromise),
-  
-  // 2. Cấu hình Providers (Email/Password)
+
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -19,22 +17,16 @@ export const authOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      // Hàm này được gọi khi user submit form login
       async authorize(credentials) {
-        // SỬA: Gọi đúng hàm kết nối Mongoose
-        await connectDB(); 
+        await connectDB();
 
         const user = await User.findOne({ email: credentials.email });
-        if (!user) {
-          throw new Error('No user found');
-        }
+        if (!user) throw new Error('No user found');
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
-          throw new Error('Invalid password');
-        }
-        
-        // Trả về user object 
+        if (!isValid) throw new Error('Invalid password');
+
+        // Trả về user object
         return { 
           id: user._id.toString(), 
           name: user.name, 
@@ -45,40 +37,34 @@ export const authOptions = {
     })
   ],
 
-  // 3. Dùng JWT để quản lý session
-  session: {
-    strategy: 'jwt',
-  },
+  session: { strategy: 'jwt' },
 
-  // 4. Callbacks
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role; 
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
-        session.user.role = token.role; 
+        session.user.role = token.role;
       }
       return session;
     },
-    // SỬA: Thêm tham số { url, baseUrl }
-    redirect({ url, baseUrl }) { 
-      // Logic chuyển hướng tạm thời (không phụ thuộc vào role)
-      if (url === baseUrl) { 
-        return `${baseUrl}/dashboard`; // Chuyển đến dashboard chung
-      }
-      return url;
+    redirect({ url, baseUrl }) {
+      // Mặc định redirect sau login: landing page hoặc dashboard chung
+      return url.startsWith(baseUrl) ? url : baseUrl;
     }
   },
-  
+
   pages: {
-    signIn: '/', 
+    signIn: '/', // hoặc '/auth/login' nếu bạn có trang login riêng
   },
+
+  debug: true, // bật debug để kiểm tra khi dev
 };
 
 const handler = NextAuth(authOptions);

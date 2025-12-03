@@ -2,12 +2,10 @@ import { Shield, Clock, Lock, Smartphone, Package, CheckCircle } from 'lucide-re
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useRouter } from "next/navigation";
 
-interface LandingPageProps {
-  onLogin: (role: 'resident' | 'manager') => void;
-}
-
-export default function LandingPage({ onLogin }: LandingPageProps) {
+export default function LandingPage() {
+  const router = useRouter();
   const features = [
     {
       icon: <Shield className="w-8 h-8 text-blue-600" />,
@@ -67,11 +65,8 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               <h1 className="text-blue-600">VLocker</h1>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => onLogin('resident')}>
-                Đăng nhập Dân cư
-              </Button>
-              <Button onClick={() => onLogin('manager')}>
-                Đăng nhập Quản lý
+              <Button onClick={() => router.push("auth/login")}>
+                Đăng nhập
               </Button>
             </div>
           </div>
@@ -92,7 +87,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 VLocker mang đến giải pháp tủ khóa thông minh, giúp bạn nhận hàng mọi lúc mọi nơi một cách an toàn, tiện lợi và bảo mật. Không còn lo lắng về việc bỏ lỡ đơn hàng hay phải chờ đợi shipper.
               </p>
               <div className="flex gap-4">
-                <Button size="lg" onClick={() => onLogin('resident')}>
+                <Button size="lg" onClick={() => router.push("auth/register")}>
                   <Package className="w-5 h-5 mr-2" />
                   Đăng ký ngay
                 </Button>
@@ -198,11 +193,8 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             Đăng ký tài khoản và trải nghiệm dịch vụ tủ thông minh hiện đại nhất
           </p>
           <div className="flex gap-4 justify-center">
-            <Button size="lg" variant="secondary" onClick={() => onLogin('resident')}>
-              Đăng ký Dân cư
-            </Button>
-            <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white/10" onClick={() => onLogin('manager')}>
-              Đăng nhập Quản lý
+            <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white/10" onClick={() => router.push("auth/login")}>
+              Đăng nhập
             </Button>
           </div>
         </div>

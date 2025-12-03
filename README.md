@@ -1,3 +1,12 @@
+<!-- 
+cd vlocker 
+npm run dev
+
+git add .
+git commit -m "Update Route/Page"
+git push
+-->
+
 # VLocker (Văn Lang Locker)
 
 **Mục tiêu:** Dự án VLocker được xây dựng nhằm **số hóa** và **tối ưu hóa** quy trình quản lý tủ khóa cá nhân, chuyển đổi mô hình quản lý thủ công sang tự động hóa hoàn toàn.
@@ -67,20 +76,30 @@
 
 ## Hướng Dẫn Cài Đặt & Chạy Thử Dự Án
 ### Yêu cầu:
-- ...
+- Cài đặt npm
+- Thêm biến môi trường .env
 - ...
 
 ```bash
-cd vlocker 
-npm run dev
-
-git add .
-git commit -m "Update README"
-git push
+npm install
 
 git clone ...
 cd D:/project
 npm install
+```
+
+```bash
+# .env.local
+
+# MongoDB Connection
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/vlocker_db"
+
+# NextAuth Secrets
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="[Một chuỗi ngẫu nhiên dài và mạnh]"
+```
+
+```bash
 npm run dev
 ```
 
