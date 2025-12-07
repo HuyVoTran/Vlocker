@@ -44,7 +44,7 @@ export default function Sidebar({ isOpen, menuItems, currentPage, onNavigate, on
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => (
+        {menuItems?.map((item) => (
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
