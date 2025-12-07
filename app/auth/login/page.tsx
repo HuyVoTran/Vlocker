@@ -8,14 +8,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const [username, setUsername] = useState("");
+  // SỬA 1: Đổi state username thành email
+  const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (session?.user?.role) {
-      if (session.user.role === "resident") router.push("/resident-dashboard");
-      else if (session.user.role === "manager") router.push("/manager-dashboard");
+      if (session.user.role === "resident") router.push("/resident/dashboard");
+      else if (session.user.role === "manager") router.push("/manager/dashboard");
     }
   }, [session]);
 
@@ -23,9 +24,10 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
+    // SỬA 2: Gửi field 'email' thay vì 'username'
     const res = await signIn("credentials", {
       redirect: false,
-      username,
+      email, // <-- QUAN TRỌNG: Phải trùng tên với credentials.email trong NextAuth
       password,
     });
 
@@ -42,14 +44,16 @@ export default function LoginPage() {
         {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
 
         <form onSubmit={handleLogin} className="space-y-4">
+          {/* SỬA 3: Input nhập Email */}
           <input
-            type="username"
-            placeholder="Tài khoản"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            type="email" // Đổi type thành email để browser hỗ trợ check format
+            placeholder="Email (Ví dụ: user@example.com)"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
             required
           />
+          
           <input
             type="password"
             placeholder="Mật khẩu"
