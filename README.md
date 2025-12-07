@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Update Route/Page for Login & Register"
+git commit -m "Fix Layout folder"
 git push
 -->
 
