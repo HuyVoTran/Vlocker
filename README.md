@@ -3,8 +3,10 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Fix Email Up/Lowcase"
+git commit -m "Fix Reset Password"
 git push
+
+Password@12345
 -->
 
 # VLocker (Văn Lang Locker)

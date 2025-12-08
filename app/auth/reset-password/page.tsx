@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          password,
+          newPassword: password, // ✅ key phải trùng với API
         }),
       });
 

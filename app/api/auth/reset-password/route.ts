@@ -7,8 +7,25 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const { token, newPassword } = await req.json();
+    await connectDB();
 
+    let token: string | undefined;
+    let newPassword: string | undefined;
+
+    // Cố gắng parse body JSON
+    try {
+      const body = await req.json();
+      token = body?.token;
+      newPassword = body?.newPassword;
+    } catch (err) {
+      console.error("Lỗi parse JSON:", err);
+      return NextResponse.json(
+        { message: "Body request phải là JSON" },
+        { status: 400 }
+      );
+    }
+
+    // Nếu token hoặc mật khẩu mới chưa có
     if (!token || !newPassword) {
       return NextResponse.json(
         { message: "Thiếu token hoặc mật khẩu mới." },
@@ -16,15 +33,13 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
-    // Mã hóa token giống lúc lưu
+    // Hash token giống lúc lưu vào DB
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // Tìm user với token hợp lệ và chưa hết hạn
+    // Tìm user có token hợp lệ và chưa hết hạn
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpire: { $gt: Date.now() }
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -37,10 +52,10 @@ export async function POST(req: Request) {
     // Hash mật khẩu mới
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Cập nhật mật khẩu
+    // Cập nhật mật khẩu và xóa token
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
+    user.resetPasswordExpires = undefined;
     await user.save();
 
     return NextResponse.json(
