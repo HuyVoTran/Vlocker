@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Update Forgot password & Reset password"
+git commit -m "Update Forgot password"
 git push
 -->
 
