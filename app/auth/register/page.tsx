@@ -37,7 +37,21 @@ export default function RegisterPage() {
   // 3. Định nghĩa kiểu cho sự kiện thay đổi input (ChangeEvent)
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // TRƯỜNG HỢP 1: Nếu là số điện thoại (Chỉ cho nhập số)
+
+    // TRƯỜNG HỢP: Nếu là tên không được nhập ký tự khác ngoài chữ cái
+    if (name === "name") {
+      // Cho phép: A-Z, a-z, tiếng Việt có dấu, và khoảng trắng
+      const onlyLetters = value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "");
+    
+      setFormData((prev) => ({
+        ...prev,
+        [name]: onlyLetters,
+      }));
+    
+      return;
+    }
+
+    // TRƯỜNG HỢP: Nếu là số điện thoại (Chỉ cho nhập số)
     if (name === "phone") {
         const numericValue = value.replace(/[^0-9]/g, "");
         setFormData((prev) => ({
@@ -46,27 +60,61 @@ export default function RegisterPage() {
         }));
         return; // Dừng lại, không chạy xuống dưới
       }
-  
-      // TRƯỜNG HỢP 2: Các trường còn lại (Mật khẩu, Địa chỉ, Tên...)
+
+      // TRƯỜNG HỢP KHÁC: Các trường còn lại (Mật khẩu, Địa chỉ, Tên...)
       // BẮT BUỘC PHẢI CÓ ĐOẠN NÀY thì các ô khác mới gõ được!
       setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
-  };
+    };
 
-  // 4. Định nghĩa kiểu cho sự kiện submit form (FormEvent)
-  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+    const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const { name, value } = e.target;
+    
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    };
+    
+    // 4. Định nghĩa kiểu cho sự kiện submit form (FormEvent)
+    const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setError("");
+      setLoading(true);
+      
+      // Validation:
+      if (formData.name.trim().length < 1 || formData.name.trim().length > 25) {
+        setError("Tên phải từ 1 đến 25 ký tự.");
+        setLoading(false);
+        return;
+      }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      if (!emailRegex.test(formData.email)) {
+        setError("Email không hợp lệ. Vui lòng nhập đúng định dạng.");
+        setLoading(false);
+        return;
+      }
 
-    // Validate cơ bản
-    if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
-      setLoading(false);
-      return;
-    }
+      if (formData.password.length < 8 || formData.password.length > 30) {
+        setError("Mật khẩu phải từ 8 đến 30 ký tự.");
+        setLoading(false);
+        return;
+      }
+      
+      if (formData.confirmPassword.length < 8 || formData.confirmPassword.length > 30) {
+        setError("Mật khẩu xác nhận phải từ 8 đến 30 ký tự.");
+        setLoading(false);
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setError("Mật khẩu xác nhận không khớp.");
+        setLoading(false);
+        return;
+      }
 
     try {
       const res = await fetch("/api/auth/register", {
@@ -190,50 +238,72 @@ export default function RegisterPage() {
 
           {/* Nhóm thông tin địa chỉ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <input
-                name="building"
-                type="text"
-                placeholder="Tòa (Vd: A)"
-                value={formData.building}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
-                required
-              />
-            </div>
-            <div>
-              <input
-                name="block"
-                type="text"
-                placeholder="Block (Vd: 1)"
-                value={formData.block}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
-                required
-              />
-            </div>
-            <div>
-              <input
-                name="floor"
-                type="text"
-                placeholder="Tầng (Vd: 05)"
-                value={formData.floor}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
-                required
-              />
-            </div>
-            <div>
-              <input
-                name="unit"
-                type="text"
-                placeholder="Căn (Vd: 03)"
-                value={formData.unit}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
-                required
-              />
-            </div>
+          <div>
+            <select
+              name="building"
+              value={formData.building}
+              onChange={handleSelect}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              required
+            >
+              <option value="">Tòa</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+          </div>
+
+          {/* BLOCK */}
+          <div>
+            <select
+              name="block"
+              value={formData.block}
+              onChange={handleSelect}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              required
+            >
+              <option value="">Block</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+
+          {/* FLOOR */}
+          <div>
+            <select
+              name="floor"
+              value={formData.floor}
+              onChange={handleSelect}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              required
+            >
+              <option value="">Tầng</option>
+              {Array.from({ length: 50 }, (_, i) => {
+                const floor = (i + 1).toString().padStart(2, "0");
+                return <option key={floor} value={floor}>{floor}</option>;
+              })}
+            </select>
+          </div>
+
+          {/* UNIT */}
+          <div>
+            <select
+              name="unit"
+              value={formData.unit}
+              onChange={handleSelect}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              required
+            >
+              <option value="">Căn</option>
+              {Array.from({ length: 50 }, (_, i) => {
+                const unit = (i + 1).toString().padStart(2, "0");
+                return <option key={unit} value={unit}>{unit}</option>;
+              })}
+            </select>
+          </div>
           </div>
 
           <button
@@ -251,7 +321,7 @@ export default function RegisterPage() {
           <span className="text-gray-600 mr-1">Đã có tài khoản?</span>
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/auth/login")}
             className="text-blue-600 hover:underline font-semibold"
           >
             Đăng Nhập ngay

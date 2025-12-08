@@ -1,5 +1,6 @@
 import { LogOut } from 'lucide-react';
 import { Button } from './ui/button';
+import { signOut } from "next-auth/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,9 +27,9 @@ interface SidebarProps {
   onLogout: () => void;
 }
 
-export default function Sidebar({ isOpen, menuItems, currentPage, onNavigate, onLogout }: SidebarProps) {
+export default function Sidebar({ isOpen, menuItems, currentPage, onNavigate }: SidebarProps) {
   if (!isOpen) return null;
-
+  
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
@@ -77,7 +78,7 @@ export default function Sidebar({ isOpen, menuItems, currentPage, onNavigate, on
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Hủy</AlertDialogCancel>
-              <AlertDialogAction onClick={onLogout} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogAction onClick={() => signOut({ callbackUrl: "/" })} className="bg-red-600 hover:bg-red-700">
                 Đăng xuất
               </AlertDialogAction>
             </AlertDialogFooter>
