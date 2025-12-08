@@ -124,7 +124,7 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({
           name: formData.name,
-          email: formData.email,
+          email: formData.email.trim().toLowerCase(),
           password: formData.password,
           phone: formData.phone, // Lưu ý: Backend nên xử lý chuyển đổi sang số nếu cần
           building: formData.building,

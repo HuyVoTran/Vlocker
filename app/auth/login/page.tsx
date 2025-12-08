@@ -22,13 +22,15 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim()) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
       setError("Vui lòng nhập email.");
       return;
     }
-  
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       setError("Email không hợp lệ.");
       return;
     }
@@ -40,7 +42,7 @@ export default function LoginPage() {
 
     const res = await signIn("credentials", {
       redirect: false,
-      email,
+      email: normalizedEmail,
       password,
     });
 

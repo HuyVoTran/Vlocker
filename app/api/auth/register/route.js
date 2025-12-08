@@ -36,7 +36,7 @@ export async function POST(req) {
     // Lưu ý: role mặc định là 'resident' theo schema
     await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       phone,
       building,
@@ -44,7 +44,7 @@ export async function POST(req) {
       floor,
       unit,
       role: "resident", // Mặc định dân cư đăng ký
-      username: email.split('@')[0], // Tạo username tự động từ email (tùy chọn)
+      username: normalizedEmail.split('@')[0], // Tạo username tự động từ email (tùy chọn)
     });
 
     return NextResponse.json({ message: "Đăng ký thành công!" }, { status: 201 });

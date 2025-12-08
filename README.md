@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Update Model User"
+git commit -m "Fix Email Up/Lowcase"
 git push
 -->
 
