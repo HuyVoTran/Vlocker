@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
   const { data: session } = useSession();
-
-  // SỬA 1: Đổi state username thành email
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,10 +22,25 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    // SỬA 2: Gửi field 'email' thay vì 'username'
+    if (!email.trim()) {
+      setError("Vui lòng nhập email.");
+      return;
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Email không hợp lệ.");
+      return;
+    }
+  
+    // if (password.length < 8) {
+    //   setError("Mật khẩu phải ít nhất 8 ký tự.");
+    //   return;
+    // }  
+
     const res = await signIn("credentials", {
       redirect: false,
-      email, // <-- QUAN TRỌNG: Phải trùng tên với credentials.email trong NextAuth
+      email,
       password,
     });
 
@@ -46,7 +59,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           {/* SỬA 3: Input nhập Email */}
           <input
-            type="email" // Đổi type thành email để browser hỗ trợ check format
+            type="email"
             placeholder="Email (Ví dụ: user@example.com)"
             value={email}
             onChange={e => setEmail(e.target.value)}

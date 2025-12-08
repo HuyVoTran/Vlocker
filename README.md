@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Fix Layout folder"
+git commit -m "Update Validation, LogOut"
 git push
 -->
 
