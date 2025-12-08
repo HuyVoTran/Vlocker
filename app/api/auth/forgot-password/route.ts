@@ -10,9 +10,10 @@ export async function POST(req: Request) {
     const { email } = await req.json();
 
     await connectDB();
+    const normalizedEmail = email.trim().toLowerCase();
 
     // 1. Tìm user theo email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return NextResponse.json(
         { message: "Email không tồn tại trong hệ thống." },
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     // 7. Gửi Email
     await transporter.sendMail({
       from: `"VLocker Support" <${process.env.EMAIL_USER}>`,
-      to: email,
+      to: normalizedEmail,
       subject: "Đặt lại mật khẩu VLocker",
       html: `
         <div style="font-family: Arial; padding: 20px;">
