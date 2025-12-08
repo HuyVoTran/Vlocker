@@ -22,9 +22,11 @@ export default function ForgotPasswordPage() {
     setError("");
     setSuccess("");
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!emailRegex.test(normalizedEmail)) {
       setError("Email không hợp lệ. Vui lòng nhập đúng định dạng.");
       return;
     }
@@ -35,7 +37,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ normalizedEmail }),
       });
 
       const data = await res.json();
