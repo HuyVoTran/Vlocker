@@ -6,12 +6,12 @@ const LockerSchema = new mongoose.Schema({
   //Tòa A - Block 1 - [Default: Tầng 1]
   building: {
     type: String,
-    required: [true, 'Vui lòng nhập tòa nhà'],
+    required: true,
   },
 
   block: {
     type: String,
-    required: [true, 'Vui lòng nhập block'],
+    required: true,
   },
 
   //Trạng thái tủ
