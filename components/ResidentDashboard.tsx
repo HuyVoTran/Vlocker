@@ -1,58 +1,89 @@
+import { useState, useEffect } from "react";
 import { Package, Clock, CreditCard, Plus, Smartphone } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import MyLockers from "./MyLockers";
 
 interface ResidentDashboardProps {
-  onNavigate: (page: any) => void;
+  onNavigate: (page: string, locker?: Locker) => void;
+  user: User;
 }
 
-export default function ResidentDashboard({ onNavigate }: ResidentDashboardProps) {
-  const myLockers = [
-    {
-      id: 'L001',
-      location: 'Tòa A - Tầng 1',
-      timeRemaining: '15 ngày',
-      status: 'active',
-      price: '50,000đ/tháng'
-    },
-    {
-      id: 'L045',
-      location: 'Tòa B - Tầng 2',
-      timeRemaining: '7 ngày',
-      status: 'active',
-      price: '50,000đ/tháng'
-    },
-    {
-      id: 'L089',
-      location: 'Tòa A - Tầng 3',
-      timeRemaining: 'Chờ thanh toán',
-      status: 'pending',
-      price: '50,000đ'
-    }
-  ];
+export interface User {
+  _id: string;
+  building: string;
+  block: string;
+}
 
-  const availableLockers = [
-    {
-      id: 'L102',
-      location: 'Tòa A - Tầng 1',
-      size: 'Nhỏ (30x30x40cm)',
-      price: '50,000đ/tháng'
-    },
-    {
-      id: 'L256',
-      location: 'Tòa B - Tầng 1',
-      size: 'Vừa (40x40x60cm)',
-      price: '70,000đ/tháng'
-    },
-    {
-      id: 'L378',
-      location: 'Tòa C - Tầng 2',
-      size: 'Lớn (50x50x80cm)',
-      price: '100,000đ/tháng'
+export interface Locker {
+  _id: string;
+  lockerId: string;
+  building: string;
+  block: string;
+  status: string;
+}
+
+export interface Booking {
+  _id: string;
+  userId: string;
+  lockerId: string;
+  startTime: Date;
+  endTime: Date;
+  status: string;
+  cost: Number;
+  paymentStatus: string;
+}
+
+// === Quan trọng: Kiểu gộp trả về từ API ===
+interface MyLockerItem {
+  locker: Locker;
+  booking: Booking;
+}
+
+  export default function ResidentDashboard({
+    onNavigate,
+    user,
+  }: ResidentDashboardProps) {
+    const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
+    const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+  
+    useEffect(() => {
+      // if (!user || !user._id) {
+      //   console.log("User chưa sẵn sàng → chờ");
+      //   return;
+      // }
+
+      async function loadData() {
+        try {
+          setLoading(true);
+  
+          // === Fetch My Locker (có cả locker + booking) ===
+          const myRes = await fetch(`/api/resident/mylocker?userId=${user._id}`);
+          const myJson = await myRes.json();
+          setMyLockers(myJson.data || []);
+  
+          // === Fetch Available Lockers ===
+          const availRes = await fetch(
+            `/api/resident/available?building=${user.building}&block=${user.block}`
+          );
+          const availJson = await availRes.json();
+          setAvailableLockers(availJson.data || []);
+        } catch (err) {
+          console.error("Error loading dashboard:", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+  
+      loadData();
+    }, [user]);
+  
+    if (loading) {
+      return <div>Đang tải dữ liệu...</div>;
     }
-  ];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -104,19 +135,19 @@ export default function ResidentDashboard({ onNavigate }: ResidentDashboardProps
           </Button>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          {myLockers.map((locker) => (
-            <Card key={locker.id} className="p-6 hover:shadow-lg transition-shadow">
+          {myLockers.map((mylocker) => (
+            <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Package className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-gray-900">Tủ {locker.id}</p>
-                    <p className="text-sm text-gray-500">{locker.location}</p>
+                    <p className="text-gray-900">Tủ {mylocker.locker.lockerId}</p>
+                    <p className="text-sm text-gray-500">Tòa {mylocker.locker.building} - Block {mylocker.locker.block}</p>
                   </div>
                 </div>
-                {locker.status === 'active' ? (
+                {mylocker.booking.status === 'booked' ? (
                   <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
                 ) : (
                   <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
@@ -125,14 +156,14 @@ export default function ResidentDashboard({ onNavigate }: ResidentDashboardProps
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">{locker.timeRemaining}</span>
+                  <span className="text-gray-600">{mylocker.booking.paymentStatus}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <CreditCard className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">{locker.price}</span>
+                  <span className="text-gray-600">{mylocker.booking.cost.toLocaleString()}đ</span>
                 </div>
               </div>
-              {locker.status === 'pending' ? (
+              {mylocker.booking.paymentStatus === 'stored' ? (
                 <Button className="w-full" variant="default">
                   Thanh toán ngay
                 </Button>
@@ -159,20 +190,25 @@ export default function ResidentDashboard({ onNavigate }: ResidentDashboardProps
           </Button>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          {availableLockers.map((locker) => (
-            <Card key={locker.id} className="p-6 hover:shadow-lg transition-shadow">
+          {availableLockers.map((availocker) => (
+            <Card key={availocker.lockerId} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                   <Package className="w-6 h-6 text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-gray-900">Tủ {locker.id}</p>
-                  <p className="text-sm text-gray-500">{locker.location}</p>
+                  <p className="text-gray-900">Tủ {availocker.lockerId}</p>
+                  <p className="text-sm text-gray-500">Tòa {availocker.building} - Block {availocker.block}</p>
                 </div>
               </div>
               <div className="space-y-2 mb-4">
-                <div className="text-sm text-gray-600">{locker.size}</div>
-                <div className="text-blue-600">{locker.price}</div>
+                <div className="text-sm text-gray-600">
+                  {availocker.status === 'available' ? (
+                    <Badge className="bg-green-100 text-green-700">Trống</Badge>
+                  ) : (
+                    <Badge className="bg-yellow-100 text-yellow-700">Đã được đặt</Badge>
+                  )}
+                </div>
               </div>
               <Button className="w-full" variant="default">
                 Thuê tủ ngay

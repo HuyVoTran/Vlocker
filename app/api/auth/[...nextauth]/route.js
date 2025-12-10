@@ -21,19 +21,23 @@ export const authOptions = {
         await connectDB();
 
         const normalizedEmail = credentials.email.trim().toLowerCase();
-
         const user = await User.findOne({ email: normalizedEmail });
+
         if (!user) throw new Error('No user found');
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) throw new Error('Invalid password');
 
-        // Trả về user object
+        // THÊM building & block & _id
         return { 
-          id: user._id.toString(), 
+          id: user._id.toString(),
+          _id: user._id.toString(),      // ← thêm
           name: user.name, 
           email: user.email, 
-          role: user.role 
+          role: user.role,
+
+          building: user.building,       // ← thêm
+          block: user.block              // ← thêm
         };
       }
     })
@@ -46,27 +50,35 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+    
+        // Lấy building/block từ DB
+        const dbUser = await User.findById(user.id);
+        token.building = dbUser.building;
+        token.block = dbUser.block;
       }
       return token;
     },
+    
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.building = token.building;
+        session.user.block = token.block;
       }
       return session;
     },
+
     redirect({ url, baseUrl }) {
-      // Mặc định redirect sau login: landing page hoặc dashboard chung
       return url.startsWith(baseUrl) ? url : baseUrl;
     }
   },
 
   pages: {
-    signIn: '/', // hoặc '/auth/login' nếu bạn có trang login riêng
+    signIn: '/',
   },
 
-  debug: true, // bật debug để kiểm tra khi dev
+  debug: true,
 };
 
 const handler = NextAuth(authOptions);
