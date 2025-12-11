@@ -5,12 +5,16 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: "resident" | "manager"; // hoặc string nếu muốn linh hoạt
+      role: "resident" | "manager";
+      building?: string;
+      block?: string;
     } & DefaultSession["user"];
   }
 
   interface User {
     id: string;
     role: "resident" | "manager";
+    building?: string;
+    block?: string;
   }
 }

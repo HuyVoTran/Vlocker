@@ -4,7 +4,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import MyLockers from "./MyLockers";
+// import MyLockers from "./MyLockers";
 
 interface ResidentDashboardProps {
   onNavigate: (page: string, locker?: Locker) => void;
@@ -13,8 +13,8 @@ interface ResidentDashboardProps {
 
 export interface User {
   _id: string;
-  building: string;
-  block: string;
+  building?: string;
+  block?: string;
 }
 
 export interface Locker {
@@ -32,7 +32,7 @@ export interface Booking {
   startTime: Date;
   endTime: Date;
   status: string;
-  cost: Number;
+  cost: number;
   paymentStatus: string;
 }
 

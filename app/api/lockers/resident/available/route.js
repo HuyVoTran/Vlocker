@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import Locker from "@/models/Locker";
-import dbConnect from "@/lib/dbConnect"; // nếu bạn có file này
+import { connectDB } from "@/lib/mongodb";
 
 export async function GET(req) {
   try {
-    await dbConnect(); // Nếu đã kết nối global có thể bỏ
+    await connectDB();
 
     const { searchParams } = new URL(req.url);
     const building = searchParams.get("building");

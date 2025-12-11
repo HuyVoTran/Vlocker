@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Add routes"
+git commit -m "Fix bug"
 git push
 
 Password@12345

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
+import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
-import Locker from "@/models/Locker";
+// import Locker from "@/models/Locker";
 
 export async function GET(req) {
   try {
-    await dbConnect();
+    await connectDB();
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
