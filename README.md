@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Update Sidebar, Dashboard, Register"
+git commit -m "Update Header"
 git push
 
 Password@12345

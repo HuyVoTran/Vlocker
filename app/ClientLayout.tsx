@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LayoutDashboard, Package, PlusCircle, User, FileText, Phone, BoxIcon } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -47,6 +47,14 @@ export default function ClientLayout({ children }) {
 
   if (!userRole) return children;
 
+  // Listen for toggle events emitted from Header (client -> client communication)
+  // This keeps the sidebar toggle fully client-side without passing functions cross-component boundaries.
+  React.useEffect(() => {
+    const onToggle = () => setIsSidebarOpen((v) => !v);
+    window.addEventListener('toggleSidebar', onToggle as EventListener);
+    return () => window.removeEventListener('toggleSidebar', onToggle as EventListener);
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
@@ -60,7 +68,6 @@ export default function ClientLayout({ children }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           userRole={userRole}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
         <main className="flex-1 overflow-y-auto">{children}</main>
