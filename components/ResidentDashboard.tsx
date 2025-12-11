@@ -163,7 +163,7 @@ interface MyLockerItem {
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           {myLockers.length > 0 ? (
-            myLockers.map((mylocker) => (
+            myLockers.slice(0, 3).map((mylocker) => (
               <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ interface MyLockerItem {
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           {availableLockers.length > 0 ? (
-            availableLockers.map((availocker) => (
+            availableLockers.slice(0, 3).map((availocker) => (
               <Card key={availocker._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
