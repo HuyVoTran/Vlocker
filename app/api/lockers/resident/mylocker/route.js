@@ -19,16 +19,23 @@ export async function GET(req) {
 
     // 1. Tìm tất cả booking của user + populate locker
     const bookings = await Booking.find({ userId })
-      .populate("lockerId") // <-- lấy toàn bộ info locker
+      .populate("lockerId")
       .lean();
+
+    if (!bookings) {
+      return NextResponse.json(
+        { success: true, data: [] },
+        { status: 200 }
+      );
+    }
 
     // 2. Format dữ liệu cho FE
     const formatted = bookings.map((b) => ({
-      locker: b.lockerId,        // thông tin locker
+      locker: b.lockerId || {},
       booking: {
         _id: b._id,
         status: b.status,
-        cost: b.cost,
+        cost: b.cost || 0,
         paymentStatus: b.paymentStatus,
         startTime: b.startTime,
         endTime: b.endTime,
@@ -42,7 +49,7 @@ export async function GET(req) {
   } catch (err) {
     console.error("Error fetching my lockers:", err);
     return NextResponse.json(
-      { success: false, message: "Server error" },
+      { success: false, message: "Server error", error: err.message },
       { status: 500 }
     );
   }

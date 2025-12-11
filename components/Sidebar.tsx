@@ -1,3 +1,5 @@
+"use client";
+
 import { LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { signOut } from "next-auth/react";
@@ -13,21 +15,11 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 
-interface MenuItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-}
-
 interface SidebarProps {
   isOpen: boolean;
-  menuItems: MenuItem[];
-  currentPage: string;
-  onNavigate: (page: any) => void;
-  onLogout: () => void;
 }
 
-export default function Sidebar({ isOpen, menuItems, currentPage, onNavigate }: SidebarProps) {
+export default function Sidebar({ isOpen }: SidebarProps) {
   if (!isOpen) return null;
   
   return (
@@ -45,20 +37,7 @@ export default function Sidebar({ isOpen, menuItems, currentPage, onNavigate }: 
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems?.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              currentPage === item.id
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
+        {/* Navigation items can be added here */}
       </nav>
 
       <div className="p-4 border-t border-gray-200">

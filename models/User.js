@@ -57,7 +57,7 @@ const UserSchema = new mongoose.Schema({
   resetPasswordToken: String,
   resetPasswordExpires: Date,
   
-}, { timestamps: true });
+}, { timestamps: true, collection: 'users' });
 
 // Cách export chuẩn trong Next.js (ngăn tạo lại model khi hot reload)
 export default mongoose.models.User || mongoose.model('User', UserSchema);

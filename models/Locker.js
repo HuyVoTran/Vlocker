@@ -24,7 +24,7 @@ const LockerSchema = new mongoose.Schema({
   //Trạng thái khóa
   isLocked: { type: Boolean, default: true }, // Trạng thái vật lý: Đang khóa hay mở
   currentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' } // Link nhanh đến đơn hàng hiện tại
-}, { timestamps: true });
+}, { timestamps: true, collection: 'lockers' });
 
 //Hook lockerId Locker
 LockerSchema.pre("save", async function (next) {

@@ -49,40 +49,67 @@ interface MyLockerItem {
     const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
     const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
   
     useEffect(() => {
-      // if (!user || !user._id) {
-      //   console.log("User chưa sẵn sàng → chờ");
-      //   return;
-      // }
-
       async function loadData() {
         try {
           setLoading(true);
+          setError(null);
+
+          console.log("Loading dashboard for user:", user._id, user.building, user.block);
   
           // === Fetch My Locker (có cả locker + booking) ===
-          const myRes = await fetch(`/api/resident/mylocker?userId=${user._id}`);
+          console.log("Fetching my lockers...");
+          const myRes = await fetch(`/api/lockers/resident/mylocker?userId=${user._id}`);
+          console.log("My lockers response status:", myRes.status);
+          if (!myRes.ok) {
+            throw new Error(`My lockers API error: ${myRes.status}`);
+          }
           const myJson = await myRes.json();
+          console.log("My lockers data:", myJson);
           setMyLockers(myJson.data || []);
   
           // === Fetch Available Lockers ===
-          const availRes = await fetch(
-            `/api/resident/available?building=${user.building}&block=${user.block}`
-          );
-          const availJson = await availRes.json();
-          setAvailableLockers(availJson.data || []);
+          if (user.building && user.block) {
+            console.log("Fetching available lockers...");
+            const availRes = await fetch(
+              `/api/lockers/resident/available?building=${user.building}&block=${user.block}`
+            );
+            console.log("Available lockers response status:", availRes.status);
+            if (!availRes.ok) {
+              throw new Error(`Available lockers API error: ${availRes.status}`);
+            }
+            const availJson = await availRes.json();
+            console.log("Available lockers data:", availJson);
+            setAvailableLockers(availJson.data || []);
+          } else {
+            console.log("No building/block provided, skipping available lockers");
+            setAvailableLockers([]);
+          }
+          
+          setLoading(false);
         } catch (err) {
           console.error("Error loading dashboard:", err);
-        } finally {
+          setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
           setLoading(false);
         }
       }
   
-      loadData();
-    }, [user]);
+      if (user._id) {
+        loadData();
+      } else {
+        console.log("User ID not ready yet");
+        setLoading(false);
+      }
+    }, [user._id, user.building, user.block]);
   
     if (loading) {
-      return <div>Đang tải dữ liệu...</div>;
+      return <div className="p-6">Đang tải dữ liệu...</div>;
+    }
+
+    if (error) {
+      return <div className="p-6 text-red-600">Lỗi: {error}</div>;
     }
 
   return (
@@ -135,45 +162,49 @@ interface MyLockerItem {
           </Button>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          {myLockers.map((mylocker) => (
-            <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Package className="w-6 h-6 text-blue-600" />
+          {myLockers.length > 0 ? (
+            myLockers.map((mylocker) => (
+              <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Package className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-gray-900">Tủ {mylocker.locker?.lockerId || 'N/A'}</p>
+                      <p className="text-sm text-gray-500">Tòa {mylocker.locker?.building || 'N/A'} - Block {mylocker.locker?.block || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-900">Tủ {mylocker.locker.lockerId}</p>
-                    <p className="text-sm text-gray-500">Tòa {mylocker.locker.building} - Block {mylocker.locker.block}</p>
+                  {mylocker.booking.status === 'stored' ? (
+                    <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
+                  )}
+                </div>
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600">{mylocker.booking.paymentStatus}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CreditCard className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600">{(mylocker.booking.cost || 0).toLocaleString()}đ</span>
                   </div>
                 </div>
-                {mylocker.booking.status === 'booked' ? (
-                  <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
+                {mylocker.booking.paymentStatus === 'pending' ? (
+                  <Button className="w-full" variant="default">
+                    Thanh toán ngay
+                  </Button>
                 ) : (
-                  <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                  <Button className="w-full" variant="outline">
+                    Chi tiết
+                  </Button>
                 )}
-              </div>
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">{mylocker.booking.paymentStatus}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CreditCard className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">{mylocker.booking.cost.toLocaleString()}đ</span>
-                </div>
-              </div>
-              {mylocker.booking.paymentStatus === 'stored' ? (
-                <Button className="w-full" variant="default">
-                  Thanh toán ngay
-                </Button>
-              ) : (
-                <Button className="w-full" variant="outline">
-                  Chi tiết
-                </Button>
-              )}
-            </Card>
-          ))}
+              </Card>
+            ))
+          ) : (
+            <p className="text-gray-500 col-span-3">Bạn chưa có tủ nào</p>
+          )}
         </div>
       </div>
 
@@ -190,31 +221,35 @@ interface MyLockerItem {
           </Button>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          {availableLockers.map((availocker) => (
-            <Card key={availocker.lockerId} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-6 h-6 text-gray-400" />
+          {availableLockers.length > 0 ? (
+            availableLockers.map((availocker) => (
+              <Card key={availocker._id} className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <Package className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-gray-900">Tủ {availocker.lockerId || 'N/A'}</p>
+                    <p className="text-sm text-gray-500">Tòa {availocker.building || 'N/A'} - Block {availocker.block || 'N/A'}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-900">Tủ {availocker.lockerId}</p>
-                  <p className="text-sm text-gray-500">Tòa {availocker.building} - Block {availocker.block}</p>
+                <div className="space-y-2 mb-4">
+                  <div className="text-sm text-gray-600">
+                    {availocker.status === 'available' ? (
+                      <Badge className="bg-green-100 text-green-700">Trống</Badge>
+                    ) : (
+                      <Badge className="bg-yellow-100 text-yellow-700">Đã được đặt</Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2 mb-4">
-                <div className="text-sm text-gray-600">
-                  {availocker.status === 'available' ? (
-                    <Badge className="bg-green-100 text-green-700">Trống</Badge>
-                  ) : (
-                    <Badge className="bg-yellow-100 text-yellow-700">Đã được đặt</Badge>
-                  )}
-                </div>
-              </div>
-              <Button className="w-full" variant="default">
-                Thuê tủ ngay
-              </Button>
-            </Card>
-          ))}
+                <Button className="w-full" variant="default">
+                  Thuê tủ ngay
+                </Button>
+              </Card>
+            ))
+          ) : (
+            <p className="text-gray-500 col-span-3">Không có tủ trống</p>
+          )}
         </div>
       </div>
     </div>

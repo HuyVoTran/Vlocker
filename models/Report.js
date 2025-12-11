@@ -10,6 +10,6 @@ const ReportSchema = new mongoose.Schema({
     default: 'pending' 
   },
   adminResponse: { type: String } // Quản lý trả lời
-}, { timestamps: true });
+}, { timestamps: true, collection: 'reports' });
 
 export default mongoose.models.Report || mongoose.model('Report', ReportSchema);
