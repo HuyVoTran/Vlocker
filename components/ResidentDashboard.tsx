@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CreditCard, Plus, Smartphone } from 'lucide-react';
+import { Package, Clock, CreditCard, Plus, Smartphone, MapPin } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -220,35 +220,45 @@ interface MyLockerItem {
             Đăng ký tủ mới
           </Button>
         </div>
-        <div className="grid md:grid-cols-3 gap-4">
+        {/* Lockers Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {availableLockers.length > 0 ? (
-            availableLockers.slice(0, 3).map((availocker) => (
-              <Card key={availocker._id} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Package className="w-6 h-6 text-gray-400" />
+            availableLockers.slice(0, 3).map((locker) => (
+              <Card key={locker._id} className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-gray-900">Tủ {locker.lockerId}</p>
+                      <p className="text-xs text-gray-500">Block {locker.block}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-900">Tủ {availocker.lockerId || 'N/A'}</p>
-                    <p className="text-sm text-gray-500">Tòa {availocker.building || 'N/A'} - Block {availocker.block || 'N/A'}</p>
+                  <Badge className="bg-green-100 text-green-700">Trống</Badge>
+                </div>
+
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-gray-600">Tòa {locker.building}</p>
+                      <p className="text-xs text-gray-500">Block {locker.block}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2 mb-4">
-                  <div className="text-sm text-gray-600">
-                    {availocker.status === 'available' ? (
-                      <Badge className="bg-green-100 text-green-700">Trống</Badge>
-                    ) : (
-                      <Badge className="bg-yellow-100 text-yellow-700">Đã được đặt</Badge>
-                    )}
-                  </div>
-                </div>
-                <Button className="w-full" variant="default">
+
+                <Button className="w-full">
                   Thuê tủ ngay
                 </Button>
               </Card>
             ))
           ) : (
-            <p className="text-gray-500 col-span-3">Không có tủ trống</p>
+            <Card className="p-12 text-center col-span-full">
+              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-900 mb-2">Không tìm thấy tủ trống</p>
+              <p className="text-gray-500">Tất cả các tủ trong block của bạn hiện đã được đặt</p>
+            </Card>
           )}
         </div>
       </div>
