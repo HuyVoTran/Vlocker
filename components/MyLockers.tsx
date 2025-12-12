@@ -5,7 +5,6 @@ import { Badge } from './ui/badge';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -13,55 +12,37 @@ import {
 } from "./ui/dialog";
 import { useState } from 'react';
 
-export default function MyLockers() {
-  const [selectedLocker, setSelectedLocker] = useState<any>(null);
+export interface Locker {
+  _id?: string;
+  lockerId: string;
+  building?: string;
+  block?: string;
+  status?: string;
+}
 
-  const lockers = [
-    {
-      id: 'L001',
-      location: 'Tòa A - Tầng 1',
-      block: 'A1',
-      timeUsed: '2 tháng 15 ngày',
-      timeRemaining: '15 ngày',
-      status: 'active',
-      price: '50,000đ',
-      isPaid: true,
-      size: 'Nhỏ (30x30x40cm)'
-    },
-    {
-      id: 'L045',
-      location: 'Tòa B - Tầng 2',
-      block: 'B2',
-      timeUsed: '1 tháng 7 ngày',
-      timeRemaining: '7 ngày',
-      status: 'active',
-      price: '70,000đ',
-      isPaid: true,
-      size: 'Vừa (40x40x60cm)'
-    },
-    {
-      id: 'L089',
-      location: 'Tòa A - Tầng 3',
-      block: 'A3',
-      timeUsed: '3 tháng',
-      timeRemaining: 'Hết hạn',
-      status: 'pending',
-      price: '50,000đ',
-      isPaid: false,
-      size: 'Nhỏ (30x30x40cm)'
-    },
-    {
-      id: 'L112',
-      location: 'Tòa C - Tầng 1',
-      block: 'C1',
-      timeUsed: '20 ngày',
-      timeRemaining: '10 ngày',
-      status: 'active',
-      price: '100,000đ',
-      isPaid: true,
-      size: 'Lớn (50x50x80cm)'
-    }
-  ];
+export interface Booking {
+  _id: string;
+  userId: string;
+  lockerId: string;
+  startTime?: string | Date;
+  endTime?: string | Date;
+  status?: string;
+  cost?: number;
+  paymentStatus?: string;
+}
+
+interface MyLockerItem {
+  locker: Locker;
+  booking: Booking;
+}
+
+interface MyLockersProps {
+  myLockers: MyLockerItem[];
+  onNavigate?: (page: string, locker?: MyLockerItem) => void;
+}
+
+export default function MyLockers({ myLockers, onNavigate }: MyLockersProps) {
+  const [selectedLocker, setSelectedLocker] = useState<MyLockerItem | null>(null);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -70,131 +51,50 @@ export default function MyLockers() {
         <p className="text-gray-600">Quản lý tất cả các tủ bạn đang sử dụng</p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {lockers.map((locker) => (
-          <Card key={locker.id} className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  locker.status === 'active' ? 'bg-blue-100' : 'bg-yellow-100'
-                }`}>
-                  <Package className={`w-6 h-6 ${
-                    locker.status === 'active' ? 'text-blue-600' : 'text-yellow-600'
-                  }`} />
-                </div>
-                <div>
-                  <p className="text-gray-900">Tủ {locker.id}</p>
-                  <p className="text-sm text-gray-500">{locker.location}</p>
-                </div>
-              </div>
-              {locker.status === 'active' ? (
-                <Badge className="bg-green-100 text-green-700">Đang sử dụng</Badge>
-              ) : (
-                <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
-              )}
-            </div>
-
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Kích thước</span>
-                <span className="text-gray-900">{locker.size}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Block/Tòa</span>
-                <span className="text-gray-900">{locker.block}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-600">Còn lại: {locker.timeRemaining}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CreditCard className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-600">{locker.price}</span>
-              </div>
-            </div>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  className="w-full" 
-                  variant={locker.status === 'pending' ? 'default' : 'outline'}
-                  onClick={() => setSelectedLocker(locker)}
-                >
-                  {locker.status === 'pending' ? 'Thanh toán ngay' : 'Chi tiết'}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Chi tiết tủ {locker.id}</DialogTitle>
-                  <DialogDescription>
-                    Thông tin chi tiết và các tùy chọn cho tủ của bạn
-                  </DialogDescription>
-                </DialogHeader>
-                
-                {selectedLocker && (
-                  <div className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Mã tủ</p>
-                        <p className="text-gray-900">{selectedLocker.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Vị trí</p>
-                        <p className="text-gray-900">{selectedLocker.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Kích thước</p>
-                        <p className="text-gray-900">{selectedLocker.size}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Block/Tòa</p>
-                        <p className="text-gray-900">{selectedLocker.block}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Thời gian đã dùng</p>
-                        <p className="text-gray-900">{selectedLocker.timeUsed}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Còn lại</p>
-                        <p className="text-gray-900">{selectedLocker.timeRemaining}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Số tiền</p>
-                        <p className="text-blue-600">{selectedLocker.price}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
-                        {selectedLocker.isPaid ? (
-                          <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
-                        ) : (
-                          <Badge className="bg-red-100 text-red-700">Chưa thanh toán</Badge>
-                        )}
-                      </div>
-                    </div>
+      <div className="grid md:grid-cols-3 gap-4">
+        {myLockers && myLockers.length > 0 ? (
+          myLockers.map((mylocker) => (
+            <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Package className="w-6 h-6 text-blue-600" />
                   </div>
+                  <div>
+                    <p className="text-gray-900">Tủ {mylocker.locker?.lockerId || 'N/A'}</p>
+                    <p className="text-sm text-gray-500">Tòa {mylocker.locker?.building || 'N/A'} - Block {mylocker.locker?.block || 'N/A'}</p>
+                  </div>
+                </div>
+                {mylocker.booking.status === 'stored' ? (
+                  <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                ) : (
+                  <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
                 )}
-
-                <DialogFooter className="flex-col sm:flex-col gap-2">
-                  {selectedLocker && !selectedLocker.isPaid && (
-                    <Button className="w-full">
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Thanh toán
-                    </Button>
-                  )}
-                  {selectedLocker && selectedLocker.isPaid && (
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      <Unlock className="w-4 h-4 mr-2" />
-                      Mở tủ
-                    </Button>
-                  )}
-                  <Button variant="outline" className="w-full">
-                    Gia hạn tủ
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </Card>
-        ))}
+              </div>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">{mylocker.booking.paymentStatus || ''}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CreditCard className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">{(mylocker.booking.cost || 0).toLocaleString()}đ</span>
+                </div>
+              </div>
+              {mylocker.booking.paymentStatus === 'pending' ? (
+                <Button className="w-full" variant="default" onClick={() => onNavigate?.('payment', mylocker)}>
+                  Thanh toán ngay
+                </Button>
+              ) : (
+                <Button className="w-full" variant="outline" onClick={() => { setSelectedLocker(mylocker); onNavigate?.('my-locker', mylocker); }}>
+                  Chi tiết
+                </Button>
+              )}
+            </Card>
+          ))
+        ) : (
+          <p className="text-gray-500 col-span-3">Bạn chưa có tủ nào</p>
+        )}
       </div>
     </div>
   );

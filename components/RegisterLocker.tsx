@@ -177,7 +177,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm mb-1">Giá từ</p>
-              <p className="text-gray-900">50,000đ/tháng</p>
+              <p className="text-gray-900">5,000đ/ngày</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-purple-600" />
