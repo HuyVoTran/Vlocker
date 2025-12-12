@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Update Header"
+git commit -m "Update RegisterLocker"
 git push
 
 Password@12345

@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { useSession } from 'next-auth/react';
 
 export interface Locker {
@@ -32,6 +33,7 @@ interface RegisterLockerProps {
 
 export default function RegisterLocker({ user }: RegisterLockerProps) {
   const { data: session } = useSession();
+  const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
   const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
   const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,7 +179,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm mb-1">Giá từ</p>
-              <p className="text-gray-900">5,000đ/ngày</p>
+              <p className="text-gray-900">5,000 VNĐ/Ngày</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-purple-600" />
@@ -215,7 +217,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
               </div>
 
               <Button className="w-full">
-                Thuê tủ ngay
+                <div onClick={() => setSelectedLocker(locker)}>Thuê tủ ngay</div>
               </Button>
             </Card>
           ))
@@ -227,6 +229,62 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           </Card>
         )}
       </div>
+
+      {/* Lockers Pop-up */}
+      <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đăng ký tủ {selectedLocker?.lockerId ?? ''}</DialogTitle>
+            <div className="text-sm text-gray-500">Xem lại thông tin trước khi xác nhận thuê</div>
+          </DialogHeader>
+
+          {selectedLocker ? (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Mã tủ</p>
+                  <p className="text-gray-900">{selectedLocker.lockerId}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Tòa</p>
+                  <p className="text-gray-900">{selectedLocker.building}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Block</p>
+                  <p className="text-gray-900">{selectedLocker.block}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Tầng</p>
+                  <p className="text-gray-900">{selectedLocker.floor ?? '1'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Kích thước</p>
+                  <p className="text-gray-900">{selectedLocker.size ?? 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Giá</p>
+                  <p className="text-blue-600">{selectedLocker.price ?? '5,000 VNĐ/Ngày'}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-4">Không có dữ liệu</div>
+          )}
+
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            <Button className="w-full" onClick={async () => {
+              // placeholder: perform registration (call API) or navigate
+              console.log('Registering locker', selectedLocker);
+              setSelectedLocker(null);
+            }}>
+              Xác nhận thuê
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setSelectedLocker(null)}>
+              Hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

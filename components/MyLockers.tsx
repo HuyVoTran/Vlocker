@@ -8,7 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "./ui/dialog";
 import { useState } from 'react';
 
@@ -95,6 +94,81 @@ export default function MyLockers({ myLockers, onNavigate }: MyLockersProps) {
         ) : (
           <p className="text-gray-500 col-span-3">Bạn chưa có tủ nào</p>
         )}
+      </div>
+      <div>
+        <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Chi tiết tủ {selectedLocker?.locker?.lockerId ?? ''}</DialogTitle>
+              <div className="text-sm text-gray-500">Thông tin chi tiết và các tùy chọn cho tủ của bạn</div>
+            </DialogHeader>
+
+            {selectedLocker ? (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Mã tủ</p>
+                    <p className="text-gray-900">{selectedLocker.locker?.lockerId ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Tòa</p>
+                    <p className="text-gray-900">{selectedLocker.locker?.building ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Block</p>
+                    <p className="text-gray-900">{selectedLocker.locker?.block ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Trạng thái đặt</p>
+                    <p className="text-gray-900">{selectedLocker.booking?.status ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Thời gian bắt đầu</p>
+                    <p className="text-gray-900">{selectedLocker.booking?.startTime ? String(selectedLocker.booking.startTime) : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Thời gian kết thúc</p>
+                    <p className="text-gray-900">{selectedLocker.booking?.endTime ? String(selectedLocker.booking.endTime) : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Số tiền</p>
+                    <p className="text-blue-600">{(selectedLocker.booking?.cost || 0).toLocaleString()}đ</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
+                    {selectedLocker.booking?.paymentStatus === 'paid' ? (
+                      <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
+                    ) : selectedLocker.booking?.paymentStatus === 'pending' ? (
+                      <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-4">Không có dữ liệu</div>
+            )}
+
+            <DialogFooter className="flex-col sm:flex-col gap-2">
+              {selectedLocker && selectedLocker.booking?.paymentStatus === 'pending' && (
+                <Button className="w-full" onClick={() => onNavigate?.('payment', selectedLocker ?? undefined)}>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Thanh toán
+                </Button>
+              )}
+              {selectedLocker && selectedLocker.booking?.paymentStatus !== 'pending' && (
+                <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => onNavigate?.('open', selectedLocker ?? undefined)}>
+                  <Unlock className="w-4 h-4 mr-2" />
+                  Mở tủ
+                </Button>
+              )}
+              <Button variant="outline" className="w-full" onClick={() => onNavigate?.('renew', selectedLocker ?? undefined)}>
+                Gia hạn tủ
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
