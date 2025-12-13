@@ -36,6 +36,8 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
   const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
   const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
+  const [registering, setRegistering] = useState<boolean>(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -216,8 +218,8 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 </div>
               </div>
 
-              <Button className="w-full">
-                <div onClick={() => setSelectedLocker(locker)}>Thuê tủ ngay</div>
+              <Button className="w-full" onClick={() => setSelectedLocker(locker)}>
+                Thuê tủ ngay
               </Button>
             </Card>
           ))
@@ -271,13 +273,41 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
             <div className="py-4">Không có dữ liệu</div>
           )}
 
-          <DialogFooter className="flex-col sm:flex-col gap-2">
-            <Button className="w-full" onClick={async () => {
-              // placeholder: perform registration (call API) or navigate
-              console.log('Registering locker', selectedLocker);
-              setSelectedLocker(null);
+            <DialogFooter className="flex-col sm:flex-col gap-2">
+            {registerError && (
+              <div className="text-sm text-red-600">Lỗi: {registerError}</div>
+            )}
+            <Button className="w-full" disabled={registering} onClick={async () => {
+              if (!selectedLocker) return;
+              setRegisterError(null);
+              setRegistering(true);
+              try {
+                const res = await fetch('/api/lockers/resident/register', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: currentUser._id, lockerId: selectedLocker._id })
+                });
+
+                const json = await res.json();
+                if (!res.ok || !json.success) {
+                  const msg = json?.message || `Server error (${res.status})`;
+                  setRegisterError(msg);
+                  setRegistering(false);
+                  return;
+                }
+
+                // success: remove locker from lists and close dialog
+                setAvailableLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
+                setFilteredLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
+                setSelectedLocker(null);
+              } catch (err) {
+                console.error('Register error', err);
+                setRegisterError(err instanceof Error ? err.message : String(err));
+              } finally {
+                setRegistering(false);
+              }
             }}>
-              Xác nhận thuê
+              {registering ? 'Đang xử lý...' : 'Xác nhận thuê'}
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setSelectedLocker(null)}>
               Hủy

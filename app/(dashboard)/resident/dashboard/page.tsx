@@ -31,10 +31,11 @@ export default function Page() {
   console.log("User object:", user);
 
   const handleNavigate = (page: string, locker?: Locker) => {
+    // This page is the resident dashboard; navigate to resident routes
     if (locker) {
-      router.push(`/dashboard/${page}/${locker._id}`);
+      router.push(`/resident/${page}/${locker._id}`);
     } else {
-      router.push(`/dashboard/${page}`);
+      router.push(`/resident/${page}`);
     }
   };
 

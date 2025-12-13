@@ -175,16 +175,20 @@ interface MyLockerItem {
                       <p className="text-sm text-gray-500">Tòa {mylocker.locker?.building || 'N/A'} - Block {mylocker.locker?.block || 'N/A'}</p>
                     </div>
                   </div>
-                  {mylocker.booking.status === 'stored' ? (
-                    <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
-                  ) : (
+                  {mylocker.booking.status === 'active' ? (
                     <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
+                  ) : (
+                    <Badge className="bg-yellow-100 text-yellow-700">Đang sử dụng</Badge>
                   )}
                 </div>
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">{mylocker.booking.paymentStatus}</span>
+                    {mylocker.booking.status === 'active' ? (
+                      <span className="text-gray-600">Chưa tính tiền</span>
+                    ) : (
+                      <span className="text-gray-600">Chờ thanh toán</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-gray-400" />
@@ -193,11 +197,11 @@ interface MyLockerItem {
                 </div>
                 {mylocker.booking.paymentStatus === 'pending' ? (
                   <Button className="w-full" variant="default">
-                    Thanh toán ngay
+                    Chi tiết
                   </Button>
                 ) : (
                   <Button className="w-full" variant="outline">
-                    Chi tiết
+                    Thanh toán ngay
                   </Button>
                 )}
               </Card>

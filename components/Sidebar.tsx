@@ -122,10 +122,9 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
           <button
             key={item.id}
             onClick={() => onNavigate?.(item.id)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50"
-          >
+            className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
             {item.icon}
-            <span>{item.label}</span>
+            <span className="text-left">{item.label}</span>
           </button>
         ))}
       </nav>
