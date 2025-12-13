@@ -4,6 +4,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 // import MyLockers from "./MyLockers";
 
 interface ResidentDashboardProps {
@@ -23,6 +24,9 @@ export interface Locker {
   building: string;
   block: string;
   status: string;
+  floor?: string | number;
+  size?: string;
+  price?: string | number;
 }
 
 export interface Booking {
@@ -48,8 +52,15 @@ interface MyLockerItem {
   }: ResidentDashboardProps) {
     const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
     const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
+    const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
+    const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
+    const [registering, setRegistering] = useState<boolean>(false);
+    const [registerError, setRegisterError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+
+    // currentUser alias (component receives `user` prop)
+    const currentUser = user;
   
     useEffect(() => {
       async function loadData() {
@@ -82,7 +93,9 @@ interface MyLockerItem {
             }
             const availJson = await availRes.json();
             console.log("Available lockers data:", availJson);
-            setAvailableLockers(availJson.data || []);
+            const avail = availJson.data || [];
+            setAvailableLockers(avail);
+            setFilteredLockers(avail);
           } else {
             console.log("No building/block provided, skipping available lockers");
             setAvailableLockers([]);
@@ -226,8 +239,8 @@ interface MyLockerItem {
         </div>
         {/* Lockers Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableLockers.length > 0 ? (
-            availableLockers.slice(0, 3).map((locker) => (
+          {filteredLockers.length > 0 ? (
+            filteredLockers.slice(0, 3).map((locker) => (
               <Card key={locker._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -252,7 +265,7 @@ interface MyLockerItem {
                   </div>
                 </div>
 
-                <Button className="w-full">
+                <Button className="w-full" onClick={() => setSelectedLocker(locker)}>
                   Thuê tủ ngay
                 </Button>
               </Card>
@@ -265,6 +278,91 @@ interface MyLockerItem {
             </Card>
           )}
         </div>
+
+        {/* Lockers Pop-up */}
+        <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Đăng ký tủ {selectedLocker?.lockerId ?? ''}</DialogTitle>
+              <div className="text-sm text-gray-500">Xem lại thông tin trước khi xác nhận thuê</div>
+            </DialogHeader>
+
+            {selectedLocker ? (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Mã tủ</p>
+                    <p className="text-gray-900">{selectedLocker.lockerId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Tòa</p>
+                    <p className="text-gray-900">{selectedLocker.building}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Block</p>
+                    <p className="text-gray-900">{selectedLocker.block}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Tầng</p>
+                    <p className="text-gray-900">{selectedLocker.floor ?? '1'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Kích thước</p>
+                    <p className="text-gray-900">{selectedLocker.size ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Giá</p>
+                    <p className="text-blue-600">{selectedLocker.price ?? '5,000 VNĐ/Ngày'}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-4">Không có dữ liệu</div>
+            )}
+
+              <DialogFooter className="flex-col sm:flex-col gap-2">
+              {registerError && (
+                <div className="text-sm text-red-600">Lỗi: {registerError}</div>
+              )}
+              <Button className="w-full" disabled={registering} onClick={async () => {
+                if (!selectedLocker) return;
+                setRegisterError(null);
+                setRegistering(true);
+                try {
+                  const res = await fetch('/api/lockers/resident/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUser._id, lockerId: selectedLocker._id })
+                  });
+
+                  const json = await res.json();
+                  if (!res.ok || !json.success) {
+                    const msg = json?.message || `Server error (${res.status})`;
+                    setRegisterError(msg);
+                    setRegistering(false);
+                    return;
+                  }
+
+                  // success: remove locker from lists and close dialog
+                  setAvailableLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
+                  setFilteredLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
+                  setSelectedLocker(null);
+                } catch (err) {
+                  console.error('Register error', err);
+                  setRegisterError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setRegistering(false);
+                  window.location.reload();
+                }
+              }}>
+                {registering ? 'Đang xử lý...' : 'Xác nhận thuê'}
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => setSelectedLocker(null)}>
+                Hủy
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
