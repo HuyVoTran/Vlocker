@@ -151,7 +151,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-10">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-10 select-none">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
         <h1 className="text-2xl font-bold text-center mb-6 text-black-600">
           Đăng Ký Cư Dân
@@ -310,7 +310,7 @@ export default function RegisterPage() {
             type="submit"
             disabled={loading}
             className={`w-full text-white py-2 rounded-md transition mt-6 ${
-              loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              loading ? "bg-gray-400 cursor-not-allowed" : "bg-neutral-800 hover:bg-neutral-700"
             }`}
           >
             {loading ? "Đang xử lý..." : "Đăng Ký"}
@@ -322,7 +322,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => router.push("/auth/login")}
-            className="text-blue-600 hover:underline font-semibold"
+            className="text-gray-800 hover:underline font-semibold"
           >
             Đăng Nhập ngay
           </button>

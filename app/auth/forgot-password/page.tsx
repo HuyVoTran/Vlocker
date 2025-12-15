@@ -96,7 +96,7 @@ export default function ForgotPasswordPage() {
             className={`w-full text-white py-2 rounded-md transition ${
               loading
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
+                : "bg-neutral-800 hover:bg-neutral-700"
             }`}
           >
             {loading ? "Đang xử lý..." : "Gửi yêu cầu"}
@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => router.push("/auth/login")}
-            className="text-blue-600 hover:underline font-semibold"
+            className="text-bg-grey-800 hover:underline font-semibold"
           >
             Đăng nhập
           </button>

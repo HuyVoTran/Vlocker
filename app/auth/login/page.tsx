@@ -52,7 +52,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 select-none">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-2xl font-bold text-center mb-6 text-black-600">Đăng Nhập</h1>
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
           />
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-black-700 transition"
+            className="w-full bg-neutral-800 text-white py-2 rounded-md hover:bg-neutral-700 transition"
           >
             Đăng Nhập
           </button>
@@ -89,7 +89,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => router.push("/auth/register")}
-            className="text-black-600 hover:underline"
+            className="text-grey-800 hover:underline"
           >
             Đăng Ký
           </button>

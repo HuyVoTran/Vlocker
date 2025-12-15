@@ -4,68 +4,69 @@ import { Card } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useRouter } from "next/navigation";
 
+export const metadata = {
+  title: 'VLocker - Tủ thông minh cho chung cư',
+};
+
 export default function LandingPage() {
   const router = useRouter();
   const features = [
     {
-      icon: <Shield className="w-8 h-8 text-blue-600" />,
-      title: 'Bảo mật cao',
-      description: 'Hệ thống khóa thông minh với mã OTP và xác thực đa lớp'
+      icon: <Shield className="w-8 h-8 text-[#1e1e1e]" />,
+      title: 'Bảo mật nhiều lớp',
+      description: 'Tủ thông minh sử dụng OTP, trạng thái tủ theo thời gian thực và xác thực người dùng'
     },
     {
-      icon: <Clock className="w-8 h-8 text-blue-600" />,
-      title: 'Tiện lợi 24/7',
-      description: 'Nhận hàng mọi lúc mọi nơi, không cần chờ đợi'
+      icon: <Clock className="w-8 h-8 text-[#1e1e1e]" />,
+      title: 'Gửi & nhận linh hoạt',
+      description: 'Hỗ trợ shipper giao hàng và người dùng nhận đồ bất kỳ lúc nào'
     },
     {
-      icon: <Lock className="w-8 h-8 text-blue-600" />,
-      title: 'An toàn tuyệt đối',
-      description: 'Tủ được giám sát liên tục, đảm bảo hàng hóa an toàn'
+      icon: <Lock className="w-8 h-8 text-[#1e1e1e]" />,
+      title: 'Quản lý trạng thái tủ',
+      description: 'Theo dõi tủ trống, tủ đã đặt, tủ đang mở hoặc đã khóa ngay trên dashboard'
     },
     {
-      icon: <Smartphone className="w-8 h-8 text-blue-600" />,
-      title: 'Quản lý dễ dàng',
-      description: 'Ứng dụng di động thân thiện, dễ sử dụng'
+      icon: <Smartphone className="w-8 h-8 text-[#1e1e1e]" />,
+      title: 'Thanh toán & mở khóa tiện lợi',
+      description: 'Thanh toán nhanh qua Momo / VNPAY để mở khóa và lấy đồ'
     }
   ];
 
   const steps = [
     {
       number: '01',
-      title: 'Đăng ký tủ',
-      description: 'Chọn tủ phù hợp với nhu cầu của bạn'
+      title: 'Vào tủ của tôi',
+      description: 'Người dùng truy cập danh sách các tủ đang sử dụng trên dashboard'
     },
     {
       number: '02',
-      title: 'Shipper giao hàng',
-      description: 'Shipper đặt hàng vào tủ và thông báo cho bạn'
+      title: 'Xem chi tiết & thanh toán',
+      description: 'Kiểm tra thông tin tủ và thanh toán phí thuê qua Momo hoặc VNPAY'
     },
     {
       number: '03',
-      title: 'Nhận mã OTP',
-      description: 'Bạn nhận mã mở tủ qua app hoặc SMS'
+      title: 'Mở tủ & lấy đồ',
+      description: 'Sau khi thanh toán thành công, hệ thống cho phép mở tủ để lấy đồ'
     },
     {
       number: '04',
-      title: 'Lấy hàng',
-      description: 'Mở tủ bằng mã OTP và nhận hàng'
+      title: 'Đóng tủ & hoàn tất',
+      description: 'Đóng tủ, kết thúc phiên sử dụng và cập nhật trạng thái tủ'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#1e1e1e] select-none">
       {/* Navigation */}
       <nav className="border-b border-gray-200 bg-white fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white">V</span>
-              </div>
-              <h1 className="text-blue-600">VLocker</h1>
+              <h1 className="text-black font-light">VLocker</h1>
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => router.push("auth/login")}>
+              <Button className="bg-[#1e1e1e]" onClick={() => router.push("auth/login")}> 
                 Đăng nhập
               </Button>
             </div>
@@ -74,20 +75,20 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-br from-blue-50 to-white">
+      <section className="pt-24 pb-16 bg-[#1e1e1e]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className="text-blue-600 mb-6">
-                Tủ thông minh cho chung cư
+              <h1 className="text-white mb-6 font-bold text-3xl leading-tight">
+                Tủ Thông Minh Cho Chung Cư
                 <br />
-                Nhận hàng mọi lúc
+                Nhận Hàng Mọi Lúc
               </h1>
-              <p className="text-gray-600 mb-8">
+              <p className="text-gray-200 mb-8">
                 VLocker mang đến giải pháp tủ khóa thông minh, giúp bạn nhận hàng mọi lúc mọi nơi một cách an toàn, tiện lợi và bảo mật. Không còn lo lắng về việc bỏ lỡ đơn hàng hay phải chờ đợi shipper.
               </p>
               <div className="flex gap-4">
-                <Button size="lg" onClick={() => router.push("auth/register")}>
+                <Button size="lg" onClick={() => router.push("auth/register")} variant="outline">
                   <Package className="w-5 h-5 mr-2" />
                   Đăng ký ngay
                 </Button>
@@ -98,7 +99,7 @@ export default function LandingPage() {
             </div>
             <div className="rounded-2xl overflow-hidden shadow-2xl">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1670034353433-65a76b0b2797?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzbWFydCUyMGxvY2tlciUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2MzE2Njc0MHww&ixlib=rb-4.1.0&q=80&w=1080"
+                src="https://i.pinimg.com/1200x/29/f2/31/29f23159ee53b27afb11772e4f4617b8.jpg"
                 alt="Smart Locker System"
                 className="w-full h-[400px] object-cover"
               />
@@ -107,109 +108,108 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-gray-900 mb-4">Tính năng chính</h2>
-            <p className="text-gray-600">
-              Giải pháp toàn diện cho nhu cầu nhận hàng của bạn
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="mb-4">{feature.icon}</div>
-                <h3 className="text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600 text-sm">{feature.description}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-gray-900 mb-4">Quy trình sử dụng</h2>
-            <p className="text-gray-600">
-              Chỉ 4 bước đơn giản để nhận hàng một cách tiện lợi
-            </p>
-          </div>
-          <div className="grid md:grid-cols-4 gap-8">
-            {steps.map((step, index) => (
-              <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-xl">{step.number}</span>
-                </div>
-                <h3 className="text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-gray-600 text-sm">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="rounded-2xl overflow-hidden shadow-lg">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1537695544118-fda4b1118f62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcGFydG1lbnQlMjBidWlsZGluZyUyMG1vZGVybnxlbnwxfHx8fDE3NjMxMzU1OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                alt="Modern Apartment"
-                className="w-full h-[400px] object-cover"
-              />
+      <div className="border rounded-3xl border-white w-[90vw] mx-auto mt-8 mb-16 bg-gray-50 overflow-hidden">
+        {/* Features Section */}
+        <section className="py-16 bg-white border rounded-t-3xl border-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <h2 className="font-semibold text-3xl mb-4">Tính năng chính</h2>
+              <p className="text-gray-600">
+                Giải pháp toàn diện cho nhu cầu nhận hàng của bạn
+              </p>
             </div>
-            <div>
-              <h2 className="text-gray-900 mb-6">Lợi ích vượt trội</h2>
-              <div className="space-y-4">
-                {[
-                  'An toàn: Hệ thống bảo mật đa lớp, giám sát 24/7',
-                  'Tiện lợi: Nhận hàng mọi lúc, không cần chờ đợi',
-                  'Bảo mật: Mã OTP độc nhất, tự động hết hạn',
-                  'Linh hoạt: Nhiều kích thước tủ phù hợp với mọi nhu cầu',
-                  'Tiết kiệm: Không lo thất lạc hoặc trả hàng do vắng nhà'
-                ].map((benefit, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-700">{benefit}</p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {features.map((feature, index) => (
+                <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
+                  <div className="mb-4">{feature.icon}</div>
+                  <h3 className="text-gray-900 mb-2">{feature.title}</h3>
+                  <p className="text-gray-600 text-sm">{feature.description}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <h2 className="font-semibold text-3xl mb-4">Quy trình sử dụng</h2>
+              <p className="text-gray-600">
+                Chỉ 4 bước đơn giản để nhận hàng một cách tiện lợi
+              </p>
+            </div>
+            <div className="grid md:grid-cols-4 gap-8">
+              {steps.map((step, index) => (
+                <div key={index} className="text-center">
+                  <div className="w-16 h-16 bg-[#1e1e1e] text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-xl">{step.number}</span>
                   </div>
-                ))}
+                  <h3 className="text-gray-900 mb-2">{step.title}</h3>
+                  <p className="text-gray-600 text-sm">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits */}
+        <section className="py-16 bg-white border rounded-b-3xl border-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="rounded-2xl overflow-hidden shadow-lg">
+                <ImageWithFallback
+                  src="https://images.unsplash.com/photo-1537695544118-fda4b1118f62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcGFydG1lbnQlMjBidWlsZGluZyUyMG1vZGVybnxlbnwxfHx8fDE3NjMxMzU1OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080"
+                  alt="Modern Apartment"
+                  className="w-full h-[400px] object-cover"
+                />
+              </div>
+              <div>
+                <h2 className="font-semibold text-3xl mb-6">Lợi ích vượt trội</h2>
+                <div className="space-y-4">
+                  {[
+                    'An toàn: Hệ thống bảo mật đa lớp, giám sát 24/7',
+                    'Tiện lợi: Nhận hàng mọi lúc, không cần chờ đợi',
+                    'Bảo mật: Mã OTP độc nhất, tự động hết hạn',
+                    'Linh hoạt: Nhiều kích thước tủ phù hợp với mọi nhu cầu',
+                    'Tiết kiệm: Không lo thất lạc hoặc trả hàng do vắng nhà'
+                  ].map((benefit, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <CheckCircle className="w-6 h-6 text-[#1e1e1e] flex-shrink-0 mt-0.5" />
+                      <p className="text-gray-700">{benefit}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {/* CTA Section */}
-      <section className="py-16 bg-blue-600">
+      <section className="py-16 mb-8">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-white mb-4">
             Bắt đầu sử dụng VLocker ngay hôm nay
           </h2>
-          <p className="text-blue-100 mb-8">
+          <p className="text-gray-200 mb-8">
             Đăng ký tài khoản và trải nghiệm dịch vụ tủ thông minh hiện đại nhất
           </p>
           <div className="flex gap-4 justify-center">
-            <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white/10" onClick={() => router.push("auth/login")}>
-              Đăng nhập
+            <Button className="bg-white text-black hover:bg-white hover:text-black" onClick={() => router.push("auth/login")}> 
+                Đăng nhập
             </Button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
+      <footer className="bg-neutral-900 text-neutral-400 py-8">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white">V</span>
-                </div>
-                <h3 className="text-white">VLocker</h3>
+              <div className="flex items-center gap-3">
+              <h1 className="text-white font-light">VLocker</h1>
               </div>
               <p className="text-sm">
                 Giải pháp tủ thông minh cho chung cư hiện đại
@@ -240,7 +240,7 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
+          <div className="border-t border-neutral-800 mt-8 pt-8 text-center text-sm">
             <p>&copy; 2025 VLocker. All rights reserved.</p>
           </div>
         </div>
