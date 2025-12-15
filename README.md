@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Update LandingPage"
+git commit -m "Update HowItWorks"
 git push
 
 Password@12345
@@ -93,12 +93,16 @@ npm install
 ```bash
 # .env.local
 
-# MongoDB Connection
 MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/vlocker_db"
 
-# NextAuth Secrets
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="[Một chuỗi ngẫu nhiên dài và mạnh]"
+# URL của website
+NEXT_PUBLIC_URL=http://localhost:3000
+
+# Email dùng để gửi mail thật
+EMAIL_USER=...@gmail.com
+
+# App Password của Gmail (không phải mật khẩu đăng nhập Gmail)
+EMAIL_PASS=.... .... .... ....
 ```
 
 ```bash
@@ -115,7 +119,7 @@ npm run dev
 - NextAuth
 
 ## Author
-- **Trần Võ Huy**
+- **Trần Võ Huy (Salvio Tran)**
 - Email:
   - Công việc: Huy.2374802010192@vanlanguni.vn 
   - Cá nhân: Huyvo0911@gmail.com

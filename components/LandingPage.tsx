@@ -92,7 +92,7 @@ export default function LandingPage() {
                   <Package className="w-5 h-5 mr-2" />
                   Đăng ký ngay
                 </Button>
-                <Button size="lg" variant="outline">
+                <Button size="lg" onClick={() => router.push("/HowItWorks")} variant="outline">
                   Tìm hiểu thêm
                 </Button>
               </div>
