@@ -14,22 +14,22 @@ export default function LandingPage() {
     {
       icon: <Shield className="w-8 h-8 text-[#1e1e1e]" />,
       title: 'Bảo mật nhiều lớp',
-      description: 'Tủ thông minh sử dụng OTP, trạng thái tủ theo thời gian thực và xác thực người dùng'
+      description: 'Tủ thông minh sử dụng OTP, trạng thái tủ theo thời gian thực và xác thực người dùng.'
     },
     {
       icon: <Clock className="w-8 h-8 text-[#1e1e1e]" />,
       title: 'Gửi & nhận linh hoạt',
-      description: 'Hỗ trợ shipper giao hàng và người dùng nhận đồ bất kỳ lúc nào'
+      description: 'Hỗ trợ shipper giao hàng và người dùng nhận đồ bất kỳ lúc nào.'
     },
     {
       icon: <Lock className="w-8 h-8 text-[#1e1e1e]" />,
       title: 'Quản lý trạng thái tủ',
-      description: 'Theo dõi tủ trống, tủ đã đặt, tủ đang mở hoặc đã khóa ngay trên dashboard'
+      description: 'Theo dõi tủ trống, tủ đã đặt, tủ đang mở hoặc đã khóa ngay trên dashboard.'
     },
     {
       icon: <Smartphone className="w-8 h-8 text-[#1e1e1e]" />,
       title: 'Thanh toán & mở khóa tiện lợi',
-      description: 'Thanh toán nhanh qua Momo / VNPAY để mở khóa và lấy đồ'
+      description: 'Thanh toán nhanh qua Momo / VNPAY để mở khóa và lấy đồ.'
     }
   ];
 
@@ -37,22 +37,22 @@ export default function LandingPage() {
     {
       number: '01',
       title: 'Vào tủ của tôi',
-      description: 'Người dùng truy cập danh sách các tủ đang sử dụng trên dashboard'
+      description: 'Người dùng truy cập danh sách các tủ đang sử dụng trên dashboard.'
     },
     {
       number: '02',
       title: 'Xem chi tiết & thanh toán',
-      description: 'Kiểm tra thông tin tủ và thanh toán phí thuê qua Momo hoặc VNPAY'
+      description: 'Kiểm tra thông tin tủ và thanh toán phí thuê qua Momo hoặc VNPAY.'
     },
     {
       number: '03',
       title: 'Mở tủ & lấy đồ',
-      description: 'Sau khi thanh toán thành công, hệ thống cho phép mở tủ để lấy đồ'
+      description: 'Sau khi thanh toán thành công, hệ thống cho phép mở tủ để lấy đồ.'
     },
     {
       number: '04',
       title: 'Đóng tủ & hoàn tất',
-      description: 'Đóng tủ, kết thúc phiên sử dụng và cập nhật trạng thái tủ'
+      description: 'Đóng tủ, kết thúc phiên sử dụng và cập nhật trạng thái tủ.'
     }
   ];
 
@@ -121,8 +121,8 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {features.map((feature, index) => (
                 <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
-                  <div className="mb-4">{feature.icon}</div>
-                  <h3 className="text-gray-900 mb-2">{feature.title}</h3>
+                  <div>{feature.icon}</div>
+                  <h3 className="text-gray-900 font-semibold">{feature.title}</h3>
                   <p className="text-gray-600 text-sm">{feature.description}</p>
                 </Card>
               ))}

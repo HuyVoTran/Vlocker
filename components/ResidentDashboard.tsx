@@ -6,6 +6,9 @@ import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 // import MyLockers from "./MyLockers";
+import Locker from "@/models/Locker";
+import Booking from "@/models/Booking";
+
 
 interface ResidentDashboardProps {
   onNavigate: (page: string, locker?: Locker) => void;

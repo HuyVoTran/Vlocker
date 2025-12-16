@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
-// import Locker from "@/models/Locker";
+import Locker from "@/models/Locker"; // ensure Locker model is registered for populate
 
 export async function GET(req) {
   try {
@@ -19,7 +19,7 @@ export async function GET(req) {
 
     // 1. Tìm tất cả booking của user + populate locker
     const bookings = await Booking.find({ userId })
-      .populate("lockerId")
+      .populate({ path: "lockerId", model: Locker })
       .lean();
 
     if (!bookings) {
