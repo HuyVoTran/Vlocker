@@ -3,7 +3,7 @@ cd vlocker
 npm run dev
 
 git add .
-git commit -m "Fix ResidentDashboard"
+git commit -m "Fix MyLockers"
 git push
 
 Password@12345

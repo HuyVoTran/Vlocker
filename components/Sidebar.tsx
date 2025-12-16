@@ -3,6 +3,7 @@
 import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ interface MenuItem {
 
 export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   const { data: session } = useSession();
+  const router = useRouter();
   
   if (!isOpen) return null;
 
@@ -104,15 +106,15 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   const menuItems = role === 'manager' ? managerMenuItems : residentMenuItems;
   
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-60 bg-white border-r border-gray-200 flex flex-col select-none">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white">V</span>
-          </div>
-          <div>
-            <h1 className="text-blue-600">VLocker</h1>
-            <p className="text-xs text-gray-500">Smart Locker System</p>
+          <div 
+            onClick={() => router.push(`/${role}/dashboard`)}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <h1 className="text-lg text-black font-light">VLocker</h1>
+            <p className="text-xs text-neutral-500">Smart Locker System</p>
           </div>
         </div>
       </div>

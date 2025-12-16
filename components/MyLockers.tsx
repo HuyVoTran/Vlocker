@@ -30,7 +30,7 @@ export interface Booking {
   paymentStatus?: string;
 }
 
-interface MyLockerItem {
+export interface MyLockerItem {
   locker: Locker;
   booking: Booking;
 }
@@ -73,7 +73,11 @@ export default function MyLockers({ myLockers, onNavigate }: MyLockersProps) {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">{mylocker.booking.paymentStatus || ''}</span>
+                  {mylocker.booking.status === 'active' ? (
+                    <span className="text-gray-600">Chưa tính tiền</span>
+                  ) : (
+                    <span className="text-gray-600">Chờ thanh toán</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <CreditCard className="w-4 h-4 text-gray-400" />
@@ -81,12 +85,12 @@ export default function MyLockers({ myLockers, onNavigate }: MyLockersProps) {
                 </div>
               </div>
               {mylocker.booking.paymentStatus === 'pending' ? (
-                <Button className="w-full" variant="default" onClick={() => onNavigate?.('payment', mylocker)}>
-                  Thanh toán ngay
+                <Button className="w-full" variant="default">
+                  Chi tiết
                 </Button>
               ) : (
-                <Button className="w-full" variant="outline" onClick={() => { setSelectedLocker(mylocker); onNavigate?.('my-locker', mylocker); }}>
-                  Chi tiết
+                <Button className="w-full" variant="outline">
+                  Thanh toán ngay
                 </Button>
               )}
             </Card>
