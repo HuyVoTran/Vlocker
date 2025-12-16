@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, History } from 'lucide-react';
 import { Button } from './ui/button';
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,11 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
+      id: 'history-locker',
+      label: 'Lịch sử đơn',
+      icon: <History className="w-5 h-5" />,
+    },
+    {
       id: 'profile',
       label: 'Profile',
       icon: <User className="w-5 h-5" />,
@@ -85,6 +90,11 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       id: 'available-lockers',
       label: 'Tủ trống',
       icon: <PlusCircle className="w-5 h-5" />,
+    },
+    {
+      id: 'history-locker',
+      label: 'Thống kê đơn',
+      icon: <History className="w-5 h-5" />,
     },
     {
       id: 'profile',

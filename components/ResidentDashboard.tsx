@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CreditCard, Plus, Smartphone, MapPin } from 'lucide-react';
+import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 // import MyLockers from "./MyLockers";
 import Locker from "@/models/Locker";
 import Booking from "@/models/Booking";
@@ -36,11 +36,12 @@ export interface Booking {
   _id: string;
   userId: string;
   lockerId: string;
-  startTime: Date;
-  endTime: Date;
-  status: string;
-  cost: number;
-  paymentStatus: string;
+  startTime?: string | Date;
+  endTime?: string | Date;
+  pickupExpiryTime?: string | Date;
+  status?: string;
+  cost?: number;
+  paymentStatus?: string;
 }
 
 // === Quan trọng: Kiểu gộp trả về từ API ===
@@ -56,7 +57,11 @@ interface MyLockerItem {
     const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
     const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
     const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
-    const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
+    const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
+    const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
+    const [currentTime, setCurrentTime] = useState(new Date());
     const [registering, setRegistering] = useState<boolean>(false);
     const [registerError, setRegisterError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -64,6 +69,161 @@ interface MyLockerItem {
 
     // currentUser alias (component receives `user` prop)
     const currentUser = user;
+
+    // Update time every minute for countdown
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 60000); // Update every minute
+
+      return () => clearInterval(interval);
+    }, []);
+
+    // Helper functions
+    const formatDate = (date: string | Date | undefined): string => {
+      if (!date) return 'N/A';
+      try {
+        const d = new Date(date);
+        return d.toLocaleString('vi-VN', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch {
+        return String(date);
+      }
+    };
+
+    const calculateCost = (booking: Booking): number => {
+      if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.cost && booking.cost > 0) {
+        return booking.cost;
+      }
+      if (booking.status === 'stored' && booking.paymentStatus === 'pending' && booking.startTime) {
+        const startTime = new Date(booking.startTime);
+        const now = new Date();
+        const daysDiff = Math.ceil((now.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.max(1, daysDiff) * 5000;
+      }
+      return booking.cost || 0;
+    };
+
+    const getRemainingPickupTime = (booking: Booking): number | null => {
+      if (booking.status === 'stored' && booking.paymentStatus === 'paid') {
+        if (!booking.pickupExpiryTime) {
+          return null;
+        }
+        const expiry = new Date(booking.pickupExpiryTime);
+        const diffMs = expiry.getTime() - currentTime.getTime();
+        const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+        return diffMinutes > 0 ? diffMinutes : 0;
+      }
+      return null;
+    };
+
+    const formatRemainingTime = (minutes: number | null): string => {
+      if (minutes === null) return '';
+      if (minutes <= 0) return 'Đã hết hạn';
+      if (minutes < 60) return `Còn ${minutes} phút`;
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `Còn ${hours} giờ ${mins} phút`;
+    };
+
+    // Handler functions
+    const handleOpen = async () => {
+      if (!selectedMyLocker) return;
+      
+      setActionLoading('open');
+      setActionError(null);
+      
+      try {
+        const res = await fetch('/api/lockers/resident/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedMyLocker.booking._id }),
+        });
+
+        const json = await res.json();
+        
+        if (!res.ok || !json.success) {
+          if (json.message && json.message.includes('hết hạn')) {
+            // Refresh data if expired
+            window.location.reload();
+          }
+          throw new Error(json.message || 'Lỗi mở tủ');
+        }
+
+        alert('Tủ đã được mở thành công!');
+        window.location.reload();
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Lỗi mở tủ');
+      } finally {
+        setActionLoading(null);
+      }
+    };
+
+    const handleLock = async () => {
+      if (!selectedMyLocker) return;
+      
+      setActionLoading('lock');
+      setActionError(null);
+      
+      try {
+        const res = await fetch('/api/lockers/resident/lock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedMyLocker.booking._id }),
+        });
+
+        const json = await res.json();
+        
+        if (!res.ok || !json.success) {
+          throw new Error(json.message || 'Lỗi khóa tủ');
+        }
+
+        alert(json.message || 'Khóa tủ thành công!');
+        window.location.reload();
+        setSelectedMyLocker(null);
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Lỗi khóa tủ');
+      } finally {
+        setActionLoading(null);
+      }
+    };
+
+    const handlePayment = async () => {
+      if (!selectedMyLocker) return;
+      
+      setActionLoading('payment');
+      setActionError(null);
+      
+      try {
+        const res = await fetch('/api/lockers/resident/payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            bookingId: selectedMyLocker.booking._id,
+            paymentMethod: 'virtual'
+          }),
+        });
+
+        const json = await res.json();
+        
+        if (!res.ok || !json.success) {
+          throw new Error(json.message || 'Lỗi thanh toán');
+        }
+
+        alert('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.');
+        window.location.reload();
+        setSelectedMyLocker(null);
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Lỗi thanh toán');
+      } finally {
+        setActionLoading(null);
+      }
+    };
   
     useEffect(() => {
       async function loadData() {
@@ -212,11 +372,11 @@ interface MyLockerItem {
                   </div>
                 </div>
                 {mylocker.booking.paymentStatus === 'pending' ? (
-                  <Button className="w-full" variant="default">
+                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
                     Chi tiết
                   </Button>
                 ) : (
-                  <Button className="w-full" variant="outline">
+                  <Button className="w-full" variant="outline" onClick={() => setSelectedMyLocker(mylocker)}>
                     Thanh toán ngay
                   </Button>
                 )}
@@ -226,6 +386,166 @@ interface MyLockerItem {
             <p className="text-gray-500 col-span-3">Bạn chưa có tủ nào</p>
           )}
         </div>
+      </div>
+      <div>
+        <Dialog open={!!selectedMyLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedMyLocker(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Chi tiết tủ {selectedMyLocker?.locker?.lockerId ?? ''}</DialogTitle>
+              <DialogDescription>Thông tin chi tiết và các tùy chọn cho tủ của bạn</DialogDescription>
+            </DialogHeader>
+
+            {selectedMyLocker ? (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Mã tủ</p>
+                    <p className="text-gray-900">{selectedMyLocker.locker?.lockerId ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Tòa</p>
+                    <p className="text-gray-900">{selectedMyLocker.locker?.building ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Block</p>
+                    <p className="text-gray-900">{selectedMyLocker.locker?.block ?? 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Trạng thái đặt</p>
+                    {selectedMyLocker.booking?.status === 'active' ? (
+                      <p className="text-gray-900">Chưa dùng</p>
+                    ) : selectedMyLocker.booking?.status === 'stored' ? (
+                      <p className="text-gray-900">Đã dùng</p>
+                    ) : (
+                      <p className="text-gray-900">Không có</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Thời gian bắt đầu</p>
+                    <p className="text-gray-900">{formatDate(selectedMyLocker.booking?.startTime)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Thời gian kết thúc</p>
+                    <p className="text-gray-900">{formatDate(selectedMyLocker.booking?.endTime)}</p>
+                  </div>
+                  {selectedMyLocker.booking?.status === 'stored' && selectedMyLocker.booking?.paymentStatus === 'paid' && (
+                    <div>
+                      <p className="text-sm text-gray-500">Thời gian lấy đồ còn lại</p>
+                      {selectedMyLocker.booking?.pickupExpiryTime ? (
+                        <p className={`text-gray-900 ${getRemainingPickupTime(selectedMyLocker.booking) !== null && getRemainingPickupTime(selectedMyLocker.booking)! <= 0 ? 'text-red-600 font-semibold' : 'text-orange-600 font-semibold'}`}>
+                          {formatRemainingTime(getRemainingPickupTime(selectedMyLocker.booking)) || 'Đã hết hạn'}
+                        </p>
+                      ) : (
+                        <p className="text-red-600 font-semibold">Chưa có thời gian hết hạn</p>
+                      )}
+                      {process.env.NODE_ENV === 'development' && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Debug: pickupExpiryTime = {selectedMyLocker.booking?.pickupExpiryTime ? formatDate(selectedMyLocker.booking.pickupExpiryTime) : 'null'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-gray-500">Số tiền</p>
+                    <p className="text-blue-600">
+                      {selectedMyLocker.booking?.status === 'stored'
+                        ? calculateCost(selectedMyLocker.booking).toLocaleString()
+                        : (selectedMyLocker.booking?.cost || 0).toLocaleString()}đ
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
+                    {selectedMyLocker.booking?.paymentStatus === 'paid' ? (
+                      <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
+                    ) : selectedMyLocker.booking?.status === 'stored' ? (
+                      <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-4">Không có dữ liệu</div>
+            )}
+
+            {actionError && (
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
+                {actionError}
+              </div>
+            )}
+
+            <DialogFooter className="flex-col sm:flex-col gap-2">
+              {/* Status: active - Có thể mở tủ và khóa tủ */}
+              {selectedMyLocker && selectedMyLocker.booking?.status === 'active' && (
+                <>
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700" 
+                    onClick={handleOpen}
+                    disabled={actionLoading !== null}
+                  >
+                    <Unlock className="w-4 h-4 mr-2" />
+                    {actionLoading === 'open' ? 'Đang mở...' : 'Mở tủ'}
+                  </Button>
+                  <Button 
+                    className="w-full bg-blue-600 hover:bg-blue-700" 
+                    onClick={handleLock}
+                    disabled={actionLoading !== null}
+                  >
+                    <Lock className="w-4 h-4 mr-2" />
+                    {actionLoading === 'lock' ? 'Đang khóa...' : 'Khóa tủ (Bắt đầu tính tiền)'}
+                  </Button>
+                </>
+              )}
+
+              {/* Status: stored - Phải thanh toán mới được mở tủ */}
+              {selectedMyLocker && selectedMyLocker.booking?.status === 'stored' && (
+                <>
+                  {selectedMyLocker.booking?.paymentStatus === 'pending' ? (
+                    <Button 
+                      className="w-full bg-yellow-600 hover:bg-yellow-700" 
+                      onClick={handlePayment}
+                      disabled={actionLoading !== null}
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      {actionLoading === 'payment' ? 'Đang xử lý...' : 'Thanh toán (Tạm thanh toán ảo)'}
+                    </Button>
+                  ) : (
+                    <>
+                      {getRemainingPickupTime(selectedMyLocker.booking) !== null && getRemainingPickupTime(selectedMyLocker.booking)! <= 0 ? (
+                        <Button 
+                          className="w-full bg-gray-400 cursor-not-allowed" 
+                          disabled={true}
+                        >
+                          <Unlock className="w-4 h-4 mr-2" />
+                          Đã hết hạn lấy đồ
+                        </Button>
+                      ) : (
+                        <Button 
+                          className="w-full bg-green-600 hover:bg-green-700" 
+                          onClick={handleOpen}
+                          disabled={actionLoading !== null}
+                        >
+                          <Unlock className="w-4 h-4 mr-2" />
+                          {actionLoading === 'open' ? 'Đang mở...' : 'Mở tủ'}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => onNavigate('renew', selectedMyLocker?.locker)}
+                disabled={actionLoading !== null}
+              >
+                Báo Cáo Lỗi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Available Lockers Section */}
@@ -268,7 +588,7 @@ interface MyLockerItem {
                   </div>
                 </div>
 
-                <Button className="w-full" onClick={() => setSelectedLocker(locker)}>
+                <Button className="w-full" onClick={() => setSelectedAvailableLocker(locker)}>
                   Thuê tủ ngay
                 </Button>
               </Card>
@@ -283,39 +603,39 @@ interface MyLockerItem {
         </div>
 
         {/* Lockers Pop-up */}
-        <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
+        <Dialog open={!!selectedAvailableLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedAvailableLocker(null); }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Đăng ký tủ {selectedLocker?.lockerId ?? ''}</DialogTitle>
-              <div className="text-sm text-gray-500">Xem lại thông tin trước khi xác nhận thuê</div>
+              <DialogTitle>Đăng ký tủ {selectedAvailableLocker?.lockerId ?? ''}</DialogTitle>
+              <DialogDescription>Xem lại thông tin trước khi xác nhận thuê</DialogDescription>
             </DialogHeader>
 
-            {selectedLocker ? (
+            {selectedAvailableLocker ? (
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Mã tủ</p>
-                    <p className="text-gray-900">{selectedLocker.lockerId}</p>
+                    <p className="text-gray-900">{selectedAvailableLocker.lockerId}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Tòa</p>
-                    <p className="text-gray-900">{selectedLocker.building}</p>
+                    <p className="text-gray-900">{selectedAvailableLocker.building}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Block</p>
-                    <p className="text-gray-900">{selectedLocker.block}</p>
+                    <p className="text-gray-900">{selectedAvailableLocker.block}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Tầng</p>
-                    <p className="text-gray-900">{selectedLocker.floor ?? '1'}</p>
+                    <p className="text-gray-900">{selectedAvailableLocker.floor ?? '1'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Kích thước</p>
-                    <p className="text-gray-900">{selectedLocker.size ?? 'N/A'}</p>
+                    <p className="text-gray-900">{selectedAvailableLocker.size ?? 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Giá</p>
-                    <p className="text-blue-600">{selectedLocker.price ?? '5,000 VNĐ/Ngày'}</p>
+                    <p className="text-blue-600">{selectedAvailableLocker.price ?? '5,000 VNĐ/Ngày'}</p>
                   </div>
                 </div>
               </div>
@@ -328,14 +648,14 @@ interface MyLockerItem {
                 <div className="text-sm text-red-600">Lỗi: {registerError}</div>
               )}
               <Button className="w-full" disabled={registering} onClick={async () => {
-                if (!selectedLocker) return;
+                if (!selectedAvailableLocker) return;
                 setRegisterError(null);
                 setRegistering(true);
                 try {
                   const res = await fetch('/api/lockers/resident/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUser._id, lockerId: selectedLocker._id })
+                    body: JSON.stringify({ userId: currentUser._id, lockerId: selectedAvailableLocker._id })
                   });
 
                   const json = await res.json();
@@ -347,9 +667,9 @@ interface MyLockerItem {
                   }
 
                   // success: remove locker from lists and close dialog
-                  setAvailableLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
-                  setFilteredLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
-                  setSelectedLocker(null);
+                  setAvailableLockers(prev => prev.filter(l => l._id !== selectedAvailableLocker._id));
+                  setFilteredLockers(prev => prev.filter(l => l._id !== selectedAvailableLocker._id));
+                  setSelectedAvailableLocker(null);
                 } catch (err) {
                   console.error('Register error', err);
                   setRegisterError(err instanceof Error ? err.message : String(err));
@@ -360,7 +680,7 @@ interface MyLockerItem {
               }}>
                 {registering ? 'Đang xử lý...' : 'Xác nhận thuê'}
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => setSelectedLocker(null)}>
+              <Button variant="outline" className="w-full" onClick={() => setSelectedAvailableLocker(null)}>
                 Hủy
               </Button>
             </DialogFooter>

@@ -13,38 +13,49 @@ export default function Page() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      if (status === "loading") return;
-      
-      if (status === "unauthenticated" || !session?.user?.id) {
-        router.push("/");
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        console.log("Fetching my lockers for user:", session.user.id);
-        const myRes = await fetch(`/api/lockers/resident/mylocker?userId=${session.user.id}`);
-        console.log("My lockers response status:", myRes.status);
-        
-        if (!myRes.ok) {
-          throw new Error(`My lockers API error: ${myRes.status}`);
-        }
-        
-        const myJson = await myRes.json();
-        console.log("My lockers data:", myJson);
-        setMyLockers(myJson.data || []);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error loading my lockers:", err);
-        setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
-        setLoading(false);
-      }
+  const loadData = async () => {
+    if (status === "loading") return;
+    
+    if (status === "unauthenticated" || !session?.user?.id) {
+      router.push("/");
+      return;
     }
 
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log("Fetching my lockers for user:", session.user.id);
+      const myRes = await fetch(`/api/lockers/resident/mylocker?userId=${session.user.id}`);
+      console.log("My lockers response status:", myRes.status);
+      
+      if (!myRes.ok) {
+        throw new Error(`My lockers API error: ${myRes.status}`);
+      }
+      
+      const myJson = await myRes.json();
+      console.log("My lockers data:", myJson);
+      
+      // Debug: Check for pickupExpiryTime in bookings
+      if (myJson.data && Array.isArray(myJson.data)) {
+        myJson.data.forEach((item: MyLockerItem) => {
+          if (item.booking?.paymentStatus === 'paid') {
+            console.log(`Booking ${item.booking._id} - pickupExpiryTime:`, item.booking.pickupExpiryTime);
+            console.log(`Full booking data:`, item.booking);
+          }
+        });
+      }
+      
+      setMyLockers(myJson.data || []);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error loading my lockers:", err);
+      setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, [session, status, router]);
 
@@ -64,5 +75,5 @@ export default function Page() {
     return <div className="p-6 text-red-600">Lỗi: {error}</div>;
   }
 
-  return <MyLockers myLockers={myLockers} onNavigate={handleNavigate} />;
+  return <MyLockers myLockers={myLockers} onNavigate={handleNavigate} onUpdate={loadData} />;
 }

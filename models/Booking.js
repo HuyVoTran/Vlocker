@@ -7,6 +7,7 @@ const BookingSchema = new mongoose.Schema({
   // Thời gian
   startTime: { type: Date, default: Date.now }, // Lúc bấm "Đăng ký"
   endTime: { type: Date }, // Lúc thanh toán xong và lấy đồ
+  pickupExpiryTime: { type: Date }, // Thời gian hết hạn để lấy đồ (30 phút sau khi thanh toán)
   
   // Trạng thái quy trình
   status: { 
