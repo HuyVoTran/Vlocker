@@ -1,6 +1,6 @@
 "use client";
-import RegisterLocker from "@/components/RegisterLocker";
+import Profile from "@/components/Profile";
 
 export default function Page() {
-  return <Profile />;
+  return <Profile userRole="resident" />;
 }

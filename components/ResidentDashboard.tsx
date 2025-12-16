@@ -371,7 +371,7 @@ interface MyLockerItem {
                     <span className="text-gray-600">{(mylocker.booking.cost || 0).toLocaleString()}đ</span>
                   </div>
                 </div>
-                {mylocker.booking.paymentStatus === 'pending' ? (
+                {mylocker.booking.status === 'active' ? (
                   <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
                     Chi tiết
                   </Button>

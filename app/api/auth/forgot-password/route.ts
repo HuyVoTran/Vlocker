@@ -25,7 +25,9 @@ export async function POST(req: Request) {
     const resetToken = crypto.randomBytes(32).toString("hex");
 
     // 3. Hash token để lưu vào DB
-    const hashedToken = await bcrypt.hash(resetToken, 10);
+    // ⚠ Phải dùng cùng 1 kiểu hash với API /auth/reset-password
+    // Ở route reset-password đang dùng crypto.createHash("sha256")
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     // 4. Lưu token & thời gian hết hạn (15 phút)
     user.resetPasswordToken = hashedToken;

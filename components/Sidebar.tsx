@@ -53,8 +53,8 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
-      id: 'history-locker',
-      label: 'Lịch sử đơn',
+      id: 'history',
+      label: 'Lịch sử hoạt động',
       icon: <History className="w-5 h-5" />,
     },
     {
@@ -92,8 +92,8 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
-      id: 'history-locker',
-      label: 'Thống kê đơn',
+      id: 'history',
+      label: 'Thống kê hoạt động',
       icon: <History className="w-5 h-5" />,
     },
     {

@@ -1,5 +1,5 @@
 "use client";
-import RegisterLocker from "@/components/RegisterLocker";
+import Report from "@/components/Report";
 
 export default function Page() {
   return <Report />;

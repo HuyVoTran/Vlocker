@@ -1,5 +1,5 @@
 "use client";
-import RegisterLocker from "@/components/RegisterLocker";
+import Contact from "@/components/Contact";
 
 export default function Page() {
   return <Contact />;
