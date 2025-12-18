@@ -2,8 +2,10 @@
 cd vlocker 
 npm run dev
 
+git pull
+
 git add .
-git commit -m "Update History"
+git commit -m "Update ReadMe"
 git push
 
 Password@12345
@@ -91,18 +93,13 @@ npm install
 ```
 
 ```bash
-# .env.local
+# Dependencies
+npm install next@16.0.3 react@19.2.0 react-dom@19.2.0 axios dotenv nodemailer next-auth mongoose bcryptjs lucide-react class-variance-authority clsx tailwind-merge @radix-ui/react-slot @radix-ui/react-alert-dialog @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-popover @radix-ui/react-tooltip @radix-ui/react-tabs @radix-ui/react-select @radix-ui/react-avatar @radix-ui/react-label @radix-ui/react-separator
+```
 
-MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/vlocker_db"
-
-# URL của website
-NEXT_PUBLIC_URL=http://localhost:3000
-
-# Email dùng để gửi mail thật
-EMAIL_USER=...@gmail.com
-
-# App Password của Gmail (không phải mật khẩu đăng nhập Gmail)
-EMAIL_PASS=.... .... .... ....
+```bash
+# Dev dependencies
+npm install -D tailwindcss@^4 @tailwindcss/postcss eslint@^9 eslint-config-next@16.0.3 @types/node@^20 @types/react@^19 @types/react-dom@^19 @types/nodemailer concurrently
 ```
 
 ```bash
