@@ -359,11 +359,6 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
                       ) : (
                         <p className="text-red-600 font-semibold">Chưa có thời gian hết hạn</p>
                       )}
-                      {process.env.NODE_ENV === 'development' && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Debug: pickupExpiryTime = {selectedLocker.booking?.pickupExpiryTime ? formatDate(selectedLocker.booking.pickupExpiryTime) : 'null'}
-                        </p>
-                      )}
                     </div>
                   )}
                   <div>

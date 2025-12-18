@@ -438,11 +438,6 @@ interface MyLockerItem {
                       ) : (
                         <p className="text-red-600 font-semibold">Chưa có thời gian hết hạn</p>
                       )}
-                      {process.env.NODE_ENV === 'development' && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Debug: pickupExpiryTime = {selectedMyLocker.booking?.pickupExpiryTime ? formatDate(selectedMyLocker.booking.pickupExpiryTime) : 'null'}
-                        </p>
-                      )}
                     </div>
                   )}
                   <div>
