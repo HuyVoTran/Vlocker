@@ -1,4 +1,5 @@
-import { FileText, Upload, Image as ImageIcon, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+'use client';
+import { FileText, Upload, AlertCircle, CheckCircle, Clock, User } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -14,45 +15,49 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+
+interface ReportData {
+  _id: string;
+  reportId: string;
+  createdAt: string;
+  title: string;
+  category: 'locker_error' | 'incident' | 'service_feedback' | 'other';
+  status: 'pending' | 'processing' | 'completed';
+  priority: 'high' | 'medium' | 'low';
+  userId?: {
+    name: string;
+    email: string;
+  };
+}
 
 export default function Report() {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const { data: session, status: sessionStatus } = useSession();
+  const role = session?.user?.role;
 
-  const reports = [
-    {
-      id: 'RP001',
-      date: '15/11/2025',
-      title: 'Tủ L001 không mở được',
-      category: 'Lỗi tủ',
-      status: 'processing',
-      priority: 'high'
-    },
-    {
-      id: 'RP002',
-      date: '14/11/2025',
-      title: 'Đề xuất thêm tủ tại tầng 3',
-      category: 'Phản ánh dịch vụ',
-      status: 'completed',
-      priority: 'low'
-    },
-    {
-      id: 'RP003',
-      date: '12/11/2025',
-      title: 'Tủ L045 bị kẹt cửa',
-      category: 'Lỗi tủ',
-      status: 'completed',
-      priority: 'high'
-    },
-    {
-      id: 'RP004',
-      date: '10/11/2025',
-      title: 'Hệ thống OTP không gửi',
-      category: 'Sự cố',
-      status: 'pending',
-      priority: 'medium'
+  // State cho danh sách báo cáo
+  const [reports, setReports] = useState<ReportData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State cho form gửi báo cáo
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [lockerId, setLockerId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Helper functions
+  const formatCategory = (cat: string) => {
+    switch (cat) {
+      case 'locker_error': return 'Lỗi tủ';
+      case 'incident': return 'Sự cố';
+      case 'service_feedback': return 'Phản ánh dịch vụ';
+      case 'other': return 'Khác';
+      default: return cat;
     }
-  ];
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -95,6 +100,103 @@ export default function Report() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('vi-VN');
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Data fetching
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      const fetchReports = async () => {
+        try {
+          setLoading(true);
+          const res = await fetch('/api/reports');
+          const json = await res.json();
+          if (!res.ok || !json.success) {
+            throw new Error(json.message || 'Không thể tải lịch sử báo cáo.');
+          }
+          setReports(json.data);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Lỗi không xác định.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchReports();
+    } else if (sessionStatus === 'unauthenticated') {
+      setLoading(false);
+      setError('Bạn cần đăng nhập để sử dụng chức năng này.');
+    }
+  }, [sessionStatus]);
+
+  // Form submission handler (for residents)
+  const handleSubmitReport = async () => {
+    if (!title || !description || !category) {
+      alert('Vui lòng điền đầy đủ tiêu đề, mô tả và loại báo cáo.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, category, lockerId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Gửi báo cáo thất bại.');
+      }
+      alert('Gửi báo cáo thành công!');
+      // Thêm báo cáo mới vào đầu danh sách và reset form
+      setReports(prev => [json.data, ...prev]);
+      setTitle('');
+      setDescription('');
+      setCategory('');
+      setLockerId('');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Status update handler (for managers)
+  const handleStatusChange = async (reportId: string, newStatus: string) => {
+    // Cập nhật giao diện trước
+    setReports(prev => prev.map(r => r._id === reportId ? { ...r, status: newStatus as ReportData['status'] } : r));
+
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId, status: newStatus }),
+      });
+      if (!res.ok) {
+        // Nếu lỗi, hoàn tác lại thay đổi trên giao diện (cần lưu state cũ)
+        // Để đơn giản, ta sẽ fetch lại dữ liệu
+        throw new Error('Cập nhật thất bại.');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi.');
+      // Fetch lại để đảm bảo dữ liệu đồng bộ
+      const res = await fetch('/api/reports');
+      const json = await res.json();
+      setReports(json.data);
+    }
+  };
+
+  if (sessionStatus === 'loading' || loading) {
+    return <div className="p-6">Đang tải...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">Lỗi: {error}</div>;
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="mb-6">
@@ -102,6 +204,7 @@ export default function Report() {
         <p className="text-gray-600">Gửi báo cáo sự cố hoặc phản ánh dịch vụ</p>
       </div>
 
+      {role === 'resident' && (
       <div className="grid md:grid-cols-3 gap-6">
         {/* Report Form */}
         <Card className="p-6 md:col-span-2">
@@ -119,14 +222,14 @@ export default function Report() {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="category">Loại báo cáo</Label>
-                <Select>
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Chọn loại báo cáo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="error">Lỗi tủ</SelectItem>
+                    <SelectItem value="locker_error">Lỗi tủ</SelectItem>
                     <SelectItem value="incident">Sự cố</SelectItem>
-                    <SelectItem value="feedback">Phản ánh dịch vụ</SelectItem>
+                    <SelectItem value="service_feedback">Phản ánh dịch vụ</SelectItem>
                     <SelectItem value="other">Khác</SelectItem>
                   </SelectContent>
                 </Select>
@@ -135,68 +238,37 @@ export default function Report() {
                 <Label htmlFor="locker">Mã tủ (nếu có)</Label>
                 <Input
                   id="locker"
+                  value={lockerId}
+                  onChange={(e) => setLockerId(e.target.value)}
                   placeholder="Ví dụ: L001"
                   className="mt-2"
                 />
               </div>
             </div>
-
             <div>
               <Label htmlFor="title">Tiêu đề</Label>
               <Input
                 id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Nhập tiêu đề ngắn gọn về vấn đề"
                 className="mt-2"
               />
             </div>
-
             <div>
               <Label htmlFor="description">Mô tả chi tiết</Label>
               <Textarea
                 id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Mô tả chi tiết về vấn đề bạn gặp phải..."
                 className="mt-2 min-h-[150px]"
               />
             </div>
-
-            <div>
-              <Label>Upload ảnh minh họa</Label>
-              <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  id="file-upload"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setSelectedFile(e.target.files[0].name);
-                    }
-                  }}
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 mb-1">
-                    Kéo thả ảnh vào đây hoặc click để chọn
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    PNG, JPG, GIF (tối đa 5MB)
-                  </p>
-                  {selectedFile && (
-                    <p className="text-sm text-blue-600 mt-2">
-                      Đã chọn: {selectedFile}
-                    </p>
-                  )}
-                </label>
-              </div>
-            </div>
-
             <div className="flex gap-3">
-              <Button className="flex-1">
+              <Button className="flex-1" onClick={handleSubmitReport} disabled={submitting}>
                 <Upload className="w-4 h-4 mr-2" />
-                Gửi báo cáo
-              </Button>
-              <Button variant="outline">
-                Hủy
+                {submitting ? 'Đang gửi...' : 'Gửi báo cáo'}
               </Button>
             </div>
           </div>
@@ -234,20 +306,21 @@ export default function Report() {
           </div>
         </Card>
       </div>
+      )}
 
       {/* Reports History */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-gray-900">Lịch sử báo cáo</h3>
-            <p className="text-sm text-gray-500">Theo dõi trạng thái các báo cáo đã gửi</p>
+            <p className="text-sm text-gray-500">Theo dõi trạng thái các báo cáo</p>
           </div>
-          <Button variant="outline">Xem tất cả</Button>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Mã báo cáo</TableHead>
+              {role === 'manager' && <TableHead>Người gửi</TableHead>}
               <TableHead>Ngày gửi</TableHead>
               <TableHead>Tiêu đề</TableHead>
               <TableHead>Loại</TableHead>
@@ -256,23 +329,51 @@ export default function Report() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {reports.map((report) => (
-              <TableRow key={report.id}>
+            {reports.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={role === 'manager' ? 7 : 6} className="text-center">
+                  Không có báo cáo nào.
+                </TableCell>
+              </TableRow>
+            ) : (
+            reports.map((report) => (
+              <TableRow key={report._id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-gray-400" />
-                    <span>{report.id}</span>
+                    <span>{report.reportId}</span>
                   </div>
                 </TableCell>
-                <TableCell>{report.date}</TableCell>
+                {role === 'manager' && (
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span>{report.userId?.name || 'N/A'}</span>
+                    </div>
+                  </TableCell>
+                )}
+                <TableCell>{formatDate(report.createdAt)}</TableCell>
                 <TableCell className="max-w-xs truncate">{report.title}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{report.category}</Badge>
+                  <Badge variant="outline">{formatCategory(report.category)}</Badge>
                 </TableCell>
                 <TableCell>{getPriorityBadge(report.priority)}</TableCell>
-                <TableCell>{getStatusBadge(report.status)}</TableCell>
+                <TableCell>
+                  {role === 'manager' ? (
+                    <Select value={report.status} onValueChange={(newStatus) => handleStatusChange(report._id, newStatus)}>
+                      <SelectTrigger className="w-[150px]">{getStatusBadge(report.status)}</SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Chờ xử lý</SelectItem>
+                        <SelectItem value="processing">Đang xử lý</SelectItem>
+                        <SelectItem value="completed">Đã xử lý</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    getStatusBadge(report.status)
+                  )}
+                </TableCell>
               </TableRow>
-            ))}
+            )))}
           </TableBody>
         </Table>
       </Card>
