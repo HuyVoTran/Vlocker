@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, FormEvent, ChangeEvent, useEffect } from "react";
+import { useState, FormEvent, ChangeEvent, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -164,5 +164,14 @@ export default function ResetPasswordPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  // Wrap the form in a Suspense boundary to allow useSearchParams to work correctly.
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Đang tải...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

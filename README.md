@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Fix bug UI & Components"
+git commit -m "Fix useSearchParams"
 git push
 
 Password@12345
