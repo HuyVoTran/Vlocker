@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Notifications"
+git commit -m "Update .env"
 git push
 
 Password@12345
