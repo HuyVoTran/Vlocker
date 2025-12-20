@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, History, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, Bell } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { signOut, useSession } from "next-auth/react";
@@ -31,6 +32,13 @@ interface MenuItem {
 export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // This is a standard pattern to prevent hydration mismatch errors with client-only components.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
   
   if (!isOpen) return null;
 
@@ -150,28 +158,35 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-gray-200">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
-              <LogOut className="w-5 h-5 mr-3" />
-              Đăng xuất
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-              <AlertDialogDescription>
-                Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Hủy</AlertDialogCancel>
-              <AlertDialogAction onClick={() => signOut({ callbackUrl: "/" })} className="bg-red-600 hover:bg-red-700">
+        {isMounted ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
+                <LogOut className="w-5 h-5 mr-3" />
                 Đăng xuất
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogAction onClick={() => signOut({ callbackUrl: "/" })} className="bg-red-600 hover:bg-red-700">
+                  Đăng xuất
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" disabled>
+            <LogOut className="w-5 h-5 mr-3" />
+            Đăng xuất
+          </Button>
+        )}
       </div>
     </aside>
   );

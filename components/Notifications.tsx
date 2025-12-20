@@ -80,11 +80,7 @@ interface SessionUser {
 }
 
 export default function Notifications() {
-  const { data: session } = useSession();
-  const currentUser = session?.user as SessionUser | undefined;
-  const role: "resident" | "manager" = currentUser?.role || "resident";
-  const userId = currentUser?.id;
-
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -99,22 +95,36 @@ export default function Notifications() {
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    async function loadNotifications() {
-      if (!userId) return;
+  const role = session?.user?.role as "resident" | "manager" | undefined;
+  const userId = session?.user?.id;
 
+  useEffect(() => {
+    // Chờ cho đến khi session được tải xong để xác định vai trò và ID người dùng.
+    if (status === 'loading') {
+      return;
+    }
+
+    if (!role || !userId) {
+      // Trạng thái lỗi sẽ được xử lý ở phần render chính của component
+      setLoading(false);
+      return;
+    }
+
+    async function loadNotifications() {
       try {
         setLoading(true);
         setError(null);
 
-        const url =
-          role === "resident"
-            ? `/api/notifications?userId=${userId}`
-            : "/api/notifications";
+        const url = role === "resident" ? `/api/notifications?userId=${userId}` : "/api/notifications";
         const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`Lỗi tải thông báo (${res.status})`);
+        }
+
         const json = await res.json();
 
-        if (!res.ok || !json.success) {
+        if (!json.success) {
           throw new Error(
             json.message || `Lỗi tải thông báo (${res.status})`
           );
@@ -122,25 +132,38 @@ export default function Notifications() {
 
         setNotifications(json.data || []);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Không thể tải thông báo."
-        );
+        if (err instanceof SyntaxError) {
+          // Lỗi này xảy ra khi response không phải JSON hợp lệ (thường là trang báo lỗi HTML)
+          setError("Lỗi phản hồi từ máy chủ. Vui lòng kiểm tra lại đường dẫn API.");
+        } else {
+          setError(err instanceof Error ? err.message : "Không thể tải thông báo.");
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadNotifications();
-  }, [role, userId]);
+  }, [status, role, userId]);
 
   useEffect(() => {
+    if (status === 'loading') {
+      return;
+    }
+    if (!role) {
+      // Không thể xác định có cần tải danh sách cư dân hay không
+      return;
+    }
+
     if (role === "manager") {
       async function loadResidents() {
         try {
           const res = await fetch("/api/users?role=resident");
           const json = await res.json();
-          if (json.success) {
+          if (res.ok && json.success) {
             setResidents(json.data);
+          } else {
+            console.error("Failed to fetch residents:", json.message || 'Unknown error');
           }
         } catch (error) {
           console.error("Failed to fetch residents:", error);
@@ -148,7 +171,7 @@ export default function Notifications() {
       }
       loadResidents();
     }
-  }, [role]);
+  }, [status, role]);
 
   const handleSendNotification = async () => {
     if (!notificationTitle || !notificationMessage || selectedResidents.length === 0) {
@@ -220,12 +243,24 @@ export default function Notifications() {
     }
   };
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return <div className="p-6">Đang tải thông báo...</div>;
   }
 
   if (error) {
     return <div className="p-6 text-red-600">Lỗi: {error}</div>;
+  }
+
+  // Sau khi tải xong, nếu session chưa được xác thực hoặc thiếu dữ liệu người dùng, hiển thị lỗi.
+  if (status === 'unauthenticated') {
+    return <div className="p-6 text-red-600">Lỗi: Bạn cần đăng nhập để xem thông báo.</div>;
+  }
+
+  if (!role || !userId) {
+    return <div className="p-6 text-red-600">
+      Lỗi: Không tìm thấy thông tin người dùng trong phiên làm việc. 
+      Điều này có thể do cấu hình Next-Auth bị thiếu.
+    </div>;
   }
 
   return (
