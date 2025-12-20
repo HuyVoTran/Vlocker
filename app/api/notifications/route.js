@@ -1,75 +1,175 @@
-import { connectDB } from '@/lib/mongodb';
-import Notification from '@/models/Notification';
-import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import Notification from "@/models/Notification";
+import User from "@/models/User";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function GET(request) {
-  await connectDB();
-  
+/* =========================
+   GET: Lấy notifications
+========================= */
+export async function GET(req) {
+  console.log("=== Notifications API GET START ===");
+
   try {
-    // const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    // if (!token) {
-    //   return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    // }
+    console.log("Connecting DB...");
+    await connectDB();
+    console.log("DB Connected!");
 
-    // const { searchParams } = new URL(request.url);
-    // const userId = searchParams.get('userId');
+    console.log("Getting session...");
+    const session = await getServerSession(authOptions);
+    console.log("Session:", session);
 
-    // let query = {};
+    if (!session || !session.user) {
+      console.log("❌ Unauthorized");
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    // if (userId) {
-    //   // Security check: resident chỉ có thể lấy thông báo của mình. Manager có thể lấy của bất kỳ ai.
-    //   if (token.role !== 'manager' && token.id !== userId) {
-    //     return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
-    //   }
-    //   query = { recipientId: userId };
-    // } else if (token.role !== 'manager') {
-    //   // Nếu không có userId, chỉ manager mới có quyền truy cập (để lấy tất cả thông báo).
-    //   return NextResponse.json({ success: false, message: 'Forbidden: User ID is required for residents.' }, { status: 403 });
-    // }
+    const { id, role } = session.user;
+    let query = {};
+    let residents = [];
 
-    // const notifications = await Notification.find(query).sort({ createdAt: -1 });
-    // return NextResponse.json({ success: true, data: notifications });
-  } catch (error) {
-    console.error('API /api/notifications Error:', error);
-    return NextResponse.json({ success: false, message: 'An error occurred while fetching notifications.' }, { status: 500 });
+    if (role === "manager") {
+      console.log("Role: manager → lấy tất cả notifications");
+      residents = await User.find({ role: "resident" })
+        .select("name email _id")
+        .lean();
+    } else {
+      console.log("Role: resident → chỉ lấy notification của user:", id);
+      query = { recipientId: id };
+    }
+
+    const notifications = await Notification.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log("Notifications count:", notifications.length);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        notifications,
+        residents,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Error GET /api/notifications:", err.message);
+    console.error(err.stack);
+    return NextResponse.json(
+      { success: false, message: "Server error", error: err.message },
+      { status: 500 }
+    );
+  } finally {
+    console.log("=== Notifications API GET END ===");
   }
 }
 
-export async function POST(request) {
-  await connectDB();
-  
+/* =========================
+   POST: Manager gửi thông báo
+========================= */
+export async function POST(req) {
+  console.log("=== Notifications API POST START ===");
+
   try {
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Authentication failed' }, { status: 401 });
+    await connectDB();
+
+    const session = await getServerSession(authOptions);
+
+    if (!session || session.user.role !== "manager") {
+      console.log("❌ Forbidden");
+      return NextResponse.json(
+        { success: false, message: "Forbidden" },
+        { status: 403 }
+      );
     }
 
-    // Chỉ manager mới có quyền gửi thông báo
-    if (token.role !== 'manager') {
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
-    }
-
-    const { title, message, recipientIds } = await request.json();
+    const body = await req.json();
+    const { title, message, recipientIds } = body;
 
     if (!title || !message || !Array.isArray(recipientIds) || recipientIds.length === 0) {
-      return NextResponse.json({ success: false, message: 'Missing required fields: title, message, and recipientIds are required.' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    const notificationsToCreate = recipientIds.map(id => ({
+    const notifications = recipientIds.map((id) => ({
       recipientId: id,
+      type: "admin_message",
       title,
       message,
-      type: 'admin_message',
-      read: false,
     }));
 
-    await Notification.insertMany(notificationsToCreate);
+    await Notification.insertMany(notifications);
 
-    return NextResponse.json({ success: true, message: 'Notifications sent successfully.' });
-  } catch (error) {
-    console.error('API /api/notifications POST Error:', error);
-    return NextResponse.json({ success: false, message: 'An error occurred while sending notifications.' }, { status: 500 });
+    console.log("Notifications sent:", notifications.length);
+
+    return NextResponse.json({
+      success: true,
+      message: "Notifications sent successfully",
+    });
+  } catch (err) {
+    console.error("❌ Error POST /api/notifications:", err.message);
+    return NextResponse.json(
+      { success: false, message: "Server error", error: err.message },
+      { status: 500 }
+    );
+  } finally {
+    console.log("=== Notifications API POST END ===");
+  }
+}
+
+/* =========================
+   PATCH: Đánh dấu đã đọc
+========================= */
+export async function PATCH(req) {
+  console.log("=== Notifications API PATCH START ===");
+
+  try {
+    await connectDB();
+
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { notificationIds } = await req.json();
+
+    if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Notification IDs are required" },
+        { status: 400 }
+      );
+    }
+
+    await Notification.updateMany(
+      {
+        _id: { $in: notificationIds },
+        recipientId: session.user.id,
+      },
+      { $set: { read: true } }
+    );
+
+    console.log("Marked as read:", notificationIds.length);
+
+    return NextResponse.json({
+      success: true,
+      message: "Notifications marked as read",
+    });
+  } catch (err) {
+    console.error("❌ Error PATCH /api/notifications:", err.message);
+    return NextResponse.json(
+      { success: false, message: "Server error", error: err.message },
+      { status: 500 }
+    );
+  } finally {
+    console.log("=== Notifications API PATCH END ===");
   }
 }

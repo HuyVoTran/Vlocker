@@ -115,11 +115,15 @@ export default function Notifications() {
         setLoading(true);
         setError(null);
 
-        const url = role === "resident" ? `/api/notifications?userId=${userId}` : "/api/notifications";
-        const res = await fetch(url);
+        // The API route is smart enough to return notifications for the logged-in user (resident)
+        // or all notifications (manager) based on the session token. No need to send userId.
+        const res = await fetch("/api/notifications");
 
         if (!res.ok) {
-          throw new Error(`Lỗi tải thông báo (${res.status})`);
+          if (res.status === 401) {
+            throw new Error("Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.");
+          }
+          throw new Error(`Lỗi tải thông báo từ máy chủ (mã lỗi: ${res.status})`);
         }
 
         const json = await res.json();
@@ -130,11 +134,17 @@ export default function Notifications() {
           );
         }
 
-        setNotifications(json.data || []);
+        // API giờ trả về một đối tượng chứa notifications và residents (cho manager)
+        if (json.data) {
+          setNotifications(json.data.notifications || []);
+          if (role === 'manager') {
+            setResidents(json.data.residents || []);
+          }
+        }
       } catch (err) {
         if (err instanceof SyntaxError) {
-          // Lỗi này xảy ra khi response không phải JSON hợp lệ (thường là trang báo lỗi HTML)
-          setError("Lỗi phản hồi từ máy chủ. Vui lòng kiểm tra lại đường dẫn API.");
+          // This happens when the response is not valid JSON, often an HTML error page from a 401 redirect.
+          setError("Lỗi xác thực hoặc API không hợp lệ. Vui lòng đăng nhập lại và thử lại.");
         } else {
           setError(err instanceof Error ? err.message : "Không thể tải thông báo.");
         }
@@ -145,33 +155,6 @@ export default function Notifications() {
 
     loadNotifications();
   }, [status, role, userId]);
-
-  useEffect(() => {
-    if (status === 'loading') {
-      return;
-    }
-    if (!role) {
-      // Không thể xác định có cần tải danh sách cư dân hay không
-      return;
-    }
-
-    if (role === "manager") {
-      async function loadResidents() {
-        try {
-          const res = await fetch("/api/users?role=resident");
-          const json = await res.json();
-          if (res.ok && json.success) {
-            setResidents(json.data);
-          } else {
-            console.error("Failed to fetch residents:", json.message || 'Unknown error');
-          }
-        } catch (error) {
-          console.error("Failed to fetch residents:", error);
-        }
-      }
-      loadResidents();
-    }
-  }, [status, role]);
 
   const handleSendNotification = async () => {
     if (!notificationTitle || !notificationMessage || selectedResidents.length === 0) {
@@ -202,6 +185,42 @@ export default function Notifications() {
       alert(err instanceof Error ? err.message : "Đã xảy ra lỗi.");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    // Find the notification and check if it's already read
+    const notification = notifications.find((n) => n._id === notificationId);
+    if (!notification || notification.read) {
+      return; // Do nothing if not found or already read
+    }
+
+    // Optimistic UI update: Mark as read immediately on the client
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n._id === notificationId ? { ...n, read: true } : n
+      )
+    );
+
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds: [notificationId] }),
+      });
+
+      if (!res.ok) {
+        // If the API call fails, revert the change in the UI
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n._id === notificationId ? { ...n, read: false } : n
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+      // Also revert on network error
+      setNotifications((prev) => prev.map((n) => n._id === notificationId ? { ...n, read: false } : n));
     }
   };
 
@@ -408,9 +427,10 @@ export default function Notifications() {
                 {filteredNotifications.map((n) => (
                   <div
                     key={n._id}
-                    className={`flex items-start gap-4 p-4 ${
-                      !n.read ? "bg-blue-50" : ""
+                    className={`flex items-start gap-4 p-4 transition-colors ${
+                      !n.read ? "bg-blue-50 hover:bg-blue-100 cursor-pointer" : "hover:bg-gray-50"
                     }`}
+                    onClick={() => handleMarkAsRead(n._id)}
                   >
                     {!n.read && (
                       <div className="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
