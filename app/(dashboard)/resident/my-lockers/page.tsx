@@ -2,8 +2,8 @@
 
 import MyLockers from "@/components/MyLockers";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; 
+import { useState, useEffect, useCallback } from "react";
 import type { MyLockerItem } from "@/components/MyLockers";
 
 export default function Page() {
@@ -13,7 +13,7 @@ export default function Page() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (status === "loading") return;
     
     if (status === "unauthenticated" || !session?.user?.id) {
@@ -53,11 +53,11 @@ export default function Page() {
       setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
       setLoading(false);
     }
-  };
+  }, [status, session, router]);
 
   useEffect(() => {
     loadData();
-  }, [session, status, router]);
+  }, [loadData]);
 
   const handleNavigate = (page: string, locker?: MyLockerItem) => {
     if (locker?.locker?._id) {

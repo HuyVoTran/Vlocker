@@ -9,11 +9,15 @@ declare module "next-auth" {
     user: {
       id: string;
       role: "resident" | "manager";
+      building?: string;
+      block?: string;
     } & DefaultSession["user"];
   }
 
   interface User extends DefaultUser {
     role: "resident" | "manager";
+    building: string;
+    block: string;
   }
 }
 
@@ -21,5 +25,7 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     id: string;
     role: "resident" | "manager";
+    building?: string;
+    block?: string;
   }
 }

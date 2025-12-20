@@ -72,8 +72,12 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push("/auth/login");
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi không xác định.");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Đã xảy ra lỗi không xác định.");
+      } else {
+        setError("Đã xảy ra lỗi không xác định.");
+      }
     } finally {
       setLoading(false);
     }

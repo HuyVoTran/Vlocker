@@ -46,8 +46,12 @@ export default function ForgotPasswordPage() {
 
       setSuccess("Đã gửi hướng dẫn đặt lại mật khẩu qua email!");
       setEmail("");
-    } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi không xác định");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Đã xảy ra lỗi không xác định");
+      }
     } finally {
       setLoading(false);
     }

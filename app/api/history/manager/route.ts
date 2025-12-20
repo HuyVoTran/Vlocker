@@ -35,7 +35,12 @@ export async function GET(req: Request) {
       endDate = new Date(year, startMonth + 3, 1);
     }
 
-    const query: any = {};
+    const query: {
+      startTime?: {
+        $gte: Date;
+        $lt: Date;
+      };
+    } = {};
     if (startDate && endDate) {
       query.startTime = { $gte: startDate, $lt: endDate };
     }
@@ -61,5 +66,3 @@ export async function GET(req: Request) {
     );
   }
 }
-
-

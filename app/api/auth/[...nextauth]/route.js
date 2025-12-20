@@ -62,6 +62,8 @@ export const authOptions = {
       if (user) {
         token.id = user._id.toString(); // Thêm ID người dùng vào token
         token.role = user.role; // Thêm vai trò người dùng vào token
+        token.building = user.building; // Thêm tòa nhà
+        token.block = user.block; // Thêm block
       }
       return token;
     },
@@ -78,6 +80,8 @@ export const authOptions = {
       if (token && session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.building = token.building;
+        session.user.block = token.block;
       }
       return session;
     },

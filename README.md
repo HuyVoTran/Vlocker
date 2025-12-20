@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Profile"
+git commit -m "Fix bug"
 git push
 
 Password@12345

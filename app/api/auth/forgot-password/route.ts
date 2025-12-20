@@ -3,7 +3,6 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {

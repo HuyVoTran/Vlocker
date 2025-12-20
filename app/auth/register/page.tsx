@@ -143,8 +143,12 @@ export default function RegisterPage() {
       // Đăng ký thành công -> Chuyển về trang login
       alert("Đăng ký thành công! Vui lòng đăng nhập.");
       router.push("/"); 
-    } catch (err: any) { // Sử dụng any cho error để lấy message an toàn
-      setError(err.message || "Đã xảy ra lỗi không xác định");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Đã xảy ra lỗi không xác định");
+      } else {
+        setError("Đã xảy ra lỗi không xác định");
+      }
     } finally {
       setLoading(false);
     }
