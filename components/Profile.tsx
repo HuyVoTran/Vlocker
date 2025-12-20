@@ -1,4 +1,4 @@
-import { User, Mail, Phone, MapPin, Edit, Calendar, Package } from 'lucide-react';
+import { Mail, Phone, MapPin, Edit, Calendar, Package } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -14,78 +14,207 @@ import {
   TableRow,
 } from "./ui/table";
 import { Badge } from './ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-interface ProfileProps {
-  userRole: 'resident' | 'manager' | null;
+// Định nghĩa các kiểu dữ liệu sẽ lấy về
+interface UserProfile {
+  name: string;
+  email: string;
+  phone?: string;
+  building?: string;
+  block?: string;
+  createdAt?: string;
+  floor?: string;
+  unit?: string;
 }
 
-export default function Profile({ userRole }: ProfileProps) {
-  const [isEditing, setIsEditing] = useState(false);
-
-  const residentData = {
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@email.com',
-    phone: '0901234567',
-    block: 'A1',
-    address: 'Căn hộ 105, Tòa A',
-    joinDate: '01/03/2024'
+interface Activity {
+  _id: string;
+  createdAt: string;
+  status: string;
+  lockerId?: {
+    lockerId: string;
   };
+}
 
-  const managerData = {
-    name: 'Quản lý Tòa A',
-    email: 'manager.toaa@vlocker.vn',
-    phone: '1900-xxxx',
-    block: 'Tòa A',
-    address: 'Văn phòng quản lý - Tầng trệt',
-    joinDate: '01/01/2024'
-  };
+// Hàm hỗ trợ định dạng ngày giờ
+function formatDateTime(date?: string) {
+  if (!date) return "N/A";
+  try {
+    const d = new Date(date);
+    return d.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return date;
+  }
+}
 
-  const userData = userRole === 'resident' ? residentData : managerData;
+// Hàm hỗ trợ định dạng chỉ ngày
+function formatDateOnly(date?: string) {
+  if (!date) return "N/A";
+  try {
+    const d = new Date(date);
+    return d.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch {
+    return date;
+  }
+}
 
-  const activityHistory = [
-    {
-      id: 1,
-      date: '15/11/2025',
-      time: '14:30',
-      action: 'Mở tủ L001',
-      status: 'success'
-    },
-    {
-      id: 2,
-      date: '14/11/2025',
-      time: '09:15',
-      action: 'Thanh toán tủ L045',
-      status: 'success'
-    },
-    {
-      id: 3,
-      date: '13/11/2025',
-      time: '16:45',
-      action: 'Đăng ký tủ L089',
-      status: 'success'
-    },
-    {
-      id: 4,
-      date: '10/11/2025',
-      time: '11:20',
-      action: 'Mở tủ L001',
-      status: 'success'
-    },
-    {
-      id: 5,
-      date: '08/11/2025',
-      time: '18:30',
-      action: 'Gửi báo cáo sự cố',
-      status: 'pending'
+// Hàm hỗ trợ tạo mô tả cho hoạt động
+function getActivityDescription(activity: Activity): string {
+    switch (activity.status) {
+        case 'active':
+            return `Đăng ký tủ ${activity.lockerId?.lockerId || 'N/A'}`;
+        case 'stored':
+            return `Lưu đồ vào tủ ${activity.lockerId?.lockerId || 'N/A'}`;
+        case 'completed':
+            return `Hoàn tất sử dụng tủ ${activity.lockerId?.lockerId || 'N/A'}`;
+        case 'cancelled':
+            return `Hủy đặt tủ ${activity.lockerId?.lockerId || 'N/A'}`;
+        default:
+            return `Hoạt động với tủ ${activity.lockerId?.lockerId || 'N/A'}`;
     }
-  ];
+}
+
+export default function Profile() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State cho dữ liệu profile
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState({ totalBookings: 0, activeBookings: 0 });
+  const [activities, setActivities] = useState<Activity[]>([]);
+
+  // State cho các trường trong form
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '' });
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const fetchProfileData = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const res = await fetch('/api/profile');
+          const json = await res.json();
+
+          if (!res.ok || !json.success) {
+            throw new Error(json.message || 'Không thể tải dữ liệu profile.');
+          }
+
+          const { profile: userProfile, stats: userStats, activities: userActivities } = json.data;
+          setProfile(userProfile);
+          setStats(userStats);
+          setActivities(userActivities);
+          setFormData({
+            name: userProfile.name || '',
+            email: userProfile.email || '',
+            phone: userProfile.phone || '',
+          });
+
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Lỗi không xác định.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProfileData();
+    } else if (status === 'unauthenticated') {
+        setLoading(false);
+        setError("Bạn cần đăng nhập để xem trang này.");
+    }
+  }, [status]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+        const payload: Record<string, string> = { ...formData };
+        if (passwordData.newPassword) {
+            if (!passwordData.currentPassword) {
+                alert("Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu mới.");
+                return;
+            }
+            payload.currentPassword = passwordData.currentPassword;
+            payload.newPassword = passwordData.newPassword;
+        }
+
+        const res = await fetch('/api/profile', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+            throw new Error(json.message || "Cập nhật thất bại.");
+        }
+
+        alert("Cập nhật thông tin thành công!");
+        setProfile(json.data); // Cập nhật state với dữ liệu mới từ server
+        setIsEditing(false);
+        setPasswordData({ currentPassword: '', newPassword: '' }); // Xóa trường mật khẩu
+    } catch (err) {
+        alert(err instanceof Error ? err.message : "Đã xảy ra lỗi.");
+    }
+  };
+
+  if (loading || status === 'loading') {
+    return <div className="p-6">Đang tải thông tin cá nhân...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">Lỗi: {error}</div>;
+  }
+
+  if (!profile) {
+    return <div className="p-6 text-gray-500">Không có dữ liệu để hiển thị.</div>;
+  }
+
+  const fullAddress = [
+    profile.unit ? `Căn hộ ${profile.unit}` : '',
+    profile.floor ? `Tầng ${profile.floor}` : '',
+    profile.block ? `Block ${profile.block}` : '',
+    profile.building ? `Tòa ${profile.building}` : '',
+  ].filter(Boolean).join(', ');
+
+  const userRole = session?.user?.role;
+  const userData = {
+    name: profile.name,
+    email: profile.email,
+    phone: profile.phone || 'Chưa cập nhật',
+    block: profile.block || 'N/A', // Giữ lại để hiển thị riêng nếu cần
+    address: fullAddress || 'Chưa cập nhật',
+    joinDate: formatDateOnly(profile.createdAt)
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="mb-6">
-        <h1 className="text-gray-900 mb-2">Profile</h1>
-        <p className="text-gray-600">Quản lý thông tin cá nhân của bạn</p>
+        <h1 className="text-gray-900 mb-2">Thông tin cá nhân</h1>
+        <p className="text-gray-600">Quản lý thông tin và hoạt động của bạn</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -94,7 +223,7 @@ export default function Profile({ userRole }: ProfileProps) {
           <div className="text-center mb-6">
             <Avatar className="w-24 h-24 mx-auto mb-4">
               <AvatarFallback className="bg-blue-100 text-blue-600 text-2xl">
-                {userData.name.charAt(0)}
+                {userData.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <h2 className="text-gray-900 mb-1">{userData.name}</h2>
@@ -120,25 +249,23 @@ export default function Profile({ userRole }: ProfileProps) {
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Calendar className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-700">Tham gia: {userData.joinDate}</span>
+              <span className="text-gray-700">Tham gia từ: {userData.joinDate}</span>
             </div>
           </div>
 
           <Separator className="my-6" />
 
-          {userRole === 'resident' && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-500">Thống kê</p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Tủ đang sử dụng</span>
-                <Badge className="bg-blue-100 text-blue-700">3 tủ</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Tổng giao dịch</span>
-                <Badge className="bg-green-100 text-green-700">24</Badge>
-              </div>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500">Thống kê</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Tủ đang sử dụng</span>
+              <Badge className="bg-blue-100 text-blue-700">{stats.activeBookings} tủ</Badge>
             </div>
-          )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Tổng giao dịch</span>
+              <Badge className="bg-green-100 text-green-700">{stats.totalBookings}</Badge>
+            </div>
+          </div>
         </Card>
 
         {/* Information Form */}
@@ -146,8 +273,14 @@ export default function Profile({ userRole }: ProfileProps) {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-gray-900">Thông tin cá nhân</h3>
             <Button
-              variant={isEditing ? 'default' : 'outline'}
-              onClick={() => setIsEditing(!isEditing)}
+              variant={isEditing ? "default" : "outline"}
+              onClick={() => {
+                if (isEditing) {
+                  handleSaveChanges();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
             >
               {isEditing ? 'Lưu thay đổi' : (
                 <>
@@ -163,7 +296,8 @@ export default function Profile({ userRole }: ProfileProps) {
               <Label htmlFor="name">Họ và tên</Label>
               <Input
                 id="name"
-                defaultValue={userData.name}
+                value={formData.name}
+                onChange={handleInputChange}
                 disabled={!isEditing}
                 className="mt-2"
               />
@@ -173,37 +307,41 @@ export default function Profile({ userRole }: ProfileProps) {
               <Input
                 id="email"
                 type="email"
-                defaultValue={userData.email}
-                disabled={!isEditing}
-                className="mt-2"
+                value={formData.email}
+                disabled={true} // Email thường không thể chỉnh sửa
+                className="mt-2 bg-gray-100"
               />
             </div>
             <div>
               <Label htmlFor="phone">Số điện thoại</Label>
               <Input
                 id="phone"
-                defaultValue={userData.phone}
-                disabled={!isEditing}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="block">Block/Tòa</Label>
-              <Input
-                id="block"
-                defaultValue={userData.block}
+                value={formData.phone}
+                onChange={handleInputChange}
                 disabled={!isEditing}
                 className="mt-2"
               />
             </div>
             <div className="md:col-span-2">
-              <Label htmlFor="address">Địa chỉ</Label>
-              <Input
-                id="address"
-                defaultValue={userData.address}
-                disabled={!isEditing}
-                className="mt-2"
-              />
+              <Label>Địa chỉ chi tiết</Label>
+              <div className="grid md:grid-cols-4 gap-4 mt-2">
+                  <div>
+                      <Label htmlFor="building" className="text-xs text-gray-500">Tòa nhà</Label>
+                      <Input id="building" defaultValue={profile.building || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                  </div>
+                  <div>
+                      <Label htmlFor="block" className="text-xs text-gray-500">Block</Label>
+                      <Input id="block" defaultValue={profile.block || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                  </div>
+                  <div>
+                      <Label htmlFor="floor" className="text-xs text-gray-500">Tầng</Label>
+                      <Input id="floor" defaultValue={profile.floor || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                  </div>
+                  <div>
+                      <Label htmlFor="unit" className="text-xs text-gray-500">Số căn hộ</Label>
+                      <Input id="unit" defaultValue={profile.unit || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                  </div>
+              </div>
             </div>
           </div>
 
@@ -216,18 +354,24 @@ export default function Profile({ userRole }: ProfileProps) {
                 <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
                 <Input
                   id="current-password"
+                  value={passwordData.currentPassword}
+                  onChange={handlePasswordChange}
                   type="password"
                   disabled={!isEditing}
                   className="mt-2"
+                  placeholder="Bỏ trống nếu không đổi"
                 />
               </div>
               <div>
                 <Label htmlFor="new-password">Mật khẩu mới</Label>
                 <Input
                   id="new-password"
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange}
                   type="password"
                   disabled={!isEditing}
                   className="mt-2"
+                  placeholder="Bỏ trống nếu không đổi"
                 />
               </div>
             </div>
@@ -240,39 +384,50 @@ export default function Profile({ userRole }: ProfileProps) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-gray-900">Lịch sử hoạt động</h3>
-            <p className="text-sm text-gray-500">Các hoạt động gần đây của bạn</p>
+            <p className="text-sm text-gray-500">5 hoạt động gần đây nhất của bạn</p>
           </div>
-          <Button variant="outline">Xem tất cả</Button>
+          <Button variant="outline" onClick={() => router.push('/history')}>
+            Xem tất cả
+          </Button>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Ngày</TableHead>
-              <TableHead>Giờ</TableHead>
               <TableHead>Hoạt động</TableHead>
               <TableHead>Trạng thái</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {activityHistory.map((activity) => (
-              <TableRow key={activity.id}>
-                <TableCell>{activity.date}</TableCell>
-                <TableCell>{activity.time}</TableCell>
+            {activities.length > 0 ? activities.map((activity) => (
+              <TableRow key={activity._id}>
+                <TableCell>{formatDateTime(activity.createdAt)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-400" />
-                    <span>{activity.action}</span>
+                    <span>{getActivityDescription(activity)}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  {activity.status === 'success' ? (
-                    <Badge className="bg-green-100 text-green-700">Thành công</Badge>
-                  ) : (
-                    <Badge className="bg-yellow-100 text-yellow-700">Đang xử lý</Badge>
-                  )}
+                  <Badge className={
+                      activity.status === 'completed' ? "bg-green-100 text-green-700"
+                      : activity.status === 'cancelled' ? "bg-red-100 text-red-700"
+                      : "bg-blue-100 text-blue-700"
+                  }>
+                      {activity.status === 'active' && 'Đang hoạt động'}
+                      {activity.status === 'stored' && 'Đã lưu đồ'}
+                      {activity.status === 'completed' && 'Hoàn tất'}
+                      {activity.status === 'cancelled' && 'Đã hủy'}
+                  </Badge>
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-gray-500">
+                  Chưa có hoạt động nào.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>

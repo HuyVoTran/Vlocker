@@ -509,7 +509,7 @@ export default function Notifications() {
                             />
                             <Label
                               htmlFor={resident._id}
-                              className="font-normal flex flex-col"
+                              className="font-normal flex flex-row justify-between items-center space-x-2"
                             >
                               <span>{resident.name}</span>
                               <span className="text-xs text-gray-500">

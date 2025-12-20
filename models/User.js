@@ -10,7 +10,7 @@ const UserSchema = new mongoose.Schema({
   },
 
   phone: {
-    type: Number,
+    type: String,
     required: [true, 'Vui lòng nhập số điện thoại'], 
   },
 
