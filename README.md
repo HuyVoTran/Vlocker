@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update .env"
+git commit -m "Fix bug and never used"
 git push
 
 Password@12345

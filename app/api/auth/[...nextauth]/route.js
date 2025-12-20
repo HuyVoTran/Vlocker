@@ -4,6 +4,16 @@ import User from "@/models/User"; // Đảm bảo đường dẫn đến model U
 import { connectDB } from "@/lib/mongodb"; // Đảm bảo đường dẫn đến hàm connectDB là chính xác
 import bcrypt from "bcryptjs";
 
+/*
+ * =================================================================
+ * CẤU HÌNH NEXTAUTH
+ * =================================================================
+ * File này định nghĩa các tùy chọn xác thực cho NextAuth, bao gồm:
+ * - Providers: Cách người dùng đăng nhập (ở đây là dùng email/mật khẩu).
+ * - Session: Chiến lược quản lý phiên làm việc (JWT).
+ * - Callbacks: Tùy chỉnh token và session để thêm dữ liệu người dùng.
+ * =================================================================
+ */
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -16,20 +26,16 @@ export const authOptions = {
           await connectDB();
           const user = await User.findOne({ email });
 
-          if (!user) {
-            return null; // Không tìm thấy người dùng
-          }
+          if (!user) return null; // Không tìm thấy người dùng
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
 
-          if (!passwordsMatch) {
-            return null; // Sai mật khẩu
-          }
+          if (!passwordsMatch) return null; // Sai mật khẩu
 
-          // Trả về đối tượng user để callback 'jwt' có thể sử dụng
+          // Nếu xác thực thành công, trả về đối tượng user để callback 'jwt' có thể sử dụng
           return user;
         } catch (error) {
-          console.log("Lỗi trong authorize callback: ", error);
+          console.error("Lỗi trong authorize callback: ", error);
           return null;
         }
       },
@@ -43,18 +49,32 @@ export const authOptions = {
     signIn: "/login", // Trang đăng nhập của bạn
   },
   callbacks: {
-    // Callback này được gọi mỗi khi JWT được tạo/cập nhật.
+    /**
+     * Callback `jwt` được gọi mỗi khi một JSON Web Token được tạo ra (ví dụ: sau khi đăng nhập)
+     * hoặc được cập nhật.
+     * @param {object} token - Đối tượng token.
+     * @param {object} user - Đối tượng người dùng từ database (chỉ có sẵn khi đăng nhập lần đầu).
+     * @returns {object} Token đã được cập nhật.
+     */
     async jwt({ token, user }) {
-      // 'user' chỉ có sẵn trong lần gọi đầu tiên (khi đăng nhập).
+      // Khi người dùng đăng nhập thành công, đối tượng `user` sẽ có sẵn.
+      // Chúng ta thêm `id` và `role` từ `user` vào `token`.
       if (user) {
         token.id = user._id.toString(); // Thêm ID người dùng vào token
-        token.role = user.role;       // Thêm vai trò người dùng vào token
+        token.role = user.role; // Thêm vai trò người dùng vào token
       }
       return token;
     },
-    // Callback này được gọi mỗi khi session được kiểm tra.
+    /**
+     * Callback `session` được gọi mỗi khi phiên làm việc được truy cập từ client
+     * (ví dụ: qua `useSession` hoặc `getSession`).
+     * @param {object} session - Đối tượng session.
+     * @param {object} token - Đối tượng token (đã được xử lý bởi callback `jwt`).
+     * @returns {object} Đối tượng session đã được cập nhật.
+     */
     async session({ session, token }) {
-      // Lấy id và role từ token và thêm vào đối tượng session.user.
+      // Lấy dữ liệu (id, role) từ `token` và gán vào `session.user`.
+      // Điều này giúp client có thể truy cập thông tin người dùng mở rộng.
       if (token && session.user) {
         session.user.id = token.id;
         session.user.role = token.role;

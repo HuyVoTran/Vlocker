@@ -5,11 +5,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-// import MyLockers from "./MyLockers";
-import Locker from "@/models/Locker";
-import Booking from "@/models/Booking";
-import { ToastProvider, useToast } from './ui/toast-context';
-
+import { useToast } from './ui/toast-context';
 
 interface ResidentDashboardProps {
   onNavigate: (page: string, locker?: Locker) => void;
@@ -57,7 +53,6 @@ interface MyLockerItem {
   }: ResidentDashboardProps) {
     const { showToast } = useToast();
     const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
-    const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
     const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
     const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
     const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
@@ -259,11 +254,9 @@ interface MyLockerItem {
             const availJson = await availRes.json();
             console.log("Available lockers data:", availJson);
             const avail = availJson.data || [];
-            setAvailableLockers(avail);
             setFilteredLockers(avail);
           } else {
             console.log("No building/block provided, skipping available lockers");
-            setAvailableLockers([]);
           }
           
           setLoading(false);
@@ -664,7 +657,6 @@ interface MyLockerItem {
                   }
 
                   // success: remove locker from lists and close dialog
-                  setAvailableLockers(prev => prev.filter(l => l._id !== selectedAvailableLocker._id));
                   setFilteredLockers(prev => prev.filter(l => l._id !== selectedAvailableLocker._id));
                   setSelectedAvailableLocker(null);
                 } catch (err) {

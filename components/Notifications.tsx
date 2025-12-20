@@ -74,19 +74,19 @@ function formatDateTime(date?: string) {
   }
 }
 
-interface SessionUser {
-  id?: string;
-  role?: "resident" | "manager";
-}
-
 export default function Notifications() {
-  const { data: session, status } = useSession();
+  // =================================================================
+  // Phần State (Trạng thái) của Component
+  // =================================================================
+
+  // State chính
+  const { data: session, status } = useSession(); // Lấy session từ NextAuth
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
 
-  // Manager: send notification state
+  // State dành cho chức năng gửi thông báo của Manager
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [residents, setResidents] = useState<Resident[]>([]);
   const [selectedResidents, setSelectedResidents] = useState<string[]>([]);
@@ -95,11 +95,17 @@ export default function Notifications() {
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const role = session?.user?.role as "resident" | "manager" | undefined;
+  // Lấy thông tin người dùng từ session một cách an toàn
+  const role = session?.user?.role;
   const userId = session?.user?.id;
 
+  // =================================================================
+  // Phần Effects (Xử lý Tác vụ Phụ)
+  // =================================================================
+
+  // useEffect chính để tải dữ liệu thông báo khi component được render hoặc session thay đổi
   useEffect(() => {
-    // Chờ cho đến khi session được tải xong để xác định vai trò và ID người dùng.
+    // Chờ cho đến khi session được tải xong để có thông tin người dùng.
     if (status === 'loading') {
       return;
     }
@@ -115,8 +121,8 @@ export default function Notifications() {
         setLoading(true);
         setError(null);
 
-        // The API route is smart enough to return notifications for the logged-in user (resident)
-        // or all notifications (manager) based on the session token. No need to send userId.
+        // API đã được thiết kế để tự nhận diện vai trò người dùng qua session token.
+        // Manager sẽ nhận tất cả thông báo, resident chỉ nhận thông báo của mình.
         const res = await fetch("/api/notifications");
 
         if (!res.ok) {
@@ -134,7 +140,7 @@ export default function Notifications() {
           );
         }
 
-        // API giờ trả về một đối tượng chứa notifications và residents (cho manager)
+        // API trả về một đối tượng chứa `notifications` và `residents` (nếu là manager)
         if (json.data) {
           setNotifications(json.data.notifications || []);
           if (role === 'manager') {
@@ -143,10 +149,11 @@ export default function Notifications() {
         }
       } catch (err) {
         if (err instanceof SyntaxError) {
-          // This happens when the response is not valid JSON, often an HTML error page from a 401 redirect.
+          // Lỗi này xảy ra khi phản hồi không phải là JSON hợp lệ (thường là trang lỗi HTML do chuyển hướng).
           setError("Lỗi xác thực hoặc API không hợp lệ. Vui lòng đăng nhập lại và thử lại.");
         } else {
-          setError(err instanceof Error ? err.message : "Không thể tải thông báo.");
+          // Xử lý trường hợp `err` không phải là một đối tượng Error
+          setError(err instanceof Error ? err.message : "Đã xảy ra một lỗi không xác định.");
         }
       } finally {
         setLoading(false);
@@ -156,6 +163,14 @@ export default function Notifications() {
     loadNotifications();
   }, [status, role, userId]);
 
+  // =================================================================
+  // Phần Handlers (Hàm Xử lý Sự kiện)
+  // =================================================================
+
+  /**
+   * Xử lý việc gửi thông báo từ manager đến các cư dân đã chọn.
+   * Gợi ý: Có thể thay thế `alert` bằng một thư viện thông báo (toast) để đẹp hơn.
+   */
   const handleSendNotification = async () => {
     if (!notificationTitle || !notificationMessage || selectedResidents.length === 0) {
       alert("Vui lòng nhập tiêu đề, nội dung và chọn người nhận.");
@@ -188,14 +203,19 @@ export default function Notifications() {
     }
   };
 
+  /**
+   * Đánh dấu một thông báo là đã đọc khi người dùng nhấp vào.
+   * Sử dụng kỹ thuật "Optimistic UI Update" để cải thiện trải nghiệm người dùng.
+   * @param notificationId - ID của thông báo cần đánh dấu.
+   */
   const handleMarkAsRead = async (notificationId: string) => {
-    // Find the notification and check if it's already read
+    // Tìm thông báo và kiểm tra xem nó đã được đọc chưa.
     const notification = notifications.find((n) => n._id === notificationId);
     if (!notification || notification.read) {
-      return; // Do nothing if not found or already read
+      return; // Không làm gì nếu không tìm thấy hoặc đã đọc.
     }
 
-    // Optimistic UI update: Mark as read immediately on the client
+    // Cập nhật giao diện ngay lập tức, giả định rằng yêu cầu API sẽ thành công.
     setNotifications((prev) =>
       prev.map((n) =>
         n._id === notificationId ? { ...n, read: true } : n
@@ -210,7 +230,8 @@ export default function Notifications() {
       });
 
       if (!res.ok) {
-        // If the API call fails, revert the change in the UI
+        // Nếu API thất bại, khôi phục lại trạng thái giao diện về như cũ.
+        console.error("API Error: Không thể đánh dấu đã đọc.");
         setNotifications((prev) =>
           prev.map((n) =>
             n._id === notificationId ? { ...n, read: false } : n
@@ -219,13 +240,22 @@ export default function Notifications() {
       }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
-      // Also revert on network error
+      // Khôi phục lại trạng thái nếu có lỗi mạng.
       setNotifications((prev) => prev.map((n) => n._id === notificationId ? { ...n, read: false } : n));
     }
   };
 
+  // =================================================================
+  // Phần Memoization (Tối ưu hóa Render)
+  // =================================================================
+
+  /**
+   * Lọc và sắp xếp danh sách thông báo dựa trên tab đang hoạt động ('all' hoặc 'unread').
+   * `useMemo` giúp tránh việc tính toán lại không cần thiết mỗi khi component re-render.
+   */
   const filteredNotifications = useMemo(() => {
     const sorted = [...notifications].sort(
+      // Sắp xếp thông báo mới nhất lên đầu
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     if (activeTab === "unread") {
@@ -234,6 +264,9 @@ export default function Notifications() {
     return sorted;
   }, [notifications, activeTab]);
 
+  /**
+   * Lọc danh sách cư dân dựa trên từ khóa tìm kiếm.
+   */
   const filteredResidents = useMemo(() => {
     if (!searchTerm) return residents;
     return residents.filter(
@@ -243,6 +276,15 @@ export default function Notifications() {
     );
   }, [residents, searchTerm]);
 
+  // =================================================================
+  // Phần Render Logic (Hàm và Giao diện)
+  // =================================================================
+
+  /**
+   * Trả về icon tương ứng với từng loại thông báo.
+   * @param type - Loại thông báo.
+   * @returns JSX.Element
+   */
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
       case "admin_message":
@@ -262,23 +304,25 @@ export default function Notifications() {
     }
   };
 
+  // Xử lý các trạng thái tải dữ liệu và lỗi
   if (status === 'loading' || loading) {
     return <div className="p-6">Đang tải thông báo...</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-red-600">Lỗi: {error}</div>;
+    return <div className="p-6 text-red-600 font-medium">Lỗi: {error}</div>;
   }
 
-  // Sau khi tải xong, nếu session chưa được xác thực hoặc thiếu dữ liệu người dùng, hiển thị lỗi.
+  // Sau khi tải xong, nếu session không hợp lệ hoặc thiếu dữ liệu, hiển thị lỗi.
   if (status === 'unauthenticated') {
-    return <div className="p-6 text-red-600">Lỗi: Bạn cần đăng nhập để xem thông báo.</div>;
+    return <div className="p-6 text-red-600 font-medium">Lỗi: Bạn cần đăng nhập để xem thông báo.</div>;
   }
 
   if (!role || !userId) {
-    return <div className="p-6 text-red-600">
-      Lỗi: Không tìm thấy thông tin người dùng trong phiên làm việc. 
-      Điều này có thể do cấu hình Next-Auth bị thiếu.
+    return <div className="p-6 text-red-600 font-medium">
+      Lỗi: Không tìm thấy thông tin người dùng trong phiên làm việc.
+      <br />
+      Vui lòng kiểm tra lại cấu hình `callbacks` trong file `app/api/auth/[...nextauth]/route.js`.
     </div>;
   }
 

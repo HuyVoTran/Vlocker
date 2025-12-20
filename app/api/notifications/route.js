@@ -5,25 +5,23 @@ import User from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-/* =========================
-   GET: Lấy notifications
-========================= */
-export async function GET(req) {
-  console.log("=== Notifications API GET START ===");
-
+/* =================================================================
+   GET /api/notifications
+   Mục đích: Lấy danh sách thông báo.
+   - Manager: Lấy tất cả thông báo và danh sách cư dân.
+   - Resident: Chỉ lấy thông báo của chính mình.
+================================================================= */
+export async function GET() {
   try {
-    console.log("Connecting DB...");
     await connectDB();
-    console.log("DB Connected!");
 
-    console.log("Getting session...");
+    // Lấy thông tin phiên làm việc từ server để đảm bảo an toàn
     const session = await getServerSession(authOptions);
-    console.log("Session:", session);
 
+    // Nếu không có session hoặc user, từ chối truy cập
     if (!session || !session.user) {
-      console.log("❌ Unauthorized");
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { success: false, message: "Không có quyền truy cập" },
         { status: 401 }
       );
     }
@@ -32,47 +30,39 @@ export async function GET(req) {
     let query = {};
     let residents = [];
 
+    // Phân quyền: Manager có thể xem tất cả, Resident chỉ xem của mình
     if (role === "manager") {
-      console.log("Role: manager → lấy tất cả notifications");
+      // Lấy danh sách cư dân để manager có thể chọn người nhận khi gửi thông báo
       residents = await User.find({ role: "resident" })
         .select("name email _id")
         .lean();
     } else {
-      console.log("Role: resident → chỉ lấy notification của user:", id);
       query = { recipientId: id };
     }
 
+    // Truy vấn cơ sở dữ liệu để lấy thông báo
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .lean();
 
-    console.log("Notifications count:", notifications.length);
-
     return NextResponse.json({
       success: true,
-      data: {
-        notifications,
-        residents,
-      },
+      data: { notifications, residents },
     });
   } catch (err) {
-    console.error("❌ Error GET /api/notifications:", err.message);
-    console.error(err.stack);
+    console.error("Lỗi nghiêm trọng tại GET /api/notifications:", err.message, err.stack);
     return NextResponse.json(
-      { success: false, message: "Server error", error: err.message },
+      { success: false, message: "Lỗi máy chủ", error: err.message },
       { status: 500 }
     );
-  } finally {
-    console.log("=== Notifications API GET END ===");
   }
 }
 
-/* =========================
-   POST: Manager gửi thông báo
-========================= */
+/* =================================================================
+   POST /api/notifications
+   Mục đích: Cho phép Manager gửi thông báo đến nhiều cư dân.
+================================================================= */
 export async function POST(req) {
-  console.log("=== Notifications API POST START ===");
-
   try {
     await connectDB();
 
@@ -81,7 +71,7 @@ export async function POST(req) {
     if (!session || session.user.role !== "manager") {
       console.log("❌ Forbidden");
       return NextResponse.json(
-        { success: false, message: "Forbidden" },
+        { success: false, message: "Không có quyền thực hiện hành động này" },
         { status: 403 }
       );
     }
@@ -91,43 +81,38 @@ export async function POST(req) {
 
     if (!title || !message || !Array.isArray(recipientIds) || recipientIds.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields" },
+        { success: false, message: "Vui lòng cung cấp đầy đủ thông tin" },
         { status: 400 }
       );
     }
 
-    const notifications = recipientIds.map((id) => ({
+    const notificationsToCreate = recipientIds.map((id) => ({
       recipientId: id,
       type: "admin_message",
       title,
       message,
     }));
 
-    await Notification.insertMany(notifications);
-
-    console.log("Notifications sent:", notifications.length);
+    await Notification.insertMany(notificationsToCreate);
 
     return NextResponse.json({
       success: true,
-      message: "Notifications sent successfully",
+      message: "Gửi thông báo thành công",
     });
   } catch (err) {
-    console.error("❌ Error POST /api/notifications:", err.message);
+    console.error("Lỗi nghiêm trọng tại POST /api/notifications:", err.message);
     return NextResponse.json(
-      { success: false, message: "Server error", error: err.message },
+      { success: false, message: "Lỗi máy chủ", error: err.message },
       { status: 500 }
     );
-  } finally {
-    console.log("=== Notifications API POST END ===");
   }
 }
 
-/* =========================
-   PATCH: Đánh dấu đã đọc
-========================= */
+/* =================================================================
+   PATCH /api/notifications
+   Mục đích: Đánh dấu một hoặc nhiều thông báo là đã đọc.
+================================================================= */
 export async function PATCH(req) {
-  console.log("=== Notifications API PATCH START ===");
-
   try {
     await connectDB();
 
@@ -135,7 +120,7 @@ export async function PATCH(req) {
 
     if (!session || !session.user) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { success: false, message: "Không có quyền truy cập" },
         { status: 401 }
       );
     }
@@ -144,11 +129,12 @@ export async function PATCH(req) {
 
     if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Notification IDs are required" },
+        { success: false, message: "Cần có ID của thông báo" },
         { status: 400 }
       );
     }
 
+    // Cập nhật trạng thái `read` của các thông báo được chỉ định
     await Notification.updateMany(
       {
         _id: { $in: notificationIds },
@@ -157,19 +143,15 @@ export async function PATCH(req) {
       { $set: { read: true } }
     );
 
-    console.log("Marked as read:", notificationIds.length);
-
     return NextResponse.json({
       success: true,
-      message: "Notifications marked as read",
+      message: "Đã đánh dấu là đã đọc",
     });
   } catch (err) {
-    console.error("❌ Error PATCH /api/notifications:", err.message);
+    console.error("Lỗi nghiêm trọng tại PATCH /api/notifications:", err.message);
     return NextResponse.json(
-      { success: false, message: "Server error", error: err.message },
+      { success: false, message: "Lỗi máy chủ", error: err.message },
       { status: 500 }
     );
-  } finally {
-    console.log("=== Notifications API PATCH END ===");
   }
 }
