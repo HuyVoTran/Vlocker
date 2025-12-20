@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, Bell } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, History } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { signOut, useSession } from "next-auth/react";
@@ -62,9 +62,9 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
-      id: 'notifications',
-      label: 'Thông báo',
-      icon: <Bell className="w-5 h-5" />,
+      id: 'history',
+      label: 'Lịch sử',
+      icon: <History className="w-5 h-5" />,
     },
     {
       id: 'profile',
@@ -101,9 +101,9 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
-      id: 'notifications',
-      label: 'Thông báo',
-      icon: <Bell className="w-5 h-5" />,
+      id: 'history',
+      label: 'Lịch sử thống kê',
+      icon: <History className="w-5 h-5" />,
     },
     {
       id: 'profile',
