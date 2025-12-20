@@ -7,6 +7,9 @@ import {
   Send,
   AlertTriangle,
   KeyRound,
+  Trash2,
+  BookOpen,
+  Book,
   Lock,
   CreditCard,
 } from "lucide-react";
@@ -95,6 +98,9 @@ export default function Notifications() {
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // State cho việc chọn nhiều thông báo
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+
   // Lấy thông tin người dùng từ session một cách an toàn
   const role = session?.user?.role;
   const userId = session?.user?.id;
@@ -163,6 +169,11 @@ export default function Notifications() {
     loadNotifications();
   }, [status, role, userId]);
 
+  // Xóa lựa chọn khi chuyển tab
+  useEffect(() => {
+    setSelectedNotifications([]);
+  }, [activeTab]);
+
   // =================================================================
   // Phần Handlers (Hàm Xử lý Sự kiện)
   // =================================================================
@@ -205,7 +216,6 @@ export default function Notifications() {
 
   /**
    * Đánh dấu một thông báo là đã đọc khi người dùng nhấp vào.
-   * Sử dụng kỹ thuật "Optimistic UI Update" để cải thiện trải nghiệm người dùng.
    * @param notificationId - ID của thông báo cần đánh dấu.
    */
   const handleMarkAsRead = async (notificationId: string) => {
@@ -215,6 +225,7 @@ export default function Notifications() {
       return; // Không làm gì nếu không tìm thấy hoặc đã đọc.
     }
 
+    const originalNotifications = [...notifications];
     // Cập nhật giao diện ngay lập tức, giả định rằng yêu cầu API sẽ thành công.
     setNotifications((prev) =>
       prev.map((n) =>
@@ -226,23 +237,95 @@ export default function Notifications() {
       const res = await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationIds: [notificationId] }),
+        body: JSON.stringify({ notificationIds: [notificationId], read: true }),
       });
 
       if (!res.ok) {
-        // Nếu API thất bại, khôi phục lại trạng thái giao diện về như cũ.
-        console.error("API Error: Không thể đánh dấu đã đọc.");
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n._id === notificationId ? { ...n, read: false } : n
-          )
-        );
+        throw new Error("Không thể đánh dấu thông báo là đã đọc.");
       }
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
-      // Khôi phục lại trạng thái nếu có lỗi mạng.
-      setNotifications((prev) => prev.map((n) => n._id === notificationId ? { ...n, read: false } : n));
+      console.error("Lỗi khi đánh dấu đã đọc:", error);
+      setNotifications(originalNotifications); // Hoàn tác lại nếu có lỗi
     }
+  };
+
+  /**
+   * Cập nhật trạng thái đã đọc/chưa đọc cho các thông báo đã chọn.
+   * @param read - `true` để đánh dấu đã đọc, `false` để đánh dấu chưa đọc.
+   */
+  const handleBulkUpdateReadStatus = async (read: boolean) => {
+    if (selectedNotifications.length === 0) return;
+
+    const originalNotifications = [...notifications];
+    // Cập nhật giao diện trước để tạo cảm giác nhanh chóng (Optimistic UI)
+    setNotifications((prev) =>
+      prev.map((n) =>
+        selectedNotifications.includes(n._id) ? { ...n, read } : n
+      )
+    );
+
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds: selectedNotifications, read }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Không thể cập nhật trạng thái thông báo.");
+      }
+      // Xóa lựa chọn sau khi thành công
+      setSelectedNotifications([]);
+    } catch (error) {
+      console.error("Lỗi khi cập nhật thông báo:", error);
+      // Hoàn tác lại nếu có lỗi
+      setNotifications(originalNotifications);
+      alert(error instanceof Error ? error.message : "Đã xảy ra lỗi.");
+    }
+  };
+
+  /**
+   * Xóa các thông báo đã chọn.
+   */
+  const handleBulkDelete = async () => {
+    if (selectedNotifications.length === 0) return;
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedNotifications.length} thông báo đã chọn không?`)) {
+      return;
+    }
+
+    const originalNotifications = [...notifications];
+    // Cập nhật giao diện trước
+    setNotifications((prev) =>
+      prev.filter((n) => !selectedNotifications.includes(n._id))
+    );
+
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds: selectedNotifications }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Không thể xóa thông báo.");
+      }
+      // Xóa lựa chọn sau khi thành công
+      setSelectedNotifications([]);
+    } catch (error) {
+      console.error("Lỗi khi xóa thông báo:", error);
+      // Hoàn tác lại nếu có lỗi
+      setNotifications(originalNotifications);
+      alert(error instanceof Error ? error.message : "Đã xảy ra lỗi.");
+    }
+  };
+
+  const handleToggleSelection = (notificationId: string) => {
+    setSelectedNotifications((prev) =>
+      prev.includes(notificationId)
+        ? prev.filter((id) => id !== notificationId)
+        : [...prev, notificationId]
+    );
   };
 
   // =================================================================
@@ -254,7 +337,7 @@ export default function Notifications() {
    * `useMemo` giúp tránh việc tính toán lại không cần thiết mỗi khi component re-render.
    */
   const filteredNotifications = useMemo(() => {
-    const sorted = [...notifications].sort(
+     const sorted = [...notifications].sort(
       // Sắp xếp thông báo mới nhất lên đầu
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -263,6 +346,14 @@ export default function Notifications() {
     }
     return sorted;
   }, [notifications, activeTab]);
+
+  const handleToggleSelectAll = () => {
+    if (selectedNotifications.length === filteredNotifications.length) {
+      setSelectedNotifications([]);
+    } else {
+      setSelectedNotifications(filteredNotifications.map((n) => n._id));
+    }
+  };
 
   /**
    * Lọc danh sách cư dân dựa trên từ khóa tìm kiếm.
@@ -459,6 +550,39 @@ export default function Notifications() {
           <TabsTrigger value="unread">Chưa đọc</TabsTrigger>
         </TabsList>
 
+        {/* Thanh hành động khi có mục được chọn */}
+        {selectedNotifications.length > 0 && (
+          <Card className="p-3 mb-4 flex flex-row items-center justify-between bg-gray-50 animate-in fade-in-50">
+            <div className="flex items-center gap-4">
+              <Checkbox
+                checked={
+                  filteredNotifications.length > 0 &&
+                  selectedNotifications.length === filteredNotifications.length
+                }
+                onCheckedChange={handleToggleSelectAll}
+                aria-label="Chọn tất cả"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Đã chọn {selectedNotifications.length} mục
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleBulkUpdateReadStatus(true)}>
+                <BookOpen className="w-4 h-4 mr-2" />
+                Đánh dấu đã đọc
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkUpdateReadStatus(false)}>
+                <Book className="w-4 h-4 mr-2" />
+                Đánh dấu chưa đọc
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Xóa
+              </Button>
+            </div>
+          </Card>
+        )}
+
         <TabsContent value={activeTab}>
           <Card>
             {filteredNotifications.length === 0 ? (
@@ -471,16 +595,26 @@ export default function Notifications() {
                 {filteredNotifications.map((n) => (
                   <div
                     key={n._id}
-                    className={`flex items-start gap-4 p-4 transition-colors ${
-                      !n.read ? "bg-blue-50 hover:bg-blue-100 cursor-pointer" : "hover:bg-gray-50"
+                    className={`flex items-start gap-4 p-4 transition-colors cursor-pointer ${selectedNotifications.includes(n._id)
+                        ? "bg-blue-100"
+                        : !n.read
+                          ? "bg-blue-50 hover:bg-blue-100"
+                          : "hover:bg-gray-50"
                     }`}
                     onClick={() => handleMarkAsRead(n._id)}
                   >
+                    <div className="flex items-center h-full pt-1">
+                      <Checkbox
+                        checked={selectedNotifications.includes(n._id)}
+                        onCheckedChange={() => handleToggleSelection(n._id)}
+                        onClick={(e) => e.stopPropagation()} // Ngăn sự kiện click của div cha
+                      />
+                    </div>
                     {!n.read && (
                       <div className="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
                     )}
                     <div
-                      className={`flex-shrink-0 ${n.read ? "ml-4" : ""}`}
+                      className="flex-shrink-0"
                     >
                       {getNotificationIcon(n.type)}
                     </div>

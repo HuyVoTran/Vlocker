@@ -155,3 +155,40 @@ export async function PATCH(req) {
     );
   }
 }
+
+/* =================================================================
+   DELETE /api/notifications
+   Mục đích: Xóa một hoặc nhiều thông báo.
+================================================================= */
+export async function DELETE(req) {
+  try {
+    await connectDB();
+
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, message: "Không có quyền truy cập" },
+        { status: 401 }
+      );
+    }
+
+    const { notificationIds } = await req.json();
+
+    if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
+      return NextResponse.json({ success: false, message: "Cần có ID của thông báo để xóa" }, { status: 400 });
+    }
+
+    // Security: Đảm bảo người dùng chỉ có thể xóa thông báo của chính mình.
+    await Notification.deleteMany({
+      _id: { $in: notificationIds },
+      recipientId: session.user.id,
+    });
+
+    return NextResponse.json({ success: true, message: "Đã xóa thông báo thành công" });
+
+  } catch (err) {
+    console.error("Lỗi nghiêm trọng tại DELETE /api/notifications:", err.message);
+    return NextResponse.json({ success: false, message: "Lỗi máy chủ" }, { status: 500 });
+  }
+}
