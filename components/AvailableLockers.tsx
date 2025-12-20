@@ -23,12 +23,22 @@ import {
 } from "./ui/dialog";
 import { useState } from 'react';
 
+interface Locker {
+  id: string;
+  location: string;
+  block: string;
+  size: string;
+  dimensions: string;
+  status: string;
+  price: string;
+}
+
 export default function AvailableLockers() {
   const [filterBlock, setFilterBlock] = useState('all');
   const [filterSize, setFilterSize] = useState('all');
-  const [selectedLocker, setSelectedLocker] = useState<any>(null);
+  const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
 
-  const availableLockers = [
+  const availableLockers: Locker[] = [
     {
       id: 'L102',
       location: 'Tòa A - Tầng 1',

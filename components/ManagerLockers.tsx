@@ -23,10 +23,26 @@ import {
 } from "./ui/dialog";
 import { useState } from 'react';
 
+interface LockerDetails {
+  id: string;
+  user: string;
+  block: string;
+  location: string;
+  email: string;
+  phone: string;
+  // Reserved
+  reservedDate?: string;
+  reservedTime?: string;
+  // In Use
+  usedTime?: string;
+  price?: string;
+  size?: string;
+}
+
 export default function ManagerLockers() {
   const [filterBlock, setFilterBlock] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedLocker, setSelectedLocker] = useState<any>(null);
+  const [selectedLocker, setSelectedLocker] = useState<LockerDetails | null>(null);
 
   const reservedLockers = [
     {
