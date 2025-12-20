@@ -3,6 +3,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Montserrat } from 'next/font/google';
 import Providers from '@/components/Providers';
+import { ToastProvider } from '@/components/ui/toast-context';
 
 const montserrat = Montserrat({ subsets: ['latin'] });
 
@@ -26,7 +27,9 @@ export default function RootLayout({
     <html lang="en" className={montserrat.className}>
       <body>
         <Providers>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </Providers>
       </body>
     </html>

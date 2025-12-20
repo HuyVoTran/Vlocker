@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 // import MyLockers from "./MyLockers";
 import Locker from "@/models/Locker";
 import Booking from "@/models/Booking";
+import { ToastProvider, useToast } from './ui/toast-context';
 
 
 interface ResidentDashboardProps {
@@ -54,6 +55,7 @@ interface MyLockerItem {
     onNavigate,
     user,
   }: ResidentDashboardProps) {
+    const { showToast } = useToast();
     const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
     const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
     const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
@@ -155,10 +157,10 @@ interface MyLockerItem {
           throw new Error(json.message || 'Lỗi mở tủ');
         }
 
-        alert('Tủ đã được mở thành công!');
+        showToast('Tủ đã được mở thành công!', 'success');
         window.location.reload();
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : 'Lỗi mở tủ');
+        showToast(err instanceof Error ? err.message : 'Lỗi mở tủ', 'error');
       } finally {
         setActionLoading(null);
       }
@@ -183,11 +185,11 @@ interface MyLockerItem {
           throw new Error(json.message || 'Lỗi khóa tủ');
         }
 
-        alert(json.message || 'Khóa tủ thành công!');
+        showToast(json.message || 'Khóa tủ thành công!', 'success');
         window.location.reload();
         setSelectedMyLocker(null);
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : 'Lỗi khóa tủ');
+        showToast(err instanceof Error ? err.message : 'Lỗi khóa tủ', 'error');
       } finally {
         setActionLoading(null);
       }
@@ -215,11 +217,11 @@ interface MyLockerItem {
           throw new Error(json.message || 'Lỗi thanh toán');
         }
 
-        alert('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.');
+        showToast('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.', 'success');
         window.location.reload();
         setSelectedMyLocker(null);
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : 'Lỗi thanh toán');
+        showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
       } finally {
         setActionLoading(null);
       }
@@ -667,7 +669,7 @@ interface MyLockerItem {
                   setSelectedAvailableLocker(null);
                 } catch (err) {
                   console.error('Register error', err);
-                  setRegisterError(err instanceof Error ? err.message : String(err));
+                  showToast(err instanceof Error ? err.message : String(err), 'error');
                 } finally {
                   setRegistering(false);
                   window.location.reload();
