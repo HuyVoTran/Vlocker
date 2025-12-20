@@ -1,10 +1,15 @@
  'use client';
 
+import { useState, useEffect } from 'react';
 import { Menu, Bell, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+
+interface Notification {
+  read: boolean;
+}
 
 interface HeaderProps {
   userRole: 'resident' | 'manager' | null;
@@ -13,6 +18,28 @@ interface HeaderProps {
 export default function Header({ userRole }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // Chỉ fetch khi người dùng đã được xác thực
+    if (session) {
+      const fetchUnreadCount = async () => {
+        try {
+          const res = await fetch('/api/notifications');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              const count = data.data.notifications.filter((n: Notification) => !n.read).length;
+              setUnreadCount(count);
+            }
+          }
+        } catch (error) {
+          console.error("Không thể tải số lượng thông báo:", error);
+        }
+      };
+      fetchUnreadCount();
+    }
+  }, [session]); // Chạy lại khi session thay đổi
 
   const role = userRole || 'resident';
   const fullName = session?.user?.name || (role === 'resident' ? 'Nguyễn Văn A' : 'Quản lý Tòa A');
@@ -42,9 +69,11 @@ export default function Header({ userRole }: HeaderProps) {
             onClick={() => router.push('/notifications')}
           >
             <Bell className="w-5 h-5" />
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-red-500">
-              3
-            </Badge>
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 min-w-[1.25rem] flex items-center justify-center p-1 text-xs bg-red-500">
+                {unreadCount}
+              </Badge>
+            )}
           </Button>
           <div className="flex items-center gap-3">
             <Button
