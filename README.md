@@ -5,13 +5,15 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Sidebar"
+git commit -m "Update ReadMe"
 git push
 
 Password@12345
 -->
 
-# VLocker (Văn Lang Locker)
+# VLocker - Ứng Dụng Quản Lý Tủ Khóa Dành Cho Chung Cư
+
+<br>
 
 **Mục tiêu:** Dự án VLocker được xây dựng nhằm **số hóa** và **tối ưu hóa** quy trình quản lý tủ khóa cá nhân, chuyển đổi mô hình quản lý thủ công sang tự động hóa hoàn toàn.
 
@@ -32,6 +34,10 @@ Password@12345
 **Đối tượng sử dụng:** Dân cư / Quản lý của một Chung Cư
 
 **Demo:** [Not yet](http://localhost:3000) 
+
+## First Design
+<p align="center"><img src="README\FirstDesign.png" alt="First Desgin">
+<br><i>Chú thích: Bản design đầu tiên từ Figma</i></p>
 
 ## Tính Năng Chính
 ### Người Dùng:
