@@ -1,7 +1,8 @@
 "use client";
 
-import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, History } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, History, Bell } from 'lucide-react';
 import { Button } from './ui/button';
+import Link from 'next/link';
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -53,9 +54,9 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
-      id: 'history',
-      label: 'Lịch sử hoạt động',
-      icon: <History className="w-5 h-5" />,
+      id: 'notifications',
+      label: 'Thông báo',
+      icon: <Bell className="w-5 h-5" />,
     },
     {
       id: 'profile',
@@ -92,9 +93,9 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       icon: <PlusCircle className="w-5 h-5" />,
     },
     {
-      id: 'history',
-      label: 'Thống kê hoạt động',
-      icon: <History className="w-5 h-5" />,
+      id: 'notifications',
+      label: 'Thông báo',
+      icon: <Bell className="w-5 h-5" />,
     },
     {
       id: 'profile',
@@ -130,15 +131,22 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onNavigate?.(item.id)}
-            className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
-            {item.icon}
-            <span className="text-left">{item.label}</span>
-          </button>
-        ))}
+        {menuItems.map((item) =>
+          item.id === 'notifications' ? (
+            <Link key={item.id} href="/notifications" className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
+              {item.icon}
+              <span className="text-left">{item.label}</span>
+            </Link>
+          ) : (
+            <button
+              key={item.id}
+              onClick={() => onNavigate?.(item.id)}
+              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
+              {item.icon}
+              <span className="text-left">{item.label}</span>
+            </button>
+          )
+        )}
       </nav>
 
       <div className="p-4 border-t border-gray-200">

@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Delete debug"
+git commit -m "Update Notifications"
 git push
 
 Password@12345
