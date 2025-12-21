@@ -65,37 +65,103 @@ export async function POST(req: Request) {
     await transporter.sendMail({
       from: `"VLocker Support" <${process.env.EMAIL_USER}>`,
       to: normalizedEmail,
-      subject: "Đặt lại mật khẩu VLocker",
+      subject: "Yêu cầu đặt lại mật khẩu VLocker",
       html: `
-        <div style="font-family: Arial; padding: 20px;">
-          <h2>Khôi phục mật khẩu</h2>
-          <p>Xin chào <strong>${user.name}</strong>,</p>
-          <p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào nút bên dưới để tiếp tục:</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;">
+        <tr>
+          <td align="center" style="padding: 40px 16px;">
+            
+            <!-- CONTAINER GIỮA (tạo khoảng trống trái phải) -->
+            <table width="600" cellpadding="0" cellspacing="0" style="font-family: Helvetica, Arial, sans-serif; color:#050505;">
+              <tr>
+                <td>
 
-          <a 
-            href="${resetLink}"
-            style="
-              display: inline-block;
-              padding: 12px 20px;
-              margin: 20px 0;
-              background-color: #0070f3;
-              color: #fff;
-              text-decoration: none;
-              border-radius: 6px;
-            "
-          >Đặt lại mật khẩu</a>
+                  <h2 style="font-size:22px; font-weight:700; margin-bottom:20px;">
+                    Thêm một bước nữa để đổi mật khẩu của bạn
+                  </h2>
 
-          <p>Hoặc mở liên kết sau:</p>
-          <p><a href="${resetLink}">${resetLink}</a></p>
+                  <p>Xin chào <strong>${user.name}</strong>,</p>
 
-          <p><i>Liên kết này sẽ hết hạn sau 15 phút.</i></p>
+                  <p>
+                    Chúng tôi đã nhận được yêu cầu đổi mật khẩu cho tài khoản của bạn.
+                    Nhấn vào nút bên dưới để tiếp tục:
+                  </p>
 
-          <p>Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email.</p>
+                  <!-- BUTTON (CENTERED) -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                    <tr>
+                      <td align="center">
+                        <a
+                          href="${resetLink}"
+                          style="
+                            display:inline-block;
+                            padding:12px 20px;
+                            background-color:#1877f2;
+                            color:#ffffff;
+                            text-decoration:none;
+                            border-radius:6px;
+                            font-weight:600;
+                            font-size:14px;
+                          "
+                        >
+                          Đặt lại mật khẩu
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
 
-          <br />
-          <p>Trân trọng,<br/>VLocker Team</p>
-        </div>
-      `,
+                  <p style="font-size:14px;">
+                    Hoặc mở liên kết sau:
+                  </p>
+
+                  <p style="font-size:14px; word-break:break-all;">
+                    <a href="${resetLink}" style="color:#1877f2;">
+                      ${resetLink}
+                    </a>
+                  </p>
+
+                  <p style="font-size:13px; color:#65676b; margin-top:16px; font-style:italic; text-align:center;">
+                    Liên kết này sẽ hết hạn sau <strong>15 phút</strong>.
+                    Không chia sẻ mã này với bất kỳ ai.
+                  </p>
+
+                  <p style="font-size:14px;">
+                    <strong>Bạn không yêu cầu đổi mật khẩu?</strong><br />
+                    Nếu có người yêu cầu liên kết này
+                    Đừng chia sẻ liên kết này với bất kỳ ai, kể cả những người tự nhận là
+                    nhân viên <strong>VLocker</strong>.
+                    Họ có thể đang cố gắng truy cập trái phép vào tài khoản của bạn.
+                  </p>
+
+                  <p style="font-size:14px; margin-top:16px;">
+                    <strong>Bạn không gửi yêu cầu?</strong><br />
+                    Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này.
+                  </p>
+
+                  <p style="font-size:14px; color:black; margin-top:24px;">
+                    Trân trọng,<br />
+                    Đội ngũ bảo mật VLocker
+                  </p>
+
+                  <hr style="border:none; border-top:1px solid #dadde1; margin:24px 0;" />
+
+                  <img src="vlocker.vercel.app/Logo.png" alt="Vlocker" width="70" />
+
+                  <p style="font-size:12px; color:#8a8d91; margin-top:32px; text-align:center;">
+                    © 2024 VLocker - Bảo vệ dữ liệu của bạn là ưu tiên hàng đầu của chúng tôi.
+                    Thư này gửi đến ${normalizedEmail}.
+                    Email này được gửi tự động. Vui lòng không trả lời.
+                  </p>
+
+                </td>
+              </tr>
+            </table>
+            <!-- END CONTAINER -->
+
+          </td>
+        </tr>
+      </table>
+      `
     });
 
     return NextResponse.json(

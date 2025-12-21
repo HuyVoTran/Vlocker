@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Fix Reset Password"
+git commit -m "Update Logo & Mail"
 git push
 
 Password@12345
