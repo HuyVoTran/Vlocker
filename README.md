@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Fix Register"
+git commit -m "Update ReadMe"
 git push
 
 Password@12345
@@ -33,7 +33,7 @@ Password@12345
 
 **Đối tượng sử dụng:** Dân cư / Quản lý của một Chung Cư
 
-**Demo:** [Not yet](http://localhost:3000) 
+**Demo:** [VLocker - Vercel](vlocker.vercel.app) 
 
 ## First Design
 <p align="center"><img src="README\FirstDesign.png" alt="First Desgin">
