@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Header"
+git commit -m "Update Contact"
 git push
 
 Password@12345

@@ -1,4 +1,5 @@
-import { Phone, Mail, MapPin, Clock, Send, MessageSquare } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Send, MessageSquare, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -10,7 +11,7 @@ export default function Contact() {
     {
       icon: <Phone className="w-6 h-6 text-blue-600" />,
       title: 'Hotline',
-      content: '1900-xxxx',
+      content: '1900-0911',
       subContent: 'Hỗ trợ 24/7'
     },
     {
@@ -35,22 +36,50 @@ export default function Contact() {
 
   const faqs = [
     {
-      question: 'Làm sao để đăng ký tủ mới?',
-      answer: 'Vào mục "Đăng ký tủ mới", chọn tủ phù hợp và nhấn "Thuê tủ ngay".'
+      question: 'Shipper có thể mở tủ của tôi không?',
+      answer: [
+        'Không. Shipper chỉ được phép bỏ hàng vào tủ đã được đặt trước.',
+        'Sau khi đóng tủ, hệ thống sẽ tự động khóa và shipper không có quyền mở lại.'
+      ]
     },
     {
-      question: 'Tôi quên mã OTP mở tủ phải làm sao?',
-      answer: 'Vào app VLocker hoặc kiểm tra SMS để lấy lại mã OTP.'
+      question: 'Tôi cần thanh toán khi nào?',
+      answer: [
+        'Người dùng cần thanh toán phí lưu trữ trước khi mở tủ để nhận đồ.',
+        'Phí được tính tự động theo thời gian sử dụng với mức 5.000 VNĐ/ngày.'
+      ]
     },
     {
-      question: 'Giá thuê tủ là bao nhiêu?',
-      answer: 'Tủ nhỏ: 50,000đ/tháng, Tủ vừa: 70,000đ/tháng, Tủ lớn: 100,000đ/tháng.'
+      question: 'Nếu tôi quên đóng tủ thì sao?',
+      answer: [
+        'Hệ thống sẽ cảnh báo trạng thái tủ chưa đóng trên Dashboard.',
+        'Ban quản lý có thể theo dõi và xử lý kịp thời để đảm bảo an toàn.'
+      ]
     },
     {
-      question: 'Tủ có an toàn không?',
-      answer: 'Tủ được giám sát 24/7 với hệ thống bảo mật đa lớp và khóa thông minh.'
+      question: 'Ban quản lý có xem được lịch sử sử dụng tủ không?',
+      answer: [
+        'Có. Quản lý có thể xem lịch sử thuê tủ.',
+        'Trạng thái hiện tại và các báo cáo thống kê để phục vụ công tác vận hành.'
+      ]
+    },
+    {
+      question: 'Tôi có thể quản lý tủ khi không ở nhà không?',
+      answer: [
+        'Có. Người dùng có thể theo dõi trạng thái, thanh toán và mở tủ từ xa.',
+        'Giúp việc giao nhận hàng hóa linh hoạt và thuận tiện hơn.'
+      ]
     }
   ];
+
+  // State cho form
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -92,8 +121,11 @@ export default function Contact() {
                 <Label htmlFor="name">Họ và tên</Label>
                 <Input
                   id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Nhập họ tên của bạn"
                   className="mt-2"
+                  required
                 />
               </div>
               <div>
@@ -101,8 +133,11 @@ export default function Contact() {
                 <Input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@example.com"
                   className="mt-2"
+                  required
                 />
               </div>
             </div>
@@ -113,6 +148,9 @@ export default function Contact() {
                 <Input
                   id="phone"
                   placeholder="0901234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+
                   className="mt-2"
                 />
               </div>
@@ -121,6 +159,8 @@ export default function Contact() {
                 <Input
                   id="subject"
                   placeholder="Chủ đề tin nhắn"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
                   className="mt-2"
                 />
               </div>
@@ -130,19 +170,66 @@ export default function Contact() {
               <Label htmlFor="message">Nội dung</Label>
               <Textarea
                 id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 placeholder="Nhập nội dung tin nhắn của bạn..."
                 className="mt-2 min-h-[150px]"
+                required
               />
             </div>
 
             <div className="flex gap-3">
-              <Button className="flex-1">
+              <Button className="flex-1" onClick={async () => {
+                setIsSubmitting(true);
+                setSubmitError('');
+
+                try {
+                  const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, phone, subject, message }),
+                  });
+
+                  if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Gửi tin nhắn thất bại.');
+                  }
+
+                  // Xử lý thành công
+                  alert('Tin nhắn đã được gửi thành công!');
+                  setName('');
+                  setEmail('');
+                  setPhone('');
+                  setSubject('');
+                  setMessage('');
+                } catch (error) {
+                  if (error instanceof Error) {
+                    setSubmitError(error.message || 'Gửi tin nhắn thất bại.');
+                  } else {
+                    setSubmitError('Đã xảy ra một lỗi không xác định.');
+                  }
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }} disabled={isSubmitting}>
                 <Send className="w-4 h-4 mr-2" />
-                Gửi tin nhắn
+                {isSubmitting ? 'Đang gửi...' : 'Gửi tin nhắn'}
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => {
+                setName('');
+                setEmail('');
+                setPhone('');
+                setSubject('');
+                setMessage('');
+              }}>
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Làm mới
               </Button>
+              {submitError && (
+                <p className="text-red-500 mt-2">{submitError}</p>
+              )}
             </div>
           </div>
         </Card>
@@ -154,7 +241,11 @@ export default function Contact() {
             {faqs.map((faq, index) => (
               <div key={index} className="pb-4 border-b border-gray-200 last:border-0 last:pb-0">
                 <p className="text-gray-900 mb-2">{faq.question}</p>
-                <p className="text-sm text-gray-600">{faq.answer}</p>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {faq.answer.map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -166,7 +257,7 @@ export default function Contact() {
             </p>
             <Button className="w-full" size="sm">
               <Phone className="w-4 h-4 mr-2" />
-              Gọi ngay 1900-xxxx
+              Gọi ngay 1900-0911
             </Button>
           </div>
         </Card>
@@ -175,13 +266,15 @@ export default function Contact() {
       {/* Map Section */}
       <Card className="p-6">
         <h3 className="text-gray-900 mb-4">Vị trí văn phòng</h3>
-        <div className="w-full h-[400px] bg-gray-200 rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">Bản đồ Google Maps</p>
-            <p className="text-sm text-gray-500">TP. Hồ Chí Minh, Việt Nam</p>
-          </div>
-        </div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.858229994582!2d106.6919923759021!3d10.82208175848834!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317528e53610d76b%3A0x866210c456c3330f!2zNjkvNjggxJAuIMSQ4bq3bmcgVGh1eSBUcsOibSwgUGjGsOG7nW5nIDEzLCBCw6xuaCBUaOG6oW5oLCBUaMOgbmggcGjhu5EgSOG7kyBDaMOtIE1pbmgsIFZp4buHdCBOYW0!5e0!3m2!1svi!2s!4v1672531200000!5m2!1svi!2s"
+          className="w-full h-[400px] border-0 rounded-lg"
+          allowFullScreen={true}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Vị trí văn phòng VLocker"
+        >
+        </iframe>
       </Card>
     </div>
   );

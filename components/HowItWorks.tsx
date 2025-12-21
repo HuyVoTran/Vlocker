@@ -1,6 +1,5 @@
-import { Shield, Clock, Lock, Smartphone, Package, CheckCircle, HelpCircle} from 'lucide-react';
+import { Package, CheckCircle, HelpCircle} from 'lucide-react';
 import { Button } from './ui/button';
-import { Card } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
@@ -11,28 +10,6 @@ export const metadata = {
 
 export default function LandingPage() {
   const router = useRouter();
-  const features = [
-    {
-      icon: <Shield className="w-8 h-8 text-[#1e1e1e]" />,
-      title: 'Bảo mật nhiều lớp',
-      description: 'Tủ thông minh sử dụng OTP, trạng thái tủ theo thời gian thực và xác thực người dùng'
-    },
-    {
-      icon: <Clock className="w-8 h-8 text-[#1e1e1e]" />,
-      title: 'Gửi & nhận linh hoạt',
-      description: 'Hỗ trợ shipper giao hàng và người dùng nhận đồ bất kỳ lúc nào'
-    },
-    {
-      icon: <Lock className="w-8 h-8 text-[#1e1e1e]" />,
-      title: 'Quản lý trạng thái tủ',
-      description: 'Theo dõi tủ trống, tủ đã đặt, tủ đang mở hoặc đã khóa ngay trên dashboard'
-    },
-    {
-      icon: <Smartphone className="w-8 h-8 text-[#1e1e1e]" />,
-      title: 'Thanh toán & mở khóa tiện lợi',
-      description: 'Thanh toán nhanh qua Momo / VNPAY để mở khóa và lấy đồ'
-    }
-  ];
 
   const steps = [
     {
