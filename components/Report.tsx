@@ -1,5 +1,5 @@
 'use client';
-import { FileText, Upload, AlertCircle, CheckCircle, Clock, User } from 'lucide-react';
+import { FileText, Upload, AlertCircle, CheckCircle, Clock, User, XCircle } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -24,7 +24,7 @@ interface ReportData {
   createdAt: string;
   title: string;
   category: 'locker_error' | 'incident' | 'service_feedback' | 'other';
-  status: 'pending' | 'processing' | 'completed';
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
   priority: 'high' | 'medium' | 'low';
   userId?: {
     name: string;
@@ -80,6 +80,13 @@ export default function Report() {
           <Badge className="bg-green-100 text-green-700">
             <CheckCircle className="w-3 h-3 mr-1" />
             Đã xử lý
+          </Badge>
+        );
+      case 'cancelled':
+        return (
+          <Badge className="bg-red-100 text-red-700">
+            <XCircle className="w-3 h-3 mr-1" />
+            Đã hủy
           </Badge>
         );
       default:
@@ -166,26 +173,27 @@ export default function Report() {
 
   // Status update handler (for managers)
   const handleStatusChange = async (reportId: string, newStatus: string) => {
-    // Cập nhật giao diện trước
+    const originalReports = [...reports];
+    // Cập nhật giao diện trước (optimistic update)
     setReports(prev => prev.map(r => r._id === reportId ? { ...r, status: newStatus as ReportData['status'] } : r));
 
     try {
       const res = await fetch('/api/reports', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        // `reportId` ở đây thực chất là `_id` của document
         body: JSON.stringify({ reportId, status: newStatus }),
       });
       if (!res.ok) {
-        // Nếu lỗi, hoàn tác lại thay đổi trên giao diện (cần lưu state cũ)
-        // Để đơn giản, ta sẽ fetch lại dữ liệu
-        throw new Error('Cập nhật thất bại.');
+        // Nếu có lỗi, server sẽ trả về message
+        const errorData = await res.json().catch(() => ({ message: 'Cập nhật thất bại. Không thể đọc phản hồi từ server.' }));
+        throw new Error(errorData.message || 'Cập nhật thất bại.');
       }
+      // Thành công, không cần làm gì vì UI đã được cập nhật
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi.');
-      // Fetch lại để đảm bảo dữ liệu đồng bộ
-      const res = await fetch('/api/reports');
-      const json = await res.json();
-      setReports(json.data);
+      alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.');
+      // Nếu có lỗi, hoàn tác lại thay đổi trên giao diện
+      setReports(originalReports);
     }
   };
 
@@ -369,6 +377,7 @@ export default function Report() {
                         <SelectItem value="pending">Chờ xử lý</SelectItem>
                         <SelectItem value="processing">Đang xử lý</SelectItem>
                         <SelectItem value="completed">Đã xử lý</SelectItem>
+                        <SelectItem value="cancelled">Đã hủy</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (

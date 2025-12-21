@@ -22,7 +22,7 @@ const ReportSchema = new mongoose.Schema({
 
   status: { 
     type: String, 
-    enum: ['pending', 'processing', 'completed'], // Chờ xử lý, Đang xử lý, Đã xử lý
+    enum: ['pending', 'processing', 'completed', 'cancelled'], // Chờ xử lý, Đang xử lý, Đã xử lý, Đã hủy
     default: 'pending' 
   },
 
@@ -51,7 +51,7 @@ ReportSchema.pre("save", async function () {
           nextNumber = lastNumber + 1;
         }
       } catch (e) {
-        console.error('Không thể phân tích số thứ tự từ reportId:', lastReport.reportId);
+        console.error('Không thể phân tích số thứ tự từ reportId:', lastReport.reportId , e);
         // Bỏ qua và sử dụng số thứ tự 1 nếu có lỗi
       }
     }

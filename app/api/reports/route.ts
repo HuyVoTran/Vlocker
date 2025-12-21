@@ -7,7 +7,6 @@ import { connectDB } from '@/lib/mongodb';
 // Giả sử bạn có model Mongoose cho Report và User
 import Report from '@/models/Report'; 
 import User from '@/models/User'; 
-import mongoose from 'mongoose';
 
 /**
  * GET /api/reports
@@ -114,21 +113,21 @@ export async function PATCH(req: NextRequest) {
     await connectDB();
 
     const body = await req.json();
-    // Client gửi lên reportId (ví dụ: 'RP25120001'), không phải _id của MongoDB
-    const { reportId, status } = body; 
+    // Client gửi lên `_id` của document, nhưng đặt tên key là `reportId`.
+    const { reportId: _id, status } = body; 
 
-    if (!reportId || !status) {
-      return NextResponse.json({ success: false, message: 'Thiếu reportId hoặc status' }, { status: 400 });
+    if (!_id || !status) {
+      return NextResponse.json({ success: false, message: 'Thiếu ID báo cáo hoặc status' }, { status: 400 });
     }
 
-    const validStatuses = ['pending', 'processing', 'completed'];
+    const validStatuses = ['pending', 'processing', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ success: false, message: 'Trạng thái không hợp lệ' }, { status: 400 });
     }
 
-    // Sử dụng findOneAndUpdate để tìm bằng reportId (string) thay vì findByIdAndUpdate (_id)
-    // để tránh lỗi CastError nếu client gửi ID không đúng định dạng ObjectId.
-    const updatedReport = await Report.findOneAndUpdate({ reportId }, { status }, { new: true })
+    // Sử dụng findByIdAndUpdate để tìm bằng _id.
+    // Client đang gửi `_id` của report trong trường `reportId` của body.
+    const updatedReport = await Report.findByIdAndUpdate(_id, { status }, { new: true })
       .populate({
         path: 'userId',
         model: User,
