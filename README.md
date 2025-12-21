@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Logo & Mail"
+git commit -m "Update Logo Meta data"
 git push
 
 Password@12345
