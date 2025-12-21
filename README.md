@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Logo Meta data"
+git commit -m "Update Loading Page"
 git push
 
 Password@12345
