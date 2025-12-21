@@ -75,6 +75,8 @@ export async function POST(req: Request) {
             <table width="600" cellpadding="0" cellspacing="0" style="font-family: Helvetica, Arial, sans-serif; color:#050505;">
               <tr>
                 <td>
+                  <img src="vlocker.vercel.app/Logo.png" alt="Vlocker" width="70" />
+                  <hr style="border:none; border-top:1px solid #dadde1; margin:24px 0;" />
 
                   <h2 style="font-size:22px; font-weight:700; margin-bottom:20px;">
                     Thêm một bước nữa để đổi mật khẩu của bạn
@@ -125,6 +127,8 @@ export async function POST(req: Request) {
                     Không chia sẻ mã này với bất kỳ ai.
                   </p>
 
+                  <br />
+
                   <p style="font-size:14px;">
                     <strong>Bạn không yêu cầu đổi mật khẩu?</strong><br />
                     Nếu có người yêu cầu liên kết này
@@ -145,11 +149,10 @@ export async function POST(req: Request) {
 
                   <hr style="border:none; border-top:1px solid #dadde1; margin:24px 0;" />
 
-                  <img src="vlocker.vercel.app/Logo.png" alt="Vlocker" width="70" />
-
                   <p style="font-size:12px; color:#8a8d91; margin-top:32px; text-align:center;">
-                    © 2024 VLocker - Bảo vệ dữ liệu của bạn là ưu tiên hàng đầu của chúng tôi.
-                    Thư này gửi đến ${normalizedEmail}.
+                    <img src="vlocker.vercel.app/Logo.png" alt="Vlocker" width="70" /><br />
+                    © 2024 VLocker - Bảo vệ dữ liệu của bạn là ưu tiên hàng đầu của chúng tôi.<br />
+                    Thư này gửi đến ${normalizedEmail}.<br />
                     Email này được gửi tự động. Vui lòng không trả lời.
                   </p>
 
