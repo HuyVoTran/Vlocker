@@ -1,9 +1,10 @@
  'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu, Bell } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -43,6 +44,7 @@ export default function Header({ userRole }: HeaderProps) {
 
   const role = userRole || 'resident';
   const fullName = session?.user?.name || (role === 'resident' ? 'Nguyễn Văn A' : 'Quản lý Tòa A');
+  const initial = fullName ? fullName.charAt(0).toUpperCase() : 'A';
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -81,10 +83,11 @@ export default function Header({ userRole }: HeaderProps) {
               size="icon"
               onClick={() => router.push(`/${role}/profile`)}
               aria-label="Mở trang profile"
+              className="hover:bg-transparent"
             >
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-blue-600" />
-              </div>
+              <Avatar>
+                <AvatarFallback className="bg-blue-100 text-blue-600">{initial}</AvatarFallback>
+              </Avatar>
             </Button>
           </div>
         </div>
