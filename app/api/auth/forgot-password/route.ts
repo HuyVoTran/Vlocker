@@ -76,7 +76,7 @@ export async function POST(req: Request) {
               <tr>
                 <td>
                   <img src="vlocker.vercel.app/Logo.png" alt="Vlocker" width="70" />
-                  <hr style="border:none; border-top:1px solid #dadde1; margin:24px 0;" />
+                  <hr style="border:none; border-top:1px solid #dadde1; margin-bottom:24px;" />
 
                   <h2 style="font-size:22px; font-weight:700; margin-bottom:20px;">
                     Thêm một bước nữa để đổi mật khẩu của bạn
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
 
                   <hr style="border:none; border-top:1px solid #dadde1; margin:24px 0;" />
 
-                  <p style="font-size:12px; color:#8a8d91; margin-top:32px; text-align:center;">
+                  <p style="font-size:12px; color:#8a8d91; margin:0; text-align:center;">
                     <img src="vlocker.vercel.app/Logo.png" alt="Vlocker" width="70" /><br />
                     © 2024 VLocker - Bảo vệ dữ liệu của bạn là ưu tiên hàng đầu của chúng tôi.<br />
                     Thư này gửi đến ${normalizedEmail}.<br />
