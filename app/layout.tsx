@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     siteName: 'VLocker',
     images: [
       {
-        url: 'vlocker.vercel.app/Logo.png',
+        url: 'vlocker.vercel.app/Logo-bg.png',
         width: 1200,
         height: 630,
         alt: 'VLocker Logo',
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'VLocker',
     description: 'Tủ chung cư kỹ thuật số an toàn và bảo mật tốt nhất.',
-    images: ['vlocker.vercel.app/Logo.png'],
+    images: ['vlocker.vercel.app/Logo-bg.png'],
   },
 };
 
