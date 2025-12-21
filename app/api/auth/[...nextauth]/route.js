@@ -14,6 +14,7 @@ import bcrypt from "bcryptjs";
  * - Callbacks: Tùy chỉnh token và session để thêm dữ liệu người dùng.
  * =================================================================
  */
+/** @type {import('next-auth').AuthOptions} */
 export const authOptions = {
   providers: [
     CredentialsProvider({

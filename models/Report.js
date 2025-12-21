@@ -32,27 +32,33 @@ const ReportSchema = new mongoose.Schema({
 }, { timestamps: true, collection: 'reports' });
 
 // Hook để tự động tạo reportId trước khi lưu
-ReportSchema.pre("save", async function (next) {
-  // Chỉ chạy nếu reportId chưa được tạo
-  if (this.reportId) return next();
+ReportSchema.pre("save", async function () {
+  // Chỉ chạy khi tạo mới và reportId chưa được gán
+  if (this.isNew && !this.reportId) {
+    const Model = this.constructor;
+    const prefix = 'RP';
 
-  const Model = this.constructor;
-  const prefix = 'RP';
-  // Tìm báo cáo cuối cùng để xác định số thứ tự tiếp theo
-  const lastReport = await Model
-    .findOne({ reportId: new RegExp(`^${prefix}`) })
-    .sort({ reportId: -1 })
-    .lean();
+    // Tìm báo cáo cuối cùng của tháng hiện tại để xác định số thứ tự tiếp theo
+    const lastReport = await Model.findOne({
+      reportId: { $regex: `^${prefix}` },
+    }).sort({ reportId: -1 });
 
-  let nextNumber = 1;
-  if (lastReport) {
-    const lastNumber = parseInt(lastReport.reportId.replace(prefix, ""), 10);
-    nextNumber = lastNumber + 1;
+    let nextNumber = 1;
+    if (lastReport && lastReport.reportId) {
+      try {
+        const lastNumber = parseInt(lastReport.reportId.replace(prefix, ''), 10);
+        if (!isNaN(lastNumber)) {
+          nextNumber = lastNumber + 1;
+        }
+      } catch (e) {
+        console.error('Không thể phân tích số thứ tự từ reportId:', lastReport.reportId);
+        // Bỏ qua và sử dụng số thứ tự 1 nếu có lỗi
+      }
+    }
+    
+    // Tạo reportId mới, ví dụ: RP0001, RP0002
+    this.reportId = `${prefix}${String(nextNumber).padStart(4, '0')}`;
   }
-
-  // Tạo reportId mới, ví dụ: RP001, RP002
-  this.reportId = `${prefix}${String(nextNumber).padStart(3, "0")}`;
-  next();
 });
 
 export default mongoose.models.Report || mongoose.model('Report', ReportSchema);

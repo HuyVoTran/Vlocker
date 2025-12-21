@@ -45,7 +45,7 @@ export default function Report() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [lockerId, setLockerId] = useState('');
+  const [priority, setPriority] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Helper functions
@@ -135,8 +135,8 @@ export default function Report() {
 
   // Form submission handler (for residents)
   const handleSubmitReport = async () => {
-    if (!title || !description || !category) {
-      alert('Vui lòng điền đầy đủ tiêu đề, mô tả và loại báo cáo.');
+    if (!title || !description || !category || !priority) {
+      alert('Vui lòng điền đầy đủ tất cả các trường.');
       return;
     }
     setSubmitting(true);
@@ -144,7 +144,7 @@ export default function Report() {
       const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, category, lockerId }),
+        body: JSON.stringify({ title, description, category, priority }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -156,7 +156,7 @@ export default function Report() {
       setTitle('');
       setDescription('');
       setCategory('');
-      setLockerId('');
+      setPriority('');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi.');
     } finally {
@@ -235,14 +235,17 @@ export default function Report() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="locker">Mã tủ (nếu có)</Label>
-                <Input
-                  id="locker"
-                  value={lockerId}
-                  onChange={(e) => setLockerId(e.target.value)}
-                  placeholder="Ví dụ: L001"
-                  className="mt-2"
-                />
+                <Label htmlFor="priority">Độ ưu tiên</Label>
+                <Select value={priority} onValueChange={setPriority}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Chọn độ ưu tiên" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Nhẹ</SelectItem>
+                    <SelectItem value="medium">Trung bình</SelectItem>
+                    <SelectItem value="high">Cao</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
