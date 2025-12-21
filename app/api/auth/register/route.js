@@ -17,15 +17,17 @@ export async function POST(req) {
       unit 
     } = await req.json();
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // 1. Kết nối DB
     await connectDB();
 
     // 2. Kiểm tra xem email đã tồn tại chưa
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return NextResponse.json(
         { message: "Email này đã được sử dụng." },
-        { status: 400 }
+        { status: 409 } // 409 Conflict là mã lỗi phù hợp hơn
       );
     }
 

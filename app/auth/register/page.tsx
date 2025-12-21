@@ -37,37 +37,22 @@ export default function RegisterPage() {
   // 3. Định nghĩa kiểu cho sự kiện thay đổi input (ChangeEvent)
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    let processedValue = value;
 
     // TRƯỜNG HỢP: Nếu là tên không được nhập ký tự khác ngoài chữ cái
     if (name === "name") {
       // Cho phép: A-Z, a-z, tiếng Việt có dấu, và khoảng trắng
-      const onlyLetters = value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "");
-    
-      setFormData((prev) => ({
-        ...prev,
-        [name]: onlyLetters,
-      }));
-    
-      return;
+      processedValue = value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "");
+    } else if (name === "phone") {
+      // Chỉ cho nhập số
+      processedValue = value.replace(/[^0-9]/g, "");
     }
 
-    // TRƯỜNG HỢP: Nếu là số điện thoại (Chỉ cho nhập số)
-    if (name === "phone") {
-        const numericValue = value.replace(/[^0-9]/g, "");
-        setFormData((prev) => ({
-          ...prev,
-          [name]: numericValue,
-        }));
-        return; // Dừng lại, không chạy xuống dưới
-      }
-
-      // TRƯỜNG HỢP KHÁC: Các trường còn lại (Mật khẩu, Địa chỉ, Tên...)
-      // BẮT BUỘC PHẢI CÓ ĐOẠN NÀY thì các ô khác mới gõ được!
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    };
+    setFormData((prev) => ({
+      ...prev,
+      [name]: processedValue,
+    }));
+  };
 
     const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { name, value } = e.target;
@@ -126,7 +111,7 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
-          phone: formData.phone, // Lưu ý: Backend nên xử lý chuyển đổi sang số nếu cần
+          phone: formData.phone,
           building: formData.building,
           block: formData.block,
           floor: formData.floor,
@@ -134,15 +119,23 @@ export default function RegisterPage() {
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.message || "Đăng ký thất bại");
+        // Nếu phản hồi không OK, cố gắng phân tích thông báo lỗi từ body.
+        let errorMessage = "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.";
+        try {
+          const errorData = await res.json();
+          // Nếu server cung cấp một thông báo cụ thể, hãy sử dụng nó.
+          errorMessage = errorData?.message || `Lỗi từ máy chủ: ${res.status}`;
+        } catch (e) {
+          // Nếu body của phản hồi không phải là JSON (ví dụ: trang lỗi HTML từ Next.js)
+          errorMessage = `Lỗi máy chủ nội bộ (${res.status}). Vui lòng kiểm tra logs phía server.`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Đăng ký thành công -> Chuyển về trang login
       alert("Đăng ký thành công! Vui lòng đăng nhập.");
-      router.push("/"); 
+      router.push("/auth/login");
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Đã xảy ra lỗi không xác định");
