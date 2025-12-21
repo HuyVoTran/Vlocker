@@ -5,6 +5,22 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
+  // Kiểm tra các biến môi trường cần thiết
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error("Lỗi: Thiếu biến môi trường EMAIL_USER hoặc EMAIL_PASS.");
+    return NextResponse.json(
+      { message: "Lỗi cấu hình máy chủ: Không thể xác thực dịch vụ email." },
+      { status: 500 }
+    );
+  }
+  if (!process.env.NEXT_PUBLIC_URL) {
+    console.error("Lỗi: Thiếu biến môi trường NEXT_PUBLIC_URL.");
+    return NextResponse.json(
+      { message: "Lỗi cấu hình máy chủ: Không tìm thấy URL của ứng dụng." },
+      { status: 500 }
+    );
+  }
+
   try {
     const { email } = await req.json();
 
@@ -89,6 +105,16 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Forgot password error:", error);
+
+    // Cung cấp thông báo lỗi chi tiết hơn trong môi trường development
+    if (process.env.NODE_ENV === 'development') {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return NextResponse.json(
+        { message: `Lỗi máy chủ khi gửi email: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Lỗi máy chủ. Không thể gửi email." },
       { status: 500 }

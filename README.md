@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update ReadMe"
+git commit -m "Fix Reset Password"
 git push
 
 Password@12345
