@@ -15,6 +15,14 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast } from './ui/toast-context';
@@ -24,6 +32,7 @@ interface ReportData {
   reportId: string;
   createdAt: string;
   title: string;
+  description: string;
   category: 'locker_error' | 'incident' | 'service_feedback' | 'other';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   priority: 'high' | 'medium' | 'low';
@@ -41,6 +50,7 @@ export default function Report() {
   const [reports, setReports] = useState<ReportData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ReportData | null>(null);
 
   // State cho form gửi báo cáo
   const [title, setTitle] = useState('');
@@ -339,12 +349,13 @@ export default function Report() {
               <TableHead>Loại</TableHead>
               <TableHead>Độ ưu tiên</TableHead>
               <TableHead>Trạng thái</TableHead>
+              {role === 'manager' && <TableHead>Thao tác</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {reports.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={role === 'manager' ? 7 : 6} className="text-center">
+                <TableCell colSpan={role === 'manager' ? 8 : 6} className="text-center">
                   Không có báo cáo nào.
                 </TableCell>
               </TableRow>
@@ -372,25 +383,78 @@ export default function Report() {
                 </TableCell>
                 <TableCell>{getPriorityBadge(report.priority)}</TableCell>
                 <TableCell>
-                  {role === 'manager' ? (
-                    <Select value={report.status} onValueChange={(newStatus) => handleStatusChange(report._id, newStatus)}>
-                      <SelectTrigger className="w-[150px]">{getStatusBadge(report.status)}</SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Chờ xử lý</SelectItem>
-                        <SelectItem value="processing">Đang xử lý</SelectItem>
-                        <SelectItem value="completed">Đã xử lý</SelectItem>
-                        <SelectItem value="cancelled">Đã hủy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    getStatusBadge(report.status)
-                  )}
+                  {getStatusBadge(report.status)}
                 </TableCell>
+                {role === 'manager' && (
+                  <TableCell>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedReport(report)}>
+                      Chi tiết
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             )))}
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialog for manager to view details and update status */}
+      <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chi tiết báo cáo {selectedReport?.reportId}</DialogTitle>
+            <DialogDescription>
+              Xem chi tiết và cập nhật trạng thái của báo cáo.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Tiêu đề</Label>
+                <p className="mt-1 text-gray-900">{selectedReport.title}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Mô tả</Label>
+                <p className="mt-1 text-gray-600 whitespace-pre-wrap">{selectedReport.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Người gửi</Label>
+                  <p className="mt-1 text-gray-900">{selectedReport.userId?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Ngày gửi</Label>
+                  <p className="mt-1 text-gray-900">{formatDate(selectedReport.createdAt)}</p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Cập nhật trạng thái</Label>
+                <Select
+                  value={selectedReport.status}
+                  onValueChange={(newStatus) => {
+                    handleStatusChange(selectedReport._id, newStatus);
+                    // Optimistically update the selected report as well
+                    setSelectedReport(prev => prev ? { ...prev, status: newStatus as ReportData['status'] } : null);
+                  }}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Chờ xử lý</SelectItem>
+                    <SelectItem value="processing">Đang xử lý</SelectItem>
+                    <SelectItem value="completed">Đã xử lý</SelectItem>
+                    <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedReport(null)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
