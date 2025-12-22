@@ -151,22 +151,39 @@ export default function Profile() {
     setPasswordData(prev => ({ ...prev, [id]: value }));
   };
 
+  const handleUpdatePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      showToast("Vui lòng điền đầy đủ mật khẩu hiện tại và mật khẩu mới.", "warning");
+      return;
+    }
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Đổi mật khẩu thất bại.");
+      }
+
+      showToast("Đổi mật khẩu thành công!", "success");
+      setPasswordData({ currentPassword: '', newPassword: '' }); // Reset form
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Đã xảy ra lỗi.", "error");
+    }
+  };
+
   const handleSaveChanges = async () => {
     try {
-        const payload: Record<string, string> = { ...formData };
-        if (passwordData.newPassword) {
-            if (!passwordData.currentPassword) {
-                showToast("Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu mới.", "warning");
-                return;
-            }
-            payload.currentPassword = passwordData.currentPassword;
-            payload.newPassword = passwordData.newPassword;
-        }
-
         const res = await fetch('/api/profile', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(formData),
         });
 
         const json = await res.json();
@@ -177,7 +194,6 @@ export default function Profile() {
         showToast("Cập nhật thông tin thành công!", "success");
         setProfile(json.data); // Cập nhật state với dữ liệu mới từ server
         setIsEditing(false);
-        setPasswordData({ currentPassword: '', newPassword: '' }); // Xóa trường mật khẩu
     } catch (err) {
         showToast(err instanceof Error ? err.message : "Đã xảy ra lỗi.", "error");
     }
@@ -257,182 +273,189 @@ export default function Profile() {
 
           <Separator className="my-6" />
 
-          <div className="space-y-2">
-            <p className="text-sm text-gray-500">Thống kê</p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Tủ đang sử dụng</span>
-              <Badge className="bg-blue-100 text-blue-700">{stats.activeBookings} tủ</Badge>
+          {userRole === 'resident' && (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">Thống kê</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Tủ đang sử dụng</span>
+                <Badge className="bg-blue-100 text-blue-700">{stats.activeBookings} tủ</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Tổng giao dịch</span>
+                <Badge className="bg-green-100 text-green-700">{stats.totalBookings}</Badge>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Tổng giao dịch</span>
-              <Badge className="bg-green-100 text-green-700">{stats.totalBookings}</Badge>
-            </div>
-          </div>
+          )}
         </Card>
 
         {/* Information Form */}
-        <Card className="p-6 md:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-gray-900">Thông tin cá nhân</h3>
-            <Button
-              variant={isEditing ? "default" : "outline"}
-              onClick={() => {
-                if (isEditing) {
-                  handleSaveChanges();
-                } else {
-                  setIsEditing(true);
-                }
-              }}
-            >
-              {isEditing ? 'Lưu thay đổi' : (
-                <>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Chỉnh sửa
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="md:col-span-2 space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-gray-900">Thông tin cá nhân</h3>
+              <Button
+                variant={isEditing ? "default" : "outline"}
+                onClick={() => {
+                  if (isEditing) {
+                    handleSaveChanges();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
+              >
+                {isEditing ? 'Lưu thay đổi' : (
+                  <>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Chỉnh sửa
+                  </>
+                )}
+              </Button>
+            </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="name">Họ và tên</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                disabled={true} // Email thường không thể chỉnh sửa
-                className="mt-2 bg-gray-100"
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="mt-2"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <Label>Địa chỉ chi tiết</Label>
-              <div className="grid md:grid-cols-4 gap-4 mt-2">
-                  <div>
-                      <Label htmlFor="building" className="text-xs text-gray-500">Tòa nhà</Label>
-                      <Input id="building" defaultValue={profile.building || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
-                  </div>
-                  <div>
-                      <Label htmlFor="block" className="text-xs text-gray-500">Block</Label>
-                      <Input id="block" defaultValue={profile.block || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
-                  </div>
-                  <div>
-                      <Label htmlFor="floor" className="text-xs text-gray-500">Tầng</Label>
-                      <Input id="floor" defaultValue={profile.floor || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
-                  </div>
-                  <div>
-                      <Label htmlFor="unit" className="text-xs text-gray-500">Số căn hộ</Label>
-                      <Input id="unit" defaultValue={profile.unit || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
-                  </div>
-              </div>
-            </div>
-          </div>
-
-          <Separator className="my-6" />
-
-          <div>
-            <h4 className="text-gray-900 mb-4">Đổi mật khẩu</h4>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
+                <Label htmlFor="name">Họ và tên</Label>
                 <Input
-                  id="current-password"
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  type="password"
+                  id="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
                   disabled={!isEditing}
                   className="mt-2"
-                  placeholder="Bỏ trống nếu không đổi"
                 />
               </div>
               <div>
-                <Label htmlFor="new-password">Mật khẩu mới</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="new-password"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  type="password"
-                  disabled={!isEditing}
-                  className="mt-2"
-                  placeholder="Bỏ trống nếu không đổi"
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  disabled={true} // Email thường không thể chỉnh sửa
+                  className="mt-2 bg-gray-100"
                 />
               </div>
+              <div>
+                <Label htmlFor="phone">Số điện thoại</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Địa chỉ chi tiết</Label>
+                <div className="grid md:grid-cols-4 gap-4 mt-2">
+                    <div>
+                        <Label htmlFor="building" className="text-xs text-gray-500">Tòa nhà</Label>
+                        <Input id="building" defaultValue={profile.building || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                    </div>
+                    <div>
+                        <Label htmlFor="block" className="text-xs text-gray-500">Block</Label>
+                        <Input id="block" defaultValue={profile.block || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                    </div>
+                    <div>
+                        <Label htmlFor="floor" className="text-xs text-gray-500">Tầng</Label>
+                        <Input id="floor" defaultValue={profile.floor || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                    </div>
+                    <div>
+                        <Label htmlFor="unit" className="text-xs text-gray-500">Số căn hộ</Label>
+                        <Input id="unit" defaultValue={profile.unit || 'N/A'} disabled={true} className="mt-1 bg-gray-100" />
+                    </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-gray-900">Đổi mật khẩu</h3>
+              <Button onClick={handleUpdatePassword}>
+                Lưu mật khẩu mới
+              </Button>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
+                  <Input
+                    id="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    type="password"
+                    className="mt-2"
+                    placeholder="Nhập mật khẩu hiện tại"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                  <Input
+                    id="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    type="password"
+                    className="mt-2"
+                    placeholder="Nhập mật khẩu mới"
+                  />
+                </div>
+              </div>
+          </Card>
+        </div>
       </div>
 
       {/* Activity History */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-gray-900">Lịch sử hoạt động</h3>
-            <p className="text-sm text-gray-500">5 hoạt động gần đây nhất của bạn</p>
+      {userRole === 'resident' && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-gray-900">Lịch sử hoạt động</h3>
+              <p className="text-sm text-gray-500">5 hoạt động gần đây nhất của bạn</p>
+            </div>
+            <Button variant="outline" onClick={() => router.push(`/${session?.user?.role}/history`)}>
+              Xem tất cả
+            </Button>
           </div>
-          <Button variant="outline" onClick={() => router.push(`/${session?.user?.role}/history`)}>
-            Xem tất cả
-          </Button>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Ngày</TableHead>
-              <TableHead>Hoạt động</TableHead>
-              <TableHead>Trạng thái</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {activities.length > 0 ? activities.map((activity) => (
-              <TableRow key={activity._id}>
-                <TableCell>{formatDateTime(activity.createdAt)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-gray-400" />
-                    <span>{getActivityDescription(activity)}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className={
-                      activity.status === 'completed' ? "bg-green-100 text-green-700"
-                      : activity.status === 'cancelled' ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
-                  }>
-                      {activity.status === 'active' && 'Đang hoạt động'}
-                      {activity.status === 'stored' && 'Đã lưu đồ'}
-                      {activity.status === 'completed' && 'Hoàn tất'}
-                      {activity.status === 'cancelled' && 'Đã hủy'}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            )) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-gray-500">
-                  Chưa có hoạt động nào.
-                </TableCell>
+                <TableHead>Ngày</TableHead>
+                <TableHead>Hoạt động</TableHead>
+                <TableHead>Trạng thái</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHeader>
+            <TableBody>
+              {activities.length > 0 ? activities.map((activity) => (
+                <TableRow key={activity._id}>
+                  <TableCell>{formatDateTime(activity.createdAt)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      <span>{getActivityDescription(activity)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={
+                        activity.status === 'completed' ? "bg-green-100 text-green-700"
+                        : activity.status === 'cancelled' ? "bg-red-100 text-red-700"
+                        : "bg-blue-100 text-blue-700"
+                    }>
+                        {activity.status === 'active' && 'Đang hoạt động'}
+                        {activity.status === 'stored' && 'Đã lưu đồ'}
+                        {activity.status === 'completed' && 'Hoàn tất'}
+                        {activity.status === 'cancelled' && 'Đã hủy'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-gray-500">
+                    Chưa có hoạt động nào.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
     </div>
   );
 }

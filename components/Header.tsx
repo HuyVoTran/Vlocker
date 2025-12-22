@@ -43,7 +43,7 @@ export default function Header({ userRole }: HeaderProps) {
   }, [session]); // Chạy lại khi session thay đổi
 
   const role = userRole || 'resident';
-  const fullName = session?.user?.name || (role === 'resident' ? 'Nguyễn Văn A' : 'Quản lý Tòa A');
+  const fullName = session?.user?.name || (role === 'resident' ? 'Người dùng' : 'Quản lý');
   const initial = fullName ? fullName.charAt(0).toUpperCase() : 'A';
 
   return (
