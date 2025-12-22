@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Contact"
+git commit -m "Fix revalidateOnFocus"
 git push
 
 Password@12345

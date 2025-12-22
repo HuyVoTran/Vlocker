@@ -17,106 +17,79 @@ export async function GET(req) {
       );
     }
 
-    // 1. Tìm tất cả booking của user (trừ completed) + populate locker
+    // 1. Find all user bookings (excluding completed) and populate locker details
     const bookings = await Booking.find({ 
       userId,
       status: { $ne: 'completed' } // Exclude completed bookings
     })
       .populate({ path: "lockerId", model: Locker })
       .lean();
-
-    if (!bookings) {
+    
+    if (!bookings || bookings.length === 0) {
       return NextResponse.json(
         { success: true, data: [] },
         { status: 200 }
       );
     }
 
-    // 2. Fix bookings that are paid but missing pickupExpiryTime
-    // (for bookings created before pickupExpiryTime was added)
     const now = new Date();
-    const bookingsToFix = bookings.filter(b => 
-      b.status === 'stored' && 
-      b.paymentStatus === 'paid' && 
-      b.endTime && 
-      !b.pickupExpiryTime
-    );
+    const dbUpdatePromises = [];
+    const completedBookingIds = new Set();
 
-    // Set pickupExpiryTime for bookings that are missing it
-    for (const bookingToFix of bookingsToFix) {
-      const endTime = new Date(bookingToFix.endTime);
-      const timeSincePayment = now.getTime() - endTime.getTime();
-      const thirtyMinutes = 30 * 60 * 1000;
-      
-      // If payment was more than 30 minutes ago, auto-complete the booking
-      if (timeSincePayment > thirtyMinutes) {
-        await Booking.findByIdAndUpdate(bookingToFix._id, {
-          status: 'completed',
-          pickupExpiryTime: new Date(endTime.getTime() + thirtyMinutes) // Set for record keeping
-        });
-        
-        // Make locker available again
-        await Locker.findByIdAndUpdate(bookingToFix.lockerId, {
-          status: 'available',
-          isLocked: true,
-          currentBookingId: null,
-        });
-        
-        console.log(`Auto-completed expired booking ${bookingToFix._id} (paid ${Math.round(timeSincePayment / 60000)} minutes ago)`);
-      } else {
-        // If payment was recent, set pickupExpiryTime = endTime + 30 minutes
-        const calculatedExpiry = new Date(endTime.getTime() + thirtyMinutes);
-        
-        await Booking.findByIdAndUpdate(bookingToFix._id, {
-          pickupExpiryTime: calculatedExpiry
-        });
-        
-        // Update the booking object in memory for response
-        bookingToFix.pickupExpiryTime = calculatedExpiry;
-        
-        console.log(`Fixed booking ${bookingToFix._id} - set pickupExpiryTime to:`, calculatedExpiry);
+    // 2. Iterate through bookings to fix old data and handle expirations
+    for (const booking of bookings) {
+      // Case A: Fix bookings created before pickupExpiryTime was added
+      if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.endTime && !booking.pickupExpiryTime) {
+        const endTime = new Date(booking.endTime);
+        const thirtyMinutes = 30 * 60 * 1000;
+        const timeSincePayment = now.getTime() - endTime.getTime();
+
+        if (timeSincePayment > thirtyMinutes) {
+          // Auto-complete if payment was > 30 mins ago
+          completedBookingIds.add(booking._id.toString());
+          dbUpdatePromises.push(
+            Booking.findByIdAndUpdate(booking._id, {
+              status: 'completed',
+              pickupExpiryTime: new Date(endTime.getTime() + thirtyMinutes)
+            }),
+            Locker.findByIdAndUpdate(booking.lockerId._id, {
+              status: 'available',
+              isLocked: true,
+              currentBookingId: null,
+            })
+          );
+        } else {
+          // Set pickupExpiryTime if payment was recent
+          const calculatedExpiry = new Date(endTime.getTime() + thirtyMinutes);
+          booking.pickupExpiryTime = calculatedExpiry; // Update in-memory object for response
+          dbUpdatePromises.push(
+            Booking.findByIdAndUpdate(booking._id, { pickupExpiryTime: calculatedExpiry })
+          );
+        }
+      } 
+      // Case B: Auto-complete bookings past their pickup expiry time
+      else if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.pickupExpiryTime && new Date(booking.pickupExpiryTime) < now) {
+        completedBookingIds.add(booking._id.toString());
+        dbUpdatePromises.push(
+          Booking.findByIdAndUpdate(booking._id, { status: 'completed' }),
+          Locker.findByIdAndUpdate(booking.lockerId._id, {
+            status: 'available',
+            isLocked: true,
+            currentBookingId: null,
+          })
+        );
       }
     }
 
-    // 3. Fetch bookings again after fixes to get updated data
-    const updatedBookings = await Booking.find({ 
-      userId,
-      status: { $ne: 'completed' }
-    })
-      .populate({ path: "lockerId", model: Locker })
-      .lean();
-
-    // 4. Auto-complete expired bookings (paid but past pickup expiry time)
-    const expiredBookings = updatedBookings.filter(b => {
-      if (b.status !== 'stored' || b.paymentStatus !== 'paid') return false;
-      if (!b.pickupExpiryTime) return false;
-      return new Date(b.pickupExpiryTime) < now;
-    });
-
-    // Update expired bookings to completed
-    for (const expired of expiredBookings) {
-      await Booking.findByIdAndUpdate(expired._id, {
-        status: 'completed'
-      });
-      
-      // Make locker available again
-      await Locker.findByIdAndUpdate(expired.lockerId, {
-        status: 'available',
-        isLocked: true,
-        currentBookingId: null,
-      });
+    // 3. Execute all database updates in parallel
+    if (dbUpdatePromises.length > 0) {
+      await Promise.all(dbUpdatePromises);
     }
 
-    // 5. Filter out expired and completed bookings from response
-    const activeBookings = updatedBookings.filter(b => {
-      if (b.status === 'completed') return false;
-      if (b.status === 'stored' && b.paymentStatus === 'paid' && b.pickupExpiryTime) {
-        return new Date(b.pickupExpiryTime) >= now;
-      }
-      return true;
-    });
+    // 4. Filter out completed bookings from the in-memory list
+    const activeBookings = bookings.filter(b => !completedBookingIds.has(b._id.toString()));
 
-    // 4. Format dữ liệu cho FE
+    // 5. Format data for the frontend
     const formatted = activeBookings.map((b) => {
       const bookingData = {
         _id: b._id,
@@ -127,11 +100,6 @@ export async function GET(req) {
         endTime: b.endTime,
         pickupExpiryTime: b.pickupExpiryTime || null,
       };
-      
-      // Debug log for bookings with paid status
-      if (b.paymentStatus === 'paid') {
-        console.log(`Booking ${b._id} - pickupExpiryTime:`, b.pickupExpiryTime);
-      }
       
       return {
         locker: b.lockerId || {},

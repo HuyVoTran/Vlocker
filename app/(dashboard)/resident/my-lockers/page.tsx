@@ -1,63 +1,50 @@
 "use client";
 
 import MyLockers from "@/components/MyLockers";
+import useSWR from "swr";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation"; 
-import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { MyLockerItem } from "@/components/MyLockers";
+
+// Hàm fetcher chung cho SWR
+const fetcher = async (url: string) => {
+  const res: Response = await fetch(url);
+
+  if (!res.ok) {
+    const error = new Error("An error occurred while fetching the data.") as Error & { info?: unknown; status?: number };
+    // Đính kèm thêm thông tin vào đối tượng lỗi.
+    try {
+      error.info = await res.json();
+    } catch {
+      // Bỏ qua nếu response body không phải là JSON
+    }
+    error.status = res.status;
+    throw error;
+  }
+
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.message || "API returned an error");
+  }
+  return json.data;
+};
 
 export default function Page() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const userId = session?.user?.id;
 
-  const loadData = useCallback(async () => {
-    if (status === "loading") return;
-    
-    if (status === "unauthenticated" || !session?.user?.id) {
-      router.push("/");
-      return;
+  const {
+    data: myLockers = [],
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<MyLockerItem[]>(
+    userId ? `/api/lockers/resident/mylocker?userId=${userId}` : null,
+    fetcher, {
+      revalidateOnFocus: false // Vô hiệu hóa việc gọi lại API khi focus
     }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log("Fetching my lockers for user:", session.user.id);
-      const myRes = await fetch(`/api/lockers/resident/mylocker?userId=${session.user.id}`);
-      console.log("My lockers response status:", myRes.status);
-      
-      if (!myRes.ok) {
-        throw new Error(`My lockers API error: ${myRes.status}`);
-      }
-      
-      const myJson = await myRes.json();
-      console.log("My lockers data:", myJson);
-      
-      // Debug: Check for pickupExpiryTime in bookings
-      if (myJson.data && Array.isArray(myJson.data)) {
-        myJson.data.forEach((item: MyLockerItem) => {
-          if (item.booking?.paymentStatus === 'paid') {
-            console.log(`Booking ${item.booking._id} - pickupExpiryTime:`, item.booking.pickupExpiryTime);
-            console.log(`Full booking data:`, item.booking);
-          }
-        });
-      }
-      
-      setMyLockers(myJson.data || []);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error loading my lockers:", err);
-      setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
-      setLoading(false);
-    }
-  }, [status, session, router]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  );
 
   const handleNavigate = (page: string, locker?: MyLockerItem) => {
     if (locker?.locker?._id) {
@@ -67,13 +54,20 @@ export default function Page() {
     }
   };
 
-  if (status === "loading" || loading) {
+  // Chuyển hướng nếu chưa đăng nhập
+  if (status === "unauthenticated") {
+    router.push("/");
+    return null; // Trả về null trong khi chuyển hướng
+  }
+
+  if (status === "loading" || isLoading) {
     return <div className="p-6">Đang tải dữ liệu...</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-red-600">Lỗi: {error}</div>;
+    return <div className="p-6 text-red-600">Lỗi: {error.message}</div>;
   }
 
-  return <MyLockers myLockers={myLockers} onNavigate={handleNavigate} onUpdate={loadData} />;
+  // Truyền hàm `mutate` vào prop `onUpdate` để có thể gọi lại API từ component con
+  return <MyLockers myLockers={myLockers} onNavigate={handleNavigate} onUpdate={mutate} />;
 }
