@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Notification"
+git commit -m "Update Manager Lockers"
 git push
 
 Password@12345

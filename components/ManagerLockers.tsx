@@ -1,8 +1,7 @@
-import { Package, Clock, User, Phone, Mail, MapPin, X } from 'lucide-react';
+'use client';
+import { Package, Clock, X } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
 import {
@@ -19,136 +18,129 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter
 } from "./ui/dialog";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import useSWR from 'swr';
+import { useToast } from './ui/toast-context';
 
-interface LockerDetails {
-  id: string;
-  user: string;
-  block: string;
-  location: string;
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ message: 'An error occurred' }));
+    throw new Error(errorData.message);
+  }
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.message || 'Failed to fetch data');
+  }
+  return json.data;
+};
+
+interface PopulatedUser {
+  _id: string;
+  name: string;
   email: string;
-  phone: string;
-  // Reserved
-  reservedDate?: string;
-  reservedTime?: string;
-  // In Use
-  usedTime?: string;
-  price?: string;
-  size?: string;
+  phone?: string;
+}
+
+interface PopulatedLocker {
+  _id: string;
+  lockerId: string;
+  building: string;
+  block: string;
+}
+
+interface BookingDetails {
+  _id: string;
+  userId: PopulatedUser;
+  lockerId: PopulatedLocker;
+  startTime?: string;
+  status: 'active' | 'stored';
 }
 
 export default function ManagerLockers() {
   const [filterBlock, setFilterBlock] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedLocker, setSelectedLocker] = useState<LockerDetails | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null);
+  const [bookingToCancel, setBookingToCancel] = useState<BookingDetails | null>(null);
+  const { showToast } = useToast();
 
-  const reservedLockers = [
-    {
-      id: 'L234',
-      user: 'Trần Thị B',
-      block: 'A1',
-      location: 'Tòa A - Tầng 1',
-      reservedDate: '15/11/2025',
-      reservedTime: '2 ngày',
-      email: 'tranthib@email.com',
-      phone: '0901234567'
-    },
-    {
-      id: 'L456',
-      user: 'Lê Văn C',
-      block: 'B2',
-      location: 'Tòa B - Tầng 2',
-      reservedDate: '14/11/2025',
-      reservedTime: '3 ngày',
-      email: 'levanc@email.com',
-      phone: '0912345678'
-    },
-    {
-      id: 'L678',
-      user: 'Phạm Thị D',
-      block: 'C1',
-      location: 'Tòa C - Tầng 1',
-      reservedDate: '15/11/2025',
-      reservedTime: '1 ngày',
-      email: 'phamthid@email.com',
-      phone: '0923456789'
+  const { data: allBookings = [], error, isLoading, mutate } = useSWR<BookingDetails[]>(
+    '/api/lockers/manager/booked',
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const filteredBookings = useMemo(() => {
+    return allBookings.filter(booking => {
+      const locker = booking.lockerId;
+      const user = booking.userId;
+      if (!locker || !user) return false;
+
+      const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
+      const matchesStatus = filterStatus === 'all' || (filterStatus === 'reserved' && booking.status === 'active') || (filterStatus === 'in-use' && booking.status === 'stored');
+      const matchesSearch = searchTerm.trim() === '' ||
+                            locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            user.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesBlock && matchesStatus && matchesSearch;
+    });
+  }, [allBookings, filterBlock, filterStatus, searchTerm]);
+
+  const uniqueBlocks = useMemo(() => {
+    const blocks = Array.from(new Set(allBookings.map(b => b.lockerId?.block).filter(Boolean)));
+    return blocks.sort();
+  }, [allBookings]);
+
+  const calculateDuration = (startTime?: string): string => {
+    if (!startTime) return 'N/A';
+    const start = new Date(startTime);
+    const now = new Date();
+    const diffMs = now.getTime() - start.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (diffDays > 0) {
+      return `${diffDays} ngày ${diffHours} giờ`;
     }
-  ];
+    return `${diffHours} giờ`;
+  };
 
-  const inUseLockers = [
-    {
-      id: 'L001',
-      user: 'Nguyễn Văn A',
-      block: 'A1',
-      location: 'Tòa A - Tầng 1',
-      usedTime: '2 tháng 15 ngày',
-      price: '50,000đ',
-      email: 'nguyenvana@email.com',
-      phone: '0901234567',
-      size: 'Nhỏ'
-    },
-    {
-      id: 'L045',
-      user: 'Trần Văn B',
-      block: 'B2',
-      location: 'Tòa B - Tầng 2',
-      usedTime: '1 tháng 7 ngày',
-      price: '70,000đ',
-      email: 'tranvanb@email.com',
-      phone: '0912345678',
-      size: 'Vừa'
-    },
-    {
-      id: 'L112',
-      user: 'Lê Thị C',
-      block: 'C1',
-      location: 'Tòa C - Tầng 1',
-      usedTime: '20 ngày',
-      price: '100,000đ',
-      email: 'lethic@email.com',
-      phone: '0923456789',
-      size: 'Lớn'
-    },
-    {
-      id: 'L189',
-      user: 'Phạm Văn D',
-      block: 'A2',
-      location: 'Tòa A - Tầng 2',
-      usedTime: '3 tháng 5 ngày',
-      price: '50,000đ',
-      email: 'phamvand@email.com',
-      phone: '0934567890',
-      size: 'Nhỏ'
-    },
-    {
-      id: 'L256',
-      user: 'Hoàng Thị E',
-      block: 'B1',
-      location: 'Tòa B - Tầng 1',
-      usedTime: '1 tháng 12 ngày',
-      price: '70,000đ',
-      email: 'hoangthie@email.com',
-      phone: '0945678901',
-      size: 'Vừa'
+  const calculateCost = (booking: BookingDetails): string => {
+    if (!booking.startTime) return '0đ';
+    const start = new Date(booking.startTime);
+    const now = new Date();
+    const daysDiff = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const cost = Math.max(1, daysDiff) * 5000; // 5k/day
+    return `${cost.toLocaleString('vi-VN')}đ`;
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      const res = await fetch('/api/lockers/manager/cancel', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Hủy lượt đặt thất bại.');
+      }
+      showToast('Hủy lượt đặt thành công!', 'success');
+      mutate(); // Re-fetch data
+      setBookingToCancel(null);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Đã xảy ra lỗi.', 'error');
     }
-  ];
+  };
 
-  const filteredReserved = reservedLockers.filter(locker => {
-    const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-    return matchesBlock;
-  });
-
-  const filteredInUse = inUseLockers.filter(locker => {
-    const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-    return matchesBlock;
-  });
+  if (isLoading) return <div className="p-6">Đang tải dữ liệu...</div>;
+  if (error) return <div className="p-6 text-red-500">Lỗi: {error.message}</div>;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-gray-900 mb-2">Quản lý tủ đã đặt & đã dùng</h1>
+        <h1 className="text-gray-900 mb-2">Quản lý tủ đang được thuê</h1>
         <p className="text-gray-600">Theo dõi và quản lý tình trạng sử dụng tủ</p>
       </div>
 
@@ -161,11 +153,9 @@ export default function ManagerLockers() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả block</SelectItem>
-              <SelectItem value="A1">Tòa A1</SelectItem>
-              <SelectItem value="A2">Tòa A2</SelectItem>
-              <SelectItem value="B1">Tòa B1</SelectItem>
-              <SelectItem value="B2">Tòa B2</SelectItem>
-              <SelectItem value="C1">Tòa C1</SelectItem>
+              {uniqueBlocks.map(block => (
+                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -175,233 +165,145 @@ export default function ManagerLockers() {
             <SelectContent>
               <SelectItem value="all">Tất cả trạng thái</SelectItem>
               <SelectItem value="reserved">Đã đặt</SelectItem>
-              <SelectItem value="in-use">Đang dùng</SelectItem>
+              <SelectItem value="in-use">Đang sử dụng</SelectItem>
             </SelectContent>
           </Select>
-          <Input placeholder="Tìm kiếm theo mã tủ hoặc người dùng..." />
+          <Input placeholder="Tìm kiếm theo mã tủ hoặc người dùng..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
         </div>
       </Card>
 
-      <Tabs defaultValue="reserved" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="reserved">
-            Tủ đã đặt ({filteredReserved.length})
-          </TabsTrigger>
-          <TabsTrigger value="in-use">
-            Tủ đang dùng ({filteredInUse.length})
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Reserved Lockers */}
-        <TabsContent value="reserved">
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mã tủ</TableHead>
-                  <TableHead>Người đặt</TableHead>
-                  <TableHead>Vị trí</TableHead>
-                  <TableHead>Ngày đặt</TableHead>
-                  <TableHead>Thời gian đặt</TableHead>
-                  <TableHead>Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReserved.map((locker) => (
-                  <TableRow key={locker.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-yellow-100 rounded flex items-center justify-center">
-                          <Package className="w-4 h-4 text-yellow-600" />
-                        </div>
-                        <span>{locker.id}</span>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Mã tủ</TableHead>
+              <TableHead>Người dùng</TableHead>
+              <TableHead>Vị trí</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead>Thời gian</TableHead>
+              <TableHead>Số tiền</TableHead>
+              <TableHead>Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredBookings.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">Không có dữ liệu phù hợp.</TableCell>
+              </TableRow>
+            ) : (
+              filteredBookings.map((booking) => (
+                <TableRow key={booking._id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded flex items-center justify-center ${booking.status === 'active' ? 'bg-yellow-100' : 'bg-green-100'}`}>
+                        <Package className={`w-4 h-4 ${booking.status === 'active' ? 'text-yellow-600' : 'text-green-600'}`} />
                       </div>
-                    </TableCell>
-                    <TableCell>{locker.user}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p>{locker.location}</p>
-                        <p className="text-sm text-gray-500">Block {locker.block}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{locker.reservedDate}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <span>{locker.reservedTime}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setSelectedLocker(locker)}
-                            >
-                              Chi tiết
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Chi tiết tủ {selectedLocker?.id}</DialogTitle>
-                              <DialogDescription>
-                                Thông tin người đặt và tủ
-                              </DialogDescription>
-                            </DialogHeader>
-                            {selectedLocker && (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-sm text-gray-500 mb-1">Người đặt</p>
-                                    <p className="text-gray-900">{selectedLocker.user}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500 mb-1">Vị trí</p>
-                                    <p className="text-gray-900">{selectedLocker.location}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500 mb-1">Email</p>
-                                    <p className="text-gray-900 text-sm">{selectedLocker.email}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500 mb-1">Số điện thoại</p>
-                                    <p className="text-gray-900">{selectedLocker.phone}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500 mb-1">Ngày đặt</p>
-                                    <p className="text-gray-900">{selectedLocker.reservedDate}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500 mb-1">Thời gian đặt</p>
-                                    <p className="text-gray-900">{selectedLocker.reservedTime}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                      <span>{booking.lockerId?.lockerId || 'N/A'}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{booking.userId?.name || 'N/A'}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p>Tòa {booking.lockerId?.building || 'N/A'}</p>
+                      <p className="text-sm text-gray-500">Block {booking.lockerId?.block || 'N/A'}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {booking.status === 'active' ? 'Đã đặt' : 'Đang sử dụng'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span>{calculateDuration(booking.startTime)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-blue-600">
+                      {booking.status === 'stored' ? calculateCost(booking) : 'N/A'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedBooking(booking)}
+                      >
+                        Chi tiết
+                      </Button>
+                      {booking.status === 'active' &&
+                        <Button variant="destructive" size="sm" onClick={() => setBookingToCancel(booking)}>
                           <X className="w-4 h-4 mr-1" />
                           Hủy
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-
-        {/* In Use Lockers */}
-        <TabsContent value="in-use">
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mã tủ</TableHead>
-                  <TableHead>Người dùng</TableHead>
-                  <TableHead>Vị trí</TableHead>
-                  <TableHead>Thời gian sử dụng</TableHead>
-                  <TableHead>Số tiền</TableHead>
-                  <TableHead>Thao tác</TableHead>
+                      }
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInUse.map((locker) => (
-                  <TableRow key={locker.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
-                          <Package className="w-4 h-4 text-green-600" />
-                        </div>
-                        <span>{locker.id}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{locker.user}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p>{locker.location}</p>
-                        <p className="text-sm text-gray-500">Block {locker.block}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <span>{locker.usedTime}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-blue-600">{locker.price}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedLocker(locker)}
-                          >
-                            Chi tiết
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Chi tiết tủ {selectedLocker?.id}</DialogTitle>
-                            <DialogDescription>
-                              Thông tin người dùng và tủ
-                            </DialogDescription>
-                          </DialogHeader>
-                          {selectedLocker && (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Người dùng</p>
-                                  <p className="text-gray-900">{selectedLocker.user}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Kích thước</p>
-                                  <p className="text-gray-900">{selectedLocker.size}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Vị trí</p>
-                                  <p className="text-gray-900">{selectedLocker.location}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Block</p>
-                                  <p className="text-gray-900">{selectedLocker.block}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Email</p>
-                                  <p className="text-gray-900 text-sm">{selectedLocker.email}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Số điện thoại</p>
-                                  <p className="text-gray-900">{selectedLocker.phone}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Thời gian sử dụng</p>
-                                  <p className="text-gray-900">{selectedLocker.usedTime}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Số tiền</p>
-                                  <p className="text-blue-600">{selectedLocker.price}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chi tiết tủ {selectedBooking?.lockerId?.lockerId}</DialogTitle>
+            <DialogDescription>
+              Thông tin người dùng và tủ
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Người dùng</p>
+                  <p className="text-gray-900">{selectedBooking.userId?.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Vị trí</p>
+                  <p className="text-gray-900">Tòa {selectedBooking.lockerId?.building} - Block {selectedBooking.lockerId?.block}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Email</p>
+                  <p className="text-gray-900 text-sm truncate" title={selectedBooking.userId?.email}>{selectedBooking.userId?.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Số điện thoại</p>
+                  <p className="text-gray-900">{selectedBooking.userId?.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Thời gian</p>
+                  <p className="text-gray-900">{calculateDuration(selectedBooking.startTime)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Số tiền</p>
+                  <p className="text-blue-600">{selectedBooking.status === 'stored' ? calculateCost(selectedBooking) : 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedBooking(null)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận hủy</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn hủy lượt đặt cho tủ {bookingToCancel?.lockerId?.lockerId}? Thao tác này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBookingToCancel(null)}>Không</Button>
+            <Button variant="destructive" onClick={() => bookingToCancel && handleCancelBooking(bookingToCancel._id)}>Có, hủy lượt đặt</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

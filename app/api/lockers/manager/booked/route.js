@@ -1,19 +1,29 @@
 import { NextResponse } from "next/server";
-import Locker from "@/models/Locker";
+import { connectDB } from "@/lib/mongodb";
+import Booking from "@/models/Booking";
+import Locker from "@/models/Locker"; // For population
+import User from "@/models/User"; // For population
 
 export async function GET() {
   try {
-    const lockers = await Locker.find({
-      status: "booked",
-    }).lean();
+    await connectDB();
 
-    return NextResponse.json({
-      success: true,
-      count: lockers.length,
-      data: lockers,
-    });
+    // Find all bookings that are currently active or stored
+    const bookings = await Booking.find({
+      status: { $in: ['active', 'stored'] }
+    })
+    .populate({ path: 'userId', model: User, select: 'name email phone' })
+    .populate({ path: 'lockerId', model: Locker, select: 'lockerId building block' })
+    .sort({ createdAt: -1 }) // Sort by newest first
+    .lean();
+
+    return NextResponse.json({ success: true, data: bookings });
 
   } catch (err) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    console.error("Error fetching booked lockers for manager:", err);
+    return NextResponse.json(
+      { success: false, message: "Server error", error: err.message },
+      { status: 500 }
+    );
   }
 }
