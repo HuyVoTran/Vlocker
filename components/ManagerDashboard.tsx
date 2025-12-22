@@ -1,68 +1,101 @@
-import { Package, PackageCheck, PackageX, TrendingUp } from 'lucide-react';
+'use client';
+
+import { Package, PackageCheck, PackageX, TrendingUp, AlertCircle } from 'lucide-react';
 import { Card } from './ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import useSWR from 'swr';
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ message: 'An error occurred' }));
+    throw new Error(errorData.message);
+  }
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.message || 'Failed to fetch data');
+  }
+  return json.data;
+};
+
+interface BlockStats {
+  block: string;
+  total: number;
+  used: number;
+  reserved: number;
+  empty: number;
+}
+
+interface DashboardData {
+  stats: {
+    available?: number;
+    reserved?: number;
+    inUse?: number;
+    total?: number;
+  };
+  usageData: { month: string; lockers: number }[];
+  blockData: BlockStats[];
+}
 
 export default function ManagerDashboard() {
+  const { data, error, isLoading } = useSWR<DashboardData>('/api/lockers/manager/dashboard', fetcher, {
+    revalidateOnFocus: false,
+  });
+
+  if (isLoading) {
+    return <div className="p-6">Đang tải dữ liệu dashboard...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <Card className="p-6 bg-red-50 border-red-200">
+          <div className="flex items-center gap-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+            <div>
+              <h3 className="text-red-800 font-semibold">Không thể tải dữ liệu</h3>
+              <p className="text-red-700">{error.message}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const { stats: statsData, usageData, blockData } = data || { stats: {}, usageData: [], blockData: [] };
+
   const stats = [
     {
       label: 'Tủ trống',
-      value: '45',
+      value: statsData.available || 0,
       icon: <Package className="w-6 h-6 text-blue-600" />,
       bgColor: 'bg-blue-100',
-      change: '+5',
-      changeType: 'increase'
     },
     {
       label: 'Tủ đã đặt',
-      value: '12',
+      value: statsData.reserved || 0,
       icon: <PackageX className="w-6 h-6 text-yellow-600" />,
       bgColor: 'bg-yellow-100',
-      change: '+3',
-      changeType: 'increase'
     },
     {
       label: 'Tủ đang dùng',
-      value: '83',
+      value: statsData.inUse || 0,
       icon: <PackageCheck className="w-6 h-6 text-green-600" />,
       bgColor: 'bg-green-100',
-      change: '-2',
-      changeType: 'decrease'
     },
     {
       label: 'Tổng số tủ',
-      value: '140',
+      value: statsData.total || 0,
       icon: <TrendingUp className="w-6 h-6 text-purple-600" />,
       bgColor: 'bg-purple-100',
-      change: '100%',
-      changeType: 'neutral'
     }
   ];
 
-  const usageData = [
-    { month: 'T1', lockers: 65 },
-    { month: 'T2', lockers: 72 },
-    { month: 'T3', lockers: 68 },
-    { month: 'T4', lockers: 78 },
-    { month: 'T5', lockers: 81 },
-    { month: 'T6', lockers: 83 },
-    { month: 'T7', lockers: 79 },
-    { month: 'T8', lockers: 85 },
-    { month: 'T9', lockers: 88 },
-    { month: 'T10', lockers: 86 },
-    { month: 'T11', lockers: 83 }
-  ];
-
   const pieData = [
-    { name: 'Tủ đang dùng', value: 83, color: '#22c55e' },
-    { name: 'Tủ đã đặt', value: 12, color: '#eab308' },
-    { name: 'Tủ trống', value: 45, color: '#3b82f6' }
-  ];
-
-  const blockData = [
-    { block: 'Tòa A', total: 50, used: 35, reserved: 5, empty: 10 },
-    { block: 'Tòa B', total: 45, used: 28, reserved: 4, empty: 13 },
-    { block: 'Tòa C', total: 45, used: 20, reserved: 3, empty: 22 }
-  ];
+    { name: 'Tủ đang dùng', value: statsData.inUse || 0, color: '#22c55e' },
+    { name: 'Tủ đã đặt', value: statsData.reserved || 0, color: '#eab308' },
+    { name: 'Tủ trống', value: statsData.available || 0, color: '#3b82f6' }
+  ].filter(item => item.value > 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -75,20 +108,13 @@ export default function ManagerDashboard() {
       <div className="grid md:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <Card key={index} className="p-6">
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center justify-between mb-4">
               <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
                 {stat.icon}
               </div>
-              <div className={`text-sm px-2 py-1 rounded ${
-                stat.changeType === 'increase' ? 'bg-green-100 text-green-700' :
-                stat.changeType === 'decrease' ? 'bg-red-100 text-red-700' :
-                'bg-gray-100 text-gray-700'
-              }`}>
-                {stat.change}
-              </div>
             </div>
             <p className="text-gray-500 text-sm mb-1">{stat.label}</p>
-            <p className="text-gray-900">{stat.value}</p>
+            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -97,14 +123,14 @@ export default function ManagerDashboard() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Usage Trend Chart */}
         <Card className="p-6">
-          <h3 className="text-gray-900 mb-6">Xu hướng sử dụng tủ theo tháng</h3>
+          <h3 className="text-gray-900 mb-6">Lượt hoàn tất theo tháng (12 tháng qua)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={usageData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="lockers" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="lockers" name="Lượt hoàn tất" fill="#3b82f6" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -112,7 +138,7 @@ export default function ManagerDashboard() {
         {/* Status Distribution */}
         <Card className="p-6">
           <h3 className="text-gray-900 mb-6">Phân bổ trạng thái tủ</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          {pieData.length > 0 ? (<ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={pieData}
@@ -131,37 +157,51 @@ export default function ManagerDashboard() {
               <Tooltip />
               <Legend />
             </PieChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">Không có dữ liệu để hiển thị.</div>
+          )}
         </Card>
       </div>
 
       {/* Block Statistics */}
       <Card className="p-6">
-        <h3 className="text-gray-900 mb-6">Thống kê theo block/tòa</h3>
+        <h3 className="text-gray-900 font-medium text-[1.125rem]">Thống kê theo Block / Tòa</h3>
         <div className="space-y-4">
-          {blockData.map((block, index) => (
+          {blockData.length > 0 ? blockData.map((block, index) => (
             <div key={index} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-gray-900">{block.block}</h4>
                 <span className="text-sm text-gray-500">Tổng: {block.total} tủ</span>
               </div>
-              <div className="flex gap-2 mb-2">
-                <div className="flex-1 h-8 bg-green-500 rounded flex items-center justify-center text-white text-sm" style={{ flexBasis: `${(block.used / block.total) * 100}%` }}>
-                  {block.used} đang dùng
+              <div className="flex w-full h-8 rounded overflow-hidden bg-gray-200 mb-2" title="Thanh trạng thái tủ">
+                <div className="h-full bg-green-500 flex items-center justify-center text-white text-sm transition-all duration-300" title={`Đang dùng: ${block.used}`} style={{ width: `${(block.used / block.total) * 100}%` }}>
+                  {block.used > 0 && block.used}
                 </div>
-                <div className="flex-1 h-8 bg-yellow-500 rounded flex items-center justify-center text-white text-sm" style={{ flexBasis: `${(block.reserved / block.total) * 100}%` }}>
-                  {block.reserved} đã đặt
+                <div className="h-full bg-yellow-500 flex items-center justify-center text-white text-sm transition-all duration-300" title={`Đã đặt: ${block.reserved}`} style={{ width: `${(block.reserved / block.total) * 100}%` }}>
+                  {block.reserved > 0 && block.reserved}
                 </div>
-                <div className="flex-1 h-8 bg-blue-500 rounded flex items-center justify-center text-white text-sm" style={{ flexBasis: `${(block.empty / block.total) * 100}%` }}>
-                  {block.empty} trống
+                <div className="h-full bg-blue-500 flex items-center justify-center text-white text-sm transition-all duration-300" title={`Trống: ${block.empty}`} style={{ width: `${(block.empty / block.total) * 100}%` }}>
+                  {block.empty > 0 && block.empty}
                 </div>
               </div>
-              <div className="flex gap-4 text-sm text-gray-600">
-                <span>Tỷ lệ sử dụng: {((block.used / block.total) * 100).toFixed(1)}%</span>
-                <span>Tỷ lệ trống: {((block.empty / block.total) * 100).toFixed(1)}%</span>
+              <div className="flex items-center gap-6 text-sm text-gray-600 mt-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm bg-green-500"></div>
+                  <span>Đang dùng ({((block.used / block.total) * 100).toFixed(0)}%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm bg-yellow-500"></div>
+                  <span>Đã đặt ({((block.reserved / block.total) * 100).toFixed(0)}%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm bg-blue-500"></div>
+                  <span>Trống ({((block.empty / block.total) * 100).toFixed(0)}%)</span>
+                </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="text-center text-gray-500 py-8">Không có dữ liệu thống kê theo tòa.</div>
+          )}
         </div>
       </Card>
     </div>

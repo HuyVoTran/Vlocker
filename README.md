@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update & Fix bugs"
+git commit -m "Update Manager Dashboard"
 git push
 
 Password@12345
