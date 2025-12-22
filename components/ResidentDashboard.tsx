@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -6,6 +7,27 @@ import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { useToast } from './ui/toast-context';
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const error = new Error("An error occurred while fetching the data.") as Error & { info?: unknown; status?: number };
+    try {
+      error.info = await res.json();
+    } catch {
+      // Ignore if response body is not JSON
+    }
+    error.status = res.status;
+    throw error;
+  }
+
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.message || "API returned an error");
+  }
+  return json.data;
+};
 
 interface ResidentDashboardProps {
   onNavigate: (page: string, locker?: Locker) => void;
@@ -51,23 +73,43 @@ interface MyLockerItem {
     onNavigate,
     user,
   }: ResidentDashboardProps) {
-    const { showToast } = useToast();
-    const [myLockers, setMyLockers] = useState<MyLockerItem[]>([]);
-    const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
-    const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
-    const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [actionError, setActionError] = useState<string | null>(null);
-    const [currentTime, setCurrentTime] = useState(new Date());
-    const [registering, setRegistering] = useState<boolean>(false);
-    const [registerError, setRegisterError] = useState<string | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
-    // currentUser alias (component receives `user` prop)
-    const currentUser = user;
+  // SWR for My Lockers
+  const {
+    data: myLockers = [],
+    error: myLockersError,
+    isLoading: myLockersLoading,
+    mutate: mutateMyLockers,
+  } = useSWR<MyLockerItem[]>(
+    user._id ? `/api/lockers/resident/mylocker?userId=${user._id}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
-    // Update time every minute for countdown
+  // SWR for Available Lockers
+  const {
+    data: availableLockers = [],
+    error: availableLockersError,
+    isLoading: availableLockersLoading,
+    mutate: mutateAvailableLockers,
+  } = useSWR<Locker[]>(
+    user._id && user.building && user.block
+      ? `/api/lockers/resident/available?building=${user.building}&block=${user.block}`
+      : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const isLoading = myLockersLoading || availableLockersLoading;
+  const error = myLockersError || availableLockersError;
+
+  const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
+  const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [registering, setRegistering] = useState<boolean>(false);
+
     useEffect(() => {
       const interval = setInterval(() => {
         setCurrentTime(new Date());
@@ -75,7 +117,7 @@ interface MyLockerItem {
 
       return () => clearInterval(interval);
     }, []);
-
+    
     // Helper functions
     const formatDate = (date: string | Date | undefined): string => {
       if (!date) return 'N/A';
@@ -133,7 +175,6 @@ interface MyLockerItem {
       if (!selectedMyLocker) return;
       
       setActionLoading('open');
-      setActionError(null);
       
       try {
         const res = await fetch('/api/lockers/resident/open', {
@@ -146,14 +187,13 @@ interface MyLockerItem {
         
         if (!res.ok || !json.success) {
           if (json.message && json.message.includes('hết hạn')) {
-            // Refresh data if expired
-            window.location.reload();
+            mutateMyLockers();
           }
           throw new Error(json.message || 'Lỗi mở tủ');
         }
 
         showToast('Tủ đã được mở thành công!', 'success');
-        window.location.reload();
+        mutateMyLockers();
       } catch (err) {
         showToast(err instanceof Error ? err.message : 'Lỗi mở tủ', 'error');
       } finally {
@@ -165,7 +205,6 @@ interface MyLockerItem {
       if (!selectedMyLocker) return;
       
       setActionLoading('lock');
-      setActionError(null);
       
       try {
         const res = await fetch('/api/lockers/resident/lock', {
@@ -181,7 +220,7 @@ interface MyLockerItem {
         }
 
         showToast(json.message || 'Khóa tủ thành công!', 'success');
-        window.location.reload();
+        mutateMyLockers();
         setSelectedMyLocker(null);
       } catch (err) {
         showToast(err instanceof Error ? err.message : 'Lỗi khóa tủ', 'error');
@@ -194,7 +233,6 @@ interface MyLockerItem {
       if (!selectedMyLocker) return;
       
       setActionLoading('payment');
-      setActionError(null);
       
       try {
         const res = await fetch('/api/lockers/resident/payment', {
@@ -213,7 +251,7 @@ interface MyLockerItem {
         }
 
         showToast('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.', 'success');
-        window.location.reload();
+        mutateMyLockers();
         setSelectedMyLocker(null);
       } catch (err) {
         showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
@@ -221,66 +259,13 @@ interface MyLockerItem {
         setActionLoading(null);
       }
     };
-  
-    useEffect(() => {
-      async function loadData() {
-        try {
-          setLoading(true);
-          setError(null);
 
-          console.log("Loading dashboard for user:", user._id, user.building, user.block);
-  
-          // === Fetch My Locker (có cả locker + booking) ===
-          console.log("Fetching my lockers...");
-          const myRes = await fetch(`/api/lockers/resident/mylocker?userId=${user._id}`);
-          console.log("My lockers response status:", myRes.status);
-          if (!myRes.ok) {
-            throw new Error(`My lockers API error: ${myRes.status}`);
-          }
-          const myJson = await myRes.json();
-          console.log("My lockers data:", myJson);
-          setMyLockers(myJson.data || []);
-  
-          // === Fetch Available Lockers ===
-          if (user.building && user.block) {
-            console.log("Fetching available lockers...");
-            const availRes = await fetch(
-              `/api/lockers/resident/available?building=${user.building}&block=${user.block}`
-            );
-            console.log("Available lockers response status:", availRes.status);
-            if (!availRes.ok) {
-              throw new Error(`Available lockers API error: ${availRes.status}`);
-            }
-            const availJson = await availRes.json();
-            console.log("Available lockers data:", availJson);
-            const avail = availJson.data || [];
-            setFilteredLockers(avail);
-          } else {
-            console.log("No building/block provided, skipping available lockers");
-          }
-          
-          setLoading(false);
-        } catch (err) {
-          console.error("Error loading dashboard:", err);
-          setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
-          setLoading(false);
-        }
-      }
-  
-      if (user._id) {
-        loadData();
-      } else {
-        console.log("User ID not ready yet");
-        setLoading(false);
-      }
-    }, [user._id, user.building, user.block]);
-  
-    if (loading) {
+    if (isLoading) {
       return <div className="p-6">Đang tải dữ liệu...</div>;
     }
 
     if (error) {
-      return <div className="p-6 text-red-600">Lỗi: {error}</div>;
+      return <div className="p-6 text-red-600">Lỗi: {error.message}</div>;
     }
 
   return (
@@ -459,12 +444,6 @@ interface MyLockerItem {
               <div className="py-4">Không có dữ liệu</div>
             )}
 
-            {actionError && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
-                {actionError}
-              </div>
-            )}
-
             <DialogFooter className="flex-col sm:flex-col gap-2">
               {/* Status: active - Có thể mở tủ và khóa tủ */}
               {selectedMyLocker && selectedMyLocker.booking?.status === 'active' && (
@@ -552,8 +531,8 @@ interface MyLockerItem {
         </div>
         {/* Lockers Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredLockers.length > 0 ? (
-            filteredLockers.slice(0, 3).map((locker) => (
+          {availableLockers.length > 0 ? (
+            availableLockers.slice(0, 3).map((locker) => (
               <Card key={locker._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -634,37 +613,31 @@ interface MyLockerItem {
             )}
 
               <DialogFooter className="flex-col sm:flex-col gap-2">
-              {registerError && (
-                <div className="text-sm text-red-600">Lỗi: {registerError}</div>
-              )}
               <Button className="w-full" disabled={registering} onClick={async () => {
                 if (!selectedAvailableLocker) return;
-                setRegisterError(null);
                 setRegistering(true);
                 try {
                   const res = await fetch('/api/lockers/resident/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUser._id, lockerId: selectedAvailableLocker._id })
+                    body: JSON.stringify({ userId: user._id, lockerId: selectedAvailableLocker._id })
                   });
 
                   const json = await res.json();
                   if (!res.ok || !json.success) {
                     const msg = json?.message || `Server error (${res.status})`;
-                    setRegisterError(msg);
-                    setRegistering(false);
-                    return;
+                    throw new Error(msg);
                   }
 
-                  // success: remove locker from lists and close dialog
-                  setFilteredLockers(prev => prev.filter(l => l._id !== selectedAvailableLocker._id));
+                  showToast('Đăng ký tủ thành công!', 'success');
+                  mutateMyLockers();
+                  mutateAvailableLockers();
                   setSelectedAvailableLocker(null);
                 } catch (err) {
                   console.error('Register error', err);
                   showToast(err instanceof Error ? err.message : String(err), 'error');
                 } finally {
                   setRegistering(false);
-                  window.location.reload();
                 }
               }}>
                 {registering ? 'Đang xử lý...' : 'Xác nhận thuê'}
