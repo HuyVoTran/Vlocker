@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(req) {
   try {
