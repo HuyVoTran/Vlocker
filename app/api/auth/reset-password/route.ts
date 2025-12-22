@@ -33,6 +33,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Kiểm tra độ dài mật khẩu
+    if (newPassword.length < 8 || newPassword.length > 30) {
+      return NextResponse.json(
+        { message: "Mật khẩu mới phải có từ 8 đến 30 ký tự." },
+        { status: 400 }
+      );
+    }
+
     // Hash token giống lúc lưu vào DB
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 

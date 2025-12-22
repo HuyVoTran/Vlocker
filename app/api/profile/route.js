@@ -76,9 +76,21 @@ export async function PATCH(req) {
         }
 
         // Cập nhật thông tin cơ bản
-        if (name) userToUpdate.name = name;
-        if (phone) userToUpdate.phone = phone;
-        if (address) userToUpdate.address = address;
+        if (name) {
+            const nameRegex = /^[a-zA-Zàáâãèéêìíòóôõùúăđĩũơưăạảấầẩẫậắằẳẵặẹẻẽềềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ\s]+$/;
+            if (!nameRegex.test(name)) {
+                return NextResponse.json({ success: false, message: "Tên không hợp lệ." }, { status: 400 });
+            }
+            userToUpdate.name = name;
+        }
+        if (phone) {
+            // Cho phép số, khoảng trắng và một số ký tự phổ biến trong SĐT
+            const phoneRegex = /^[0-9\s+()-]+$/;
+            if (!phoneRegex.test(phone)) {
+                return NextResponse.json({ success: false, message: "Số điện thoại không hợp lệ." }, { status: 400 });
+            }
+            userToUpdate.phone = phone;
+        }
 
         // Cập nhật mật khẩu nếu được cung cấp
         if (newPassword && currentPassword) {
@@ -86,8 +98,8 @@ export async function PATCH(req) {
             if (!passwordsMatch) {
                 return NextResponse.json({ success: false, message: "Mật khẩu hiện tại không đúng" }, { status: 400 });
             }
-            if (newPassword.length < 6) {
-                 return NextResponse.json({ success: false, message: "Mật khẩu mới phải có ít nhất 6 ký tự" }, { status: 400 });
+            if (newPassword.length < 8 || newPassword.length > 30) {
+                 return NextResponse.json({ success: false, message: "Mật khẩu mới phải có từ 8 đến 30 ký tự" }, { status: 400 });
             }
             userToUpdate.password = await bcrypt.hash(newPassword, 10);
         } else if (newPassword && !currentPassword) {

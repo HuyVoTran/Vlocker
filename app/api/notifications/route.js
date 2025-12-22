@@ -125,11 +125,11 @@ export async function PATCH(req) {
       );
     }
 
-    const { notificationIds } = await req.json();
+    const { notificationIds, read } = await req.json();
 
-    if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
+    if (!Array.isArray(notificationIds) || notificationIds.length === 0 || typeof read !== 'boolean') {
       return NextResponse.json(
-        { success: false, message: "Cần có ID của thông báo" },
+        { success: false, message: "Cần có ID thông báo và trạng thái 'read'." },
         { status: 400 }
       );
     }
@@ -140,12 +140,12 @@ export async function PATCH(req) {
         _id: { $in: notificationIds },
         recipientId: session.user.id,
       },
-      { $set: { read: true } }
+      { $set: { read: read } }
     );
 
     return NextResponse.json({
       success: true,
-      message: "Đã đánh dấu là đã đọc",
+      message: "Đã cập nhật trạng thái thông báo.",
     });
   } catch (err) {
     console.error("Lỗi nghiêm trọng tại PATCH /api/notifications:", err.message);
