@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
-import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock } from 'lucide-react';
+import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, TrendingUp, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -36,6 +36,7 @@ interface ResidentDashboardProps {
 
 export interface User {
   _id: string;
+  name?: string;
   building?: string;
   block?: string;
 }
@@ -104,11 +105,57 @@ interface MyLockerItem {
   const isLoading = myLockersLoading || availableLockersLoading;
   const error = myLockersError || availableLockersError;
 
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
   const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [registering, setRegistering] = useState<boolean>(false);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const slides = [
+    {
+      title: "Quản lý tủ thông minh, trong tầm tay bạn",
+      description: "Theo dõi trạng thái, mở tủ từ xa và nhận thông báo realtime ngay trên dashboard.",
+      cta1: { text: "Tìm tủ ngay", action: () => onNavigate('register-locker') },
+      cta2: { text: "Tìm hiểu thêm", action: () => onNavigate('../HowItWorks') },
+      image: "https://i.pinimg.com/1200x/37/58/ff/3758ff1aff31ae34b2005e98f3fb72eb.jpg",
+      icon: <Smartphone className="w-6 h-6" />,
+      iconText: "VLocker"
+    },
+    // {
+    //   title: "Trạng thái hệ thống",
+    //   description: `${availableLockers.length + myLockers.length} tủ đang online\n1 tủ cần kiểm tra`,
+    //   cta1: { text: "Xem chi tiết", action: () => onNavigate('my-lockers') },
+    //   cta2: { text: "Kiểm tra sự cố", action: () => onNavigate('report') },
+    //   image: "https://i.pinimg.com/1200x/63/79/fd/6379fd7003047ac995e58b48966f6624.jpg",
+    //   icon: <TrendingUp className="w-6 h-6" />,
+    //   iconText: "Realtime"
+    // },
+    {
+      title: `Chào ${user.name || 'bạn'}`,
+      description: `Bạn đang quản lý ${myLockers.length} tủ đang hoạt động\nCập nhật lần cuối: Vài giây trước`,
+      cta1: { text: "Xem lịch sử", action: () => onNavigate('history') },
+      cta2: { text: "Xem chi tiết", action: () => onNavigate('my-lockers') },
+      image: "https://i.pinimg.com/1200x/03/98/03/039803e9538226f3dd913cf3b7246771.jpg",
+      icon: <UserIcon className="w-6 h-6" />,
+      iconText: "Cá nhân hoá"
+    }
+  ];
+
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 30000); // Change slide every 30 seconds
+    return () => clearInterval(slideInterval);
+  }, [slides.length]);
 
     useEffect(() => {
       const interval = setInterval(() => {
@@ -270,43 +317,69 @@ interface MyLockerItem {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* App Banner */}
-      <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Smartphone className="w-6 h-6" />
-              <span className="text-blue-100">Ứng dụng di động</span>
-            </div>
-            <h2 className="text-white mb-4">
-              Tải VLocker App để trải nghiệm tốt hơn
-            </h2>
-            <p className="text-blue-100 mb-6">
-              Mở tủ bằng điện thoại, nhận thông báo realtime, quản lý dễ dàng mọi lúc mọi nơi
-            </p>
-            <div className="flex gap-4">
-              <Button variant="secondary">
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                </svg>
-                App Store
-              </Button>
-              <Button variant="secondary">
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-                </svg>
-                Google Play
-              </Button>
+      {/* Carousel Banner */}      
+      <Card className="relative bg-gradient-to-r from-neutral-700 to-neutral-900 text-white overflow-hidden min-h-[320px] flex items-center rounded-2xl group select-none">
+        {slides.map((slide, index) => (
+          <div
+            key={index}
+            className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+          >
+            <div className="grid md:grid-cols-2 gap-8 items-center h-full px-20 py-8">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  {slide.icon}
+                  <span className="text-grey-100">{slide.iconText}</span>
+                </div>
+                <h2 className="text-white mb-4 text-2xl font-bold" style={{ whiteSpace: 'pre-line' }}>
+                  {slide.title}
+                </h2>
+                <p className="text-grey-500 mb-6" style={{ whiteSpace: 'pre-line' }}>
+                  {slide.description}
+                </p>
+                <div className="flex gap-4">
+                  <Button variant="secondary" onClick={slide.cta1.action}>
+                    {slide.cta1.text}
+                  </Button>
+                  <Button variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-neutral-800" onClick={slide.cta2.action}>
+                    {slide.cta2.text}
+                  </Button>
+                </div>
+              </div>
+              <div className="hidden md:block relative h-full">
+                <ImageWithFallback
+                  src={slide.image}
+                  alt={slide.title}
+                  className="absolute inset-0 w-full h-full object-cover rounded-lg opacity-100"
+                />
+              </div>
             </div>
           </div>
-          <div className="hidden md:block">
-            <ImageWithFallback
-              src="https://images.unsplash.com/photo-1614020661483-d2bb855eee1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2JpbGUlMjBhcHAlMjBwaG9uZXxlbnwxfHx8fDE3NjMwNTM1Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080"
-              alt="VLocker Mobile App"
-              className="w-full h-64 object-contain"
+        ))}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              aria-label={`Go to slide ${index + 1}`}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/75'}`}
             />
-          </div>
+          ))}
         </div>
+        {/* Navigation Buttons */}
+        <button
+          onClick={prevSlide}
+          className="absolute top-1/2 left-4 -translate-y-1/2 z-20 bg-white/10 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white/20"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          onClick={nextSlide}
+          className="absolute top-1/2 right-4 -translate-y-1/2 z-20 bg-white/10 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white/20"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
       </Card>
 
       {/* My Lockers Section */}
