@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Hero Banner"
+git commit -m "Update Manager Available"
 git push
 
 Password@12345

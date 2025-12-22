@@ -17,7 +17,7 @@ const LockerSchema = new mongoose.Schema({
   //Trạng thái tủ
   status: { 
     type: String, 
-    enum: ['available', 'booked', 'maintenance'], // Trống, Đang đặt, Bảo trì
+    enum: ['available', 'booked', 'maintenance', 'locked'], // Trống, Đang đặt, Bảo trì, Đang khóa
     default: 'available' 
   },
 

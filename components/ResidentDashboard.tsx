@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
-import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, TrendingUp, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';

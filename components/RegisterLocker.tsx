@@ -6,7 +6,6 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { useSession } from 'next-auth/react';
 
@@ -98,15 +97,15 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   }, [currentUser._id, currentUser.building, currentUser.block]);
 
   // Cập nhật filtered lockers khi search/filter thay đổi
-  useEffect(() => {
-    const filtered = availableLockers.filter(locker => {
-      const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           locker.building.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-      return matchesSearch && matchesBlock;
-    });
-    setFilteredLockers(filtered);
-  }, [searchTerm, filterBlock, availableLockers]);
+  // useEffect(() => {
+  //   const filtered = availableLockers.filter(locker => {
+  //     const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //                          locker.building.toLowerCase().includes(searchTerm.toLowerCase());
+  //     const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
+  //     return matchesSearch && matchesBlock;
+  //   });
+  //   setFilteredLockers(filtered);
+  // }, [searchTerm, filterBlock, availableLockers]);
 
   if (loading) {
     return <div className="p-6 max-w-7xl mx-auto">Đang tải dữ liệu...</div>;
@@ -120,38 +119,8 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="mb-6">
         <h1 className="text-gray-900 mb-2">Đăng ký tủ mới</h1>
-        <p className="text-gray-600">Chọn tủ phù hợp với nhu cầu của bạn - Tòa {currentUser.building} Block {currentUser.block}</p>
+        <p className="text-gray-600">Chọn tủ phù hợp với nhu cầu của bạn - Tòa {currentUser.building} Block {currentUser.block} Tầng 1</p>
       </div>
-
-      {/* Filters */}
-      <Card className="p-6">
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Tìm kiếm theo mã tủ..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <Select value={filterBlock} onValueChange={setFilterBlock}>
-            <SelectTrigger>
-              <SelectValue placeholder="Chọn block" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả block</SelectItem>
-              {blocks.map((block) => (
-                <SelectItem key={block} value={block}>
-                  Block {block}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
 
       {/* Stats */}
       <div className="grid md:grid-cols-3 gap-4">
@@ -189,6 +158,23 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           </div>
         </Card>
       </div>
+
+      {/* Filters */}
+      <Card className="p-6">
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Tìm kiếm theo mã tủ..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Lockers Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
