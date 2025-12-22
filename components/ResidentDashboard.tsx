@@ -421,7 +421,9 @@ interface MyLockerItem {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">{(mylocker.booking.cost || 0).toLocaleString()}đ</span>
+                    <span className="text-gray-600">{mylocker.booking?.status === 'stored'
+                        ? calculateCost(mylocker.booking).toLocaleString()
+                        : (mylocker.booking?.cost || 0).toLocaleString()}đ</span>
                   </div>
                 </div>
                 {mylocker.booking.status === 'active' ? (
