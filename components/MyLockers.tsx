@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { useState, useEffect } from 'react';
+import { useToast } from './ui/toast-context';
 
 export interface Locker {
   _id?: string;
@@ -48,6 +49,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
   const [loading, setLoading] = useState<string | null>(null); // Track which action is loading
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date()); // For realtime countdown
+  const { showToast } = useToast();
 
   // Update time every minute for countdown
   useEffect(() => {
@@ -140,7 +142,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
       }
 
       // Show success message
-      alert(json.message || 'Khóa tủ thành công!');
+      showToast(json.message || 'Khóa tủ thành công!', 'success');
       
       // Refresh data
       if (onUpdate) {
@@ -151,6 +153,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
       
       setSelectedLocker(null);
     } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi khóa tủ', 'error');
       setError(err instanceof Error ? err.message : 'Lỗi khóa tủ');
     } finally {
       setLoading(null);
@@ -185,12 +188,13 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
         throw new Error(json.message || 'Lỗi mở tủ');
       }
 
-      alert('Tủ đã được mở thành công!');
+      showToast('Tủ đã được mở thành công!', 'success');
       // Refresh data
       if (onUpdate) {
         onUpdate();
       }
     } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi mở tủ', 'error');
       setError(err instanceof Error ? err.message : 'Lỗi mở tủ');
     } finally {
       setLoading(null);
@@ -225,7 +229,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
       console.log('Booking data from payment:', json.data?.booking);
       console.log('pickupExpiryTime:', json.data?.booking?.pickupExpiryTime);
 
-      alert('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.');
+      showToast('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.', 'success');
       
       // Refresh data
       if (onUpdate) {
@@ -236,6 +240,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
       
       setSelectedLocker(null);
     } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
       setError(err instanceof Error ? err.message : 'Lỗi thanh toán');
     } finally {
       setLoading(null);

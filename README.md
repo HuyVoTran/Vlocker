@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Manager Available"
+git commit -m "Update Notification"
 git push
 
 Password@12345

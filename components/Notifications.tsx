@@ -35,6 +35,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
+import { useToast } from "./ui/toast-context";
 
 type NotificationType =
   | "admin_message"
@@ -101,6 +102,7 @@ export default function Notifications() {
   // State cho việc chọn nhiều thông báo
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
 
+  const { showToast } = useToast();
   // Lấy thông tin người dùng từ session một cách an toàn
   const role = session?.user?.role;
   const userId = session?.user?.id;
@@ -184,7 +186,7 @@ export default function Notifications() {
    */
   const handleSendNotification = async () => {
     if (!notificationTitle || !notificationMessage || selectedResidents.length === 0) {
-      alert("Vui lòng nhập tiêu đề, nội dung và chọn người nhận.");
+      showToast("Vui lòng nhập tiêu đề, nội dung và chọn người nhận.", "warning");
       return;
     }
     setSending(true);
@@ -202,13 +204,13 @@ export default function Notifications() {
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Gửi thông báo thất bại.");
       }
-      alert("Gửi thông báo thành công!");
+      showToast("Gửi thông báo thành công!", "success");
       setIsSendDialogOpen(false);
       setNotificationTitle("");
       setNotificationMessage("");
       setSelectedResidents([]);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Đã xảy ra lỗi.");
+      showToast(err instanceof Error ? err.message : "Đã xảy ra lỗi.", "error");
     } finally {
       setSending(false);
     }
@@ -245,6 +247,7 @@ export default function Notifications() {
       }
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
+      showToast("Lỗi khi đánh dấu đã đọc.", "error");
       setNotifications(originalNotifications); // Hoàn tác lại nếu có lỗi
     }
   };
@@ -280,7 +283,7 @@ export default function Notifications() {
       console.error("Lỗi khi cập nhật thông báo:", error);
       // Hoàn tác lại nếu có lỗi
       setNotifications(originalNotifications);
-      alert(error instanceof Error ? error.message : "Đã xảy ra lỗi.");
+      showToast(error instanceof Error ? error.message : "Đã xảy ra lỗi.", "error");
     }
   };
 
@@ -316,7 +319,7 @@ export default function Notifications() {
       console.error("Lỗi khi xóa thông báo:", error);
       // Hoàn tác lại nếu có lỗi
       setNotifications(originalNotifications);
-      alert(error instanceof Error ? error.message : "Đã xảy ra lỗi.");
+      showToast(error instanceof Error ? error.message : "Đã xảy ra lỗi.", "error");
     }
   };
 

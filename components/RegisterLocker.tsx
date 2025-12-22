@@ -8,6 +8,7 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { useSession } from 'next-auth/react';
+import { useToast } from './ui/toast-context';
 
 export interface Locker {
   _id: string;
@@ -36,10 +37,10 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
   const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
   const [registering, setRegistering] = useState<boolean>(false);
-  const [registerError, setRegisterError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { showToast } = useToast();
   const [filterBlock, setFilterBlock] = useState('all');
   const [blocks, setBlocks] = useState<string[]>([]);
 
@@ -260,12 +261,8 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           )}
 
             <DialogFooter className="flex-col sm:flex-col gap-2">
-            {registerError && (
-              <div className="text-sm text-red-600">Lỗi: {registerError}</div>
-            )}
             <Button className="w-full" disabled={registering} onClick={async () => {
               if (!selectedLocker) return;
-              setRegisterError(null);
               setRegistering(true);
               try {
                 const res = await fetch('/api/lockers/resident/register', {
@@ -277,18 +274,17 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 const json = await res.json();
                 if (!res.ok || !json.success) {
                   const msg = json?.message || `Server error (${res.status})`;
-                  setRegisterError(msg);
-                  setRegistering(false);
-                  return;
+                  throw new Error(msg);
                 }
 
+                showToast('Đăng ký tủ thành công!', 'success');
                 // success: remove locker from lists and close dialog
                 setAvailableLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
                 setFilteredLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
                 setSelectedLocker(null);
               } catch (err) {
                 console.error('Register error', err);
-                setRegisterError(err instanceof Error ? err.message : String(err));
+                showToast(err instanceof Error ? err.message : String(err), 'error');
               } finally {
                 setRegistering(false);
               }

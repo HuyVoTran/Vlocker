@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
+import { useToast } from './ui/toast-context';
 
 export default function Contact() {
   const contactInfo = [
@@ -79,7 +80,7 @@ export default function Contact() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const { showToast } = useToast();
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -181,7 +182,6 @@ export default function Contact() {
             <div className="flex gap-3">
               <Button className="flex-1" onClick={async () => {
                 setIsSubmitting(true);
-                setSubmitError('');
 
                 try {
                   const response = await fetch('/api/contact', {
@@ -198,18 +198,14 @@ export default function Contact() {
                   }
 
                   // Xử lý thành công
-                  alert('Tin nhắn đã được gửi thành công!');
+                  showToast('Tin nhắn đã được gửi thành công!', 'success');
                   setName('');
                   setEmail('');
                   setPhone('');
                   setSubject('');
                   setMessage('');
                 } catch (error) {
-                  if (error instanceof Error) {
-                    setSubmitError(error.message || 'Gửi tin nhắn thất bại.');
-                  } else {
-                    setSubmitError('Đã xảy ra một lỗi không xác định.');
-                  }
+                  showToast(error instanceof Error ? error.message : 'Đã xảy ra một lỗi không xác định.', 'error');
                 } finally {
                   setIsSubmitting(false);
                 }
@@ -227,9 +223,6 @@ export default function Contact() {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Làm mới
               </Button>
-              {submitError && (
-                <p className="text-red-500 mt-2">{submitError}</p>
-              )}
             </div>
           </div>
         </Card>

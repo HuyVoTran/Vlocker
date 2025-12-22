@@ -17,6 +17,7 @@ import {
 } from "./ui/table";
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useToast } from './ui/toast-context';
 
 interface ReportData {
   _id: string;
@@ -47,6 +48,7 @@ export default function Report() {
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { showToast } = useToast();
 
   // Helper functions
   const formatCategory = (cat: string) => {
@@ -143,7 +145,7 @@ export default function Report() {
   // Form submission handler (for residents)
   const handleSubmitReport = async () => {
     if (!title || !description || !category || !priority) {
-      alert('Vui lòng điền đầy đủ tất cả các trường.');
+      showToast('Vui lòng điền đầy đủ tất cả các trường.', 'warning');
       return;
     }
     setSubmitting(true);
@@ -157,7 +159,7 @@ export default function Report() {
       if (!res.ok || !json.success) {
         throw new Error(json.message || 'Gửi báo cáo thất bại.');
       }
-      alert('Gửi báo cáo thành công!');
+      showToast('Gửi báo cáo thành công!', 'success');
       // Thêm báo cáo mới vào đầu danh sách và reset form
       setReports(prev => [json.data, ...prev]);
       setTitle('');
@@ -165,7 +167,7 @@ export default function Report() {
       setCategory('');
       setPriority('');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi.');
+      showToast(err instanceof Error ? err.message : 'Đã xảy ra lỗi.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -191,7 +193,7 @@ export default function Report() {
       }
       // Thành công, không cần làm gì vì UI đã được cập nhật
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.');
+      showToast(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.', 'error');
       // Nếu có lỗi, hoàn tác lại thay đổi trên giao diện
       setReports(originalReports);
     }

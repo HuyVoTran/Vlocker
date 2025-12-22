@@ -17,6 +17,7 @@ import { Badge } from './ui/badge';
 import { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useToast } from './ui/toast-context';
 
 // Định nghĩa các kiểu dữ liệu sẽ lấy về
 interface UserProfile {
@@ -102,6 +103,7 @@ export default function Profile() {
   // State cho các trường trong form
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '' });
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -154,7 +156,7 @@ export default function Profile() {
         const payload: Record<string, string> = { ...formData };
         if (passwordData.newPassword) {
             if (!passwordData.currentPassword) {
-                alert("Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu mới.");
+                showToast("Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu mới.", "warning");
                 return;
             }
             payload.currentPassword = passwordData.currentPassword;
@@ -172,12 +174,12 @@ export default function Profile() {
             throw new Error(json.message || "Cập nhật thất bại.");
         }
 
-        alert("Cập nhật thông tin thành công!");
+        showToast("Cập nhật thông tin thành công!", "success");
         setProfile(json.data); // Cập nhật state với dữ liệu mới từ server
         setIsEditing(false);
         setPasswordData({ currentPassword: '', newPassword: '' }); // Xóa trường mật khẩu
     } catch (err) {
-        alert(err instanceof Error ? err.message : "Đã xảy ra lỗi.");
+        showToast(err instanceof Error ? err.message : "Đã xảy ra lỗi.", "error");
     }
   };
 
