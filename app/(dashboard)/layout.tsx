@@ -13,10 +13,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const role = session?.user?.role || "resident";
 
-  const handleNavigate = (page: string) => {
-    router.push(`/${role}/${page}`);
-  };
-
   // Listen for toggle events emitted from Header (client -> client)
   useEffect(() => {
     const onToggle = () => setIsSidebarOpen((v) => !v);
@@ -26,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar isOpen={isSidebarOpen} onNavigate={handleNavigate} />
+      <Sidebar isOpen={isSidebarOpen} />
       <div className="flex-1 flex flex-col">
         <Header userRole={role as 'resident' | 'manager'} />
         <main className="flex-1 overflow-y-auto">
