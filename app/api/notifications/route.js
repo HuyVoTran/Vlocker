@@ -41,9 +41,16 @@ export async function GET() {
     }
 
     // Truy vấn cơ sở dữ liệu để lấy thông báo
-    const notifications = await Notification.find(query)
+    let notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .lean();
+
+    if (role === 'manager') {
+        // Đối với manager, tất cả thông báo được xem như đã đọc để không hiển thị
+        // số lượng trên icon chuông. Trạng thái đọc/chưa đọc là của người nhận.
+        // Thao tác này chỉ thay đổi dữ liệu trả về, không ảnh hưởng đến database.
+        notifications = notifications.map(n => ({ ...n, read: true }));
+    }
 
     return NextResponse.json({
       success: true,
@@ -100,7 +107,7 @@ export async function POST(req) {
       message: "Gửi thông báo thành công",
     });
   } catch (err) {
-    console.error("Lỗi nghiêm trọng tại POST /api/notifications:", err.message);
+    console.error("Lỗi nghiêm trọng tại POST /api/notifications:", err.message, err.stack);
     return NextResponse.json(
       { success: false, message: "Lỗi máy chủ", error: err.message },
       { status: 500 }
@@ -148,7 +155,7 @@ export async function PATCH(req) {
       message: "Đã cập nhật trạng thái thông báo.",
     });
   } catch (err) {
-    console.error("Lỗi nghiêm trọng tại PATCH /api/notifications:", err.message);
+    console.error("Lỗi nghiêm trọng tại PATCH /api/notifications:", err.message, err.stack);
     return NextResponse.json(
       { success: false, message: "Lỗi máy chủ", error: err.message },
       { status: 500 }
@@ -179,16 +186,30 @@ export async function DELETE(req) {
       return NextResponse.json({ success: false, message: "Cần có ID của thông báo để xóa" }, { status: 400 });
     }
 
-    // Security: Đảm bảo người dùng chỉ có thể xóa thông báo của chính mình.
-    await Notification.deleteMany({
+    const { id, role } = session.user;
+
+    // Phân quyền xóa:
+    // - Manager có thể "unsend" (xóa) bất kỳ thông báo nào.
+    // - Resident chỉ có thể xóa thông báo ở phía họ.
+    const query = {
       _id: { $in: notificationIds },
-      recipientId: session.user.id,
-    });
+    };
 
-    return NextResponse.json({ success: true, message: "Đã xóa thông báo thành công" });
+    if (role === 'resident') {
+      // Resident chỉ có thể xóa thông báo của chính mình.
+      query.recipientId = id;
+    } else if (role !== 'manager') {
+      // Chặn các vai trò không xác định khác thực hiện hành động này.
+      return NextResponse.json({ success: false, message: "Vai trò không hợp lệ." }, { status: 403 });
+    }
+    // Nếu là manager, không cần thêm điều kiện `recipientId`, cho phép xóa bất kỳ thông báo nào (unsend).
 
+    const result = await Notification.deleteMany(query);
+
+    const message = role === 'manager' ? "Đã thu hồi thông báo thành công." : "Đã xóa thông báo thành công.";
+    return NextResponse.json({ success: true, message, deletedCount: result.deletedCount });
   } catch (err) {
-    console.error("Lỗi nghiêm trọng tại DELETE /api/notifications:", err.message);
+    console.error("Lỗi nghiêm trọng tại DELETE /api/notifications:", err.message, err.stack);
     return NextResponse.json({ success: false, message: "Lỗi máy chủ" }, { status: 500 });
   }
 }

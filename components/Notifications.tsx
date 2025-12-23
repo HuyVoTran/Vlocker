@@ -101,6 +101,7 @@ export default function Notifications() {
 
   // State cho việc chọn nhiều thông báo
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { showToast } = useToast();
   // Lấy thông tin người dùng từ session một cách an toàn
@@ -290,12 +291,8 @@ export default function Notifications() {
   /**
    * Xóa các thông báo đã chọn.
    */
-  const handleBulkDelete = async () => {
+  const confirmBulkDelete = async () => {
     if (selectedNotifications.length === 0) return;
-
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedNotifications.length} thông báo đã chọn không?`)) {
-      return;
-    }
 
     const originalNotifications = [...notifications];
     // Cập nhật giao diện trước
@@ -303,6 +300,7 @@ export default function Notifications() {
       prev.filter((n) => !selectedNotifications.includes(n._id))
     );
 
+    setIsDeleteDialogOpen(false);
     try {
       const res = await fetch("/api/notifications", {
         method: "DELETE",
@@ -313,6 +311,7 @@ export default function Notifications() {
       if (!res.ok) {
         throw new Error("Không thể xóa thông báo.");
       }
+      showToast(`Đã xóa ${selectedNotifications.length} thông báo đã chọn.`, "success");
       // Xóa lựa chọn sau khi thành công
       setSelectedNotifications([]);
     } catch (error) {
@@ -570,17 +569,21 @@ export default function Notifications() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => handleBulkUpdateReadStatus(true)}>
-                <BookOpen className="w-4 h-4 mr-2" />
-                Đánh dấu đã đọc
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleBulkUpdateReadStatus(false)}>
-                <Book className="w-4 h-4 mr-2" />
-                Đánh dấu chưa đọc
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+              {role === 'resident' && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkUpdateReadStatus(true)}>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Đánh dấu đã đọc
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkUpdateReadStatus(false)}>
+                    <Book className="w-4 h-4 mr-2" />
+                    Đánh dấu chưa đọc
+                  </Button>
+                </>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
                 <Trash2 className="w-4 h-4 mr-2" />
-                Xóa
+                {role === 'manager' ? 'Thu hồi' : 'Xóa'}
               </Button>
             </div>
           </Card>
@@ -598,13 +601,15 @@ export default function Notifications() {
                 {filteredNotifications.map((n) => (
                   <div
                     key={n._id}
-                    className={`flex items-start gap-4 p-4 transition-colors cursor-pointer ${selectedNotifications.includes(n._id)
+                    className={`flex items-start gap-4 p-4 transition-colors ${role === 'resident' ? 'cursor-pointer' : 'cursor-default'} ${selectedNotifications.includes(n._id)
                         ? "bg-blue-100"
                         : !n.read
                           ? "bg-blue-50 hover:bg-blue-100"
                           : "hover:bg-gray-50"
                     }`}
-                    onClick={() => handleMarkAsRead(n._id)}
+                    onClick={
+                      role === 'resident' ? () => handleMarkAsRead(n._id) : undefined
+                    }
                   >
                     <div className="flex items-center h-full pt-1">
                       <Checkbox
@@ -635,6 +640,30 @@ export default function Notifications() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog xác nhận xóa */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {role === 'manager' ? 'Xác nhận thu hồi thông báo' : 'Xác nhận xóa'}
+            </DialogTitle>
+            {role === 'manager' ? (
+              <DialogDescription>
+                Bạn có chắc chắn muốn thu hồi {selectedNotifications.length} thông báo đã chọn không? Hành động này sẽ xóa thông báo khỏi hộp thư của tất cả người nhận và không thể hoàn tác.
+              </DialogDescription>
+            ) : (
+              <DialogDescription>
+                Bạn có chắc chắn muốn xóa {selectedNotifications.length} thông báo đã chọn không? Hành động này không thể hoàn tác.
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+            <Button variant="destructive" onClick={confirmBulkDelete}>{role === 'manager' ? 'Thu hồi' : 'Xóa'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
