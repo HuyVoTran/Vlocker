@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update & Fix bugs"
+git commit -m "Update ReadMe & Fix bugs"
 git push
 
 Password@12345
@@ -36,12 +36,8 @@ Password@12345
 **Demo:** [VLocker - Vercel](vlocker.vercel.app) 
 
 ## Giao diện ứng dụng
-<p align="center"><img src="public/Final-exmaple.png" alt="Giao diện VLocker">
-<br><i>Chú thích:Giao diện trang chủ của ứng dụng.</i></p>
-<p align="center"><img src="public/Final-exmaple2.png" alt="Giao diện VLocker">
-<br><i>Chú thích:Giao diện trang đăng nhập của ứng dụng.</i></p>
-<p align="center"><img src="public/Final-exmaple3.png" alt="Giao diện VLocker">
-<br><i>Chú thích:Giao diện dashboard chính của ứng dụng.</i></p>
+<p align="center"><img src="public/Final-demo.png" alt="Giao diện VLocker">
+<br><i>Chú thích: Giao diện trang chủ, dashboard,... của ứng dụng.</i></p>
 
 ## Tính Năng Chính
 ### Người Dùng:
