@@ -54,6 +54,7 @@ export default function Header({ userRole }: HeaderProps) {
             variant="ghost"
             size="icon"
             onClick={() => window.dispatchEvent(new CustomEvent('toggleSidebar'))}
+            className="hidden md:inline-flex"
           >
             <Menu className="w-5 h-5" />
           </Button>

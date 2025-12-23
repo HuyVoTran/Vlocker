@@ -71,7 +71,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   ];
   
   return (
-    <aside className="w-60 bg-white border-r border-gray-200 flex flex-col select-none">
+    <aside className="hidden md:flex w-60 bg-white border-r border-gray-200 flex-col select-none">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <Link href={getLink('dashboard')} className="cursor-pointer hover:opacity-80 transition-opacity">

@@ -326,7 +326,7 @@ interface MyLockerItem {
             key={index}
             className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
           >
-            <div className="grid md:grid-cols-2 gap-8 items-center h-full px-20 py-8">
+            <div className="grid md:grid-cols-2 gap-8 items-center h-full px-10 md:px-20 py-8">
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   {slide.icon}
