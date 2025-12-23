@@ -410,7 +410,7 @@ export default function Profile() {
               <h3 className="text-gray-900">Lịch sử hoạt động</h3>
               <p className="text-sm text-gray-500">5 hoạt động gần đây nhất của bạn</p>
             </div>
-            <Button variant="outline" onClick={() => router.push(`/${session?.user?.role}/history`)}>
+            <Button variant="outline" onClick={() => router.push('/history')}>
               Xem tất cả
             </Button>
           </div>

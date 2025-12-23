@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { LogOut, LayoutDashboard, Package, FileText, Users, PlusCircle, User, History } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, FileText, PlusCircle, User, History, Contact } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,6 @@ import {
 
 interface SidebarProps {
   isOpen: boolean;
-  onNavigate?: (page: string) => void;
 }
 
 interface MenuItem {
@@ -29,9 +28,9 @@ interface MenuItem {
   icon: React.ReactNode;
 }
 
-export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
+export default function Sidebar({ isOpen }: SidebarProps) {
   const { data: session } = useSession();
-  const router = useRouter();
+
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -42,119 +41,56 @@ export default function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   
   if (!isOpen) return null;
 
-  const role = session?.user?.role || 'resident';
+  const role = session?.user?.role ?? 'resident';
 
-  // Menu items cho resident
-  const residentMenuItems: MenuItem[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: <LayoutDashboard className="w-5 h-5" />,
-    },
-    {
-      id: 'my-lockers',
-      label: 'Tủ của tôi',
-      icon: <Package className="w-5 h-5" />,
-    },
-    {
-      id: 'register-locker',
-      label: 'Đăng ký tủ mới',
-      icon: <PlusCircle className="w-5 h-5" />,
-    },
-    {
-      id: 'history',
-      label: 'Lịch sử',
-      icon: <History className="w-5 h-5" />,
-    },
-    {
-      id: 'profile',
-      label: 'Profile',
-      icon: <User className="w-5 h-5" />,
-    },
-    {
-      id: 'report',
-      label: 'Báo cáo',
-      icon: <FileText className="w-5 h-5" />,
-    },
-    {
-      id: 'contact',
-      label: 'Liên hệ',
-      icon: <Users className="w-5 h-5" />,
-    },
+  // Hàm helper để tạo link điều hướng chính xác
+  const getLink = (page: string): string => {
+    const sharedPages = ['profile', 'contact', 'notifications'];
+    if (sharedPages.includes(page)) {
+      return `/${page}`;
+    }
+    return `/${role}/${page}`;
+  };
+
+  // Chuẩn hóa menu items để tránh lặp code
+  const menuItems: MenuItem[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    ...(role === 'manager'
+      ? [
+          { id: 'manager-lockers', label: 'Thống kê tủ', icon: <Package className="w-5 h-5" /> },
+          { id: 'available-lockers', label: 'Tủ trống', icon: <PlusCircle className="w-5 h-5" /> },
+        ]
+      : [
+          { id: 'my-lockers', label: 'Tủ của tôi', icon: <Package className="w-5 h-5" /> },
+          { id: 'register-locker', label: 'Đăng ký tủ mới', icon: <PlusCircle className="w-5 h-5" /> },
+        ]),
+    { id: 'history', label: role === 'manager' ? 'Lịch sử thống kê' : 'Lịch sử', icon: <History className="w-5 h-5" /> },
+    { id: 'profile', label: 'Thông tin cá nhân', icon: <User className="w-5 h-5" /> },
+    { id: 'report', label: 'Báo cáo', icon: <FileText className="w-5 h-5" /> },
+    { id: 'contact', label: 'Liên hệ', icon: <Contact className="w-5 h-5" /> },
   ];
-
-  // Menu items cho manager
-  const managerMenuItems: MenuItem[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: <LayoutDashboard className="w-5 h-5" />,
-    },
-    {
-      id: 'manager-lockers',
-      label: 'Thống kê tủ',
-      icon: <Package className="w-5 h-5" />,
-    },
-    {
-      id: 'available-lockers',
-      label: 'Tủ trống',
-      icon: <PlusCircle className="w-5 h-5" />,
-    },
-    {
-      id: 'history',
-      label: 'Lịch sử thống kê',
-      icon: <History className="w-5 h-5" />,
-    },
-    {
-      id: 'profile',
-      label: 'Profile',
-      icon: <User className="w-5 h-5" />,
-    },
-    {
-      id: 'report',
-      label: 'Báo cáo',
-      icon: <FileText className="w-5 h-5" />,
-    },
-    {
-      id: 'contact',
-      label: 'Liên hệ',
-      icon: <Users className="w-5 h-5" />,
-    },
-  ];
-
-  const menuItems = role === 'manager' ? managerMenuItems : residentMenuItems;
   
   return (
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col select-none">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div 
-            onClick={() => router.push(`/${role}/dashboard`)}
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <h1 className="text-lg text-black font-light">VLocker</h1>
-            <p className="text-xs text-neutral-500">Smart Locker System</p>
-          </div>
+          <Link href={getLink('dashboard')} className="cursor-pointer hover:opacity-80 transition-opacity">
+              <h1 className="text-lg text-black font-light">VLocker</h1>
+              <p className="text-xs text-neutral-500">Smart Locker System</p>
+          </Link>
         </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) =>
-          item.id === 'notifications' ? (
-            <Link key={item.id} href="/notifications" className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
-              {item.icon}
-              <span className="text-left">{item.label}</span>
-            </Link>
-          ) : (
-            <button
-              key={item.id}
-              onClick={() => onNavigate?.(item.id)}
-              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
-              {item.icon}
-              <span className="text-left">{item.label}</span>
-            </button>
-          )
-        )}
+        {menuItems.map((item) => (
+          <Link
+            key={item.id}
+            href={getLink(item.id)}
+            className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-50 text-left">
+            {item.icon}
+            <span className="text-left">{item.label}</span>
+          </Link>
+        ))}
       </nav>
 
       <div className="p-4 border-t border-gray-200">

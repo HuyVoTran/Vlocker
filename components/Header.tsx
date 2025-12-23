@@ -81,7 +81,7 @@ export default function Header({ userRole }: HeaderProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push(`/${role}/profile`)}
+              onClick={() => router.push('/profile')}
               aria-label="Mở trang profile"
               className="hover:bg-transparent"
             >

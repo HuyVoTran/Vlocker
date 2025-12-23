@@ -21,14 +21,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const onNavigate = (page: string) => {
     if (!role) return;
-    router.push(`/${role}/${page}`);
+    // Các trang dùng chung và không cần tiền tố vai trò
+    const sharedPages = ['profile', 'contact', 'notifications'];
+
+    if (sharedPages.includes(page)) {
+      router.push(`/${page}`);
+    } else {
+      router.push(`/${role}/${page}`);
+    }
   };
 
   if (!role) return <>{children}</>;
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar isOpen={isSidebarOpen} onNavigate={onNavigate} />
+      <Sidebar isOpen={isSidebarOpen} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header userRole={role} />

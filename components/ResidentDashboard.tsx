@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from "next/navigation";
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -75,6 +76,7 @@ interface MyLockerItem {
     user,
   }: ResidentDashboardProps) {
   const { showToast } = useToast();
+  const router = useRouter();
 
   // SWR for My Lockers
   const {
@@ -124,8 +126,8 @@ interface MyLockerItem {
     {
       title: "Quản lý tủ thông minh, trong tầm tay bạn",
       description: "Theo dõi trạng thái, mở tủ từ xa và nhận thông báo realtime ngay trên dashboard.",
-      cta1: { text: "Tìm tủ ngay", action: () => onNavigate('register-locker') },
-      cta2: { text: "Tìm hiểu thêm", action: () => onNavigate('../HowItWorks') },
+      cta1: { text: "Tìm tủ ngay", action: () => onNavigate('register-locker') }, // This uses the smart onNavigate
+      cta2: { text: "Tìm hiểu thêm", action: () => router.push('/HowItWorks') }, // This is a public page
       image: "https://i.pinimg.com/1200x/37/58/ff/3758ff1aff31ae34b2005e98f3fb72eb.jpg",
       icon: <Smartphone className="w-6 h-6" />,
       iconText: "VLocker"
@@ -582,7 +584,7 @@ interface MyLockerItem {
               <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => onNavigate('renew', selectedMyLocker?.locker)}
+                onClick={() => onNavigate('report')}
                 disabled={actionLoading !== null}
               >
                 Báo Cáo Lỗi

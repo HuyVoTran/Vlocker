@@ -459,7 +459,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
               <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => onNavigate?.('renew', selectedLocker ?? undefined)}
+                onClick={() => onNavigate?.('report')}
                 disabled={loading !== null}
               >
                 Báo Cáo Lỗi

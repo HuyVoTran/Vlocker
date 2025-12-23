@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Home } from 'lucide-react';
+import { AlertTriangle, Home, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 
 export default function Error({
   error,
@@ -15,25 +16,27 @@ export default function Error({
 }) {
   const router = useRouter();
   const [countdown, setCountdown] = useState(5);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // Bạn có thể log lỗi này tới một dịch vụ báo cáo lỗi
+    // Log lỗi tới một dịch vụ báo cáo lỗi
     console.error(error);
+
+    // Không bắt đầu đếm ngược nếu đang trong quá trình đăng xuất
+    if (isLoggingOut) return;
 
     // Bắt đầu đếm ngược
     const timer = setInterval(() => {
-      setCountdown((prevCountdown) => {
-        if (prevCountdown <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prevCountdown - 1;
-      });
+      setCountdown((prev) => (prev > 1 ? prev - 1 : 0));
     }, 1000);
 
     // Hẹn giờ để chuyển hướng sau 5 giây
     const redirectTimeout = setTimeout(() => {
-      router.push('/');
+      // Chỉ chuyển hướng nếu không phải lỗi xác thực cần đăng xuất
+      if (!isLoggingOut) {
+        router.push('/');
+      }
     }, 5000);
 
     // Dọn dẹp timer khi component bị hủy
@@ -41,8 +44,42 @@ export default function Error({
       clearInterval(timer);
       clearTimeout(redirectTimeout);
     };
-  }, [error, router]);
+  }, [error, router, isLoggingOut]);
 
+  const handleReset = () => {
+    const newRetryCount = retryCount + 1;
+    setRetryCount(newRetryCount);
+
+    // Sau 3 lần thử lại thất bại (tức là lần nhấn thứ 3),
+    // giả định rằng đây là lỗi nghiêm trọng (ví dụ: mất session) và cần đăng nhập lại.
+    if (newRetryCount >= 3) {
+      setIsLoggingOut(true);
+      // Đăng xuất và chuyển hướng đến trang đăng nhập với thông báo lỗi
+      signOut({ callbackUrl: '/login?error=SessionExpired' });
+    } else {
+      // Thử render lại segment
+      reset();
+    }
+  };
+
+  // Hiển thị giao diện đang đăng xuất
+  if (isLoggingOut) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-6 select-none">
+        <div className="max-w-md">
+          <LogOut className="w-24 h-24 mx-auto text-blue-500 mb-6 animate-spin" />
+          <h2 className="text-2xl font-semibold text-gray-700 mt-4 mb-2">
+            Phiên đăng nhập đã hết hạn
+          </h2>
+          <p className="text-gray-500 mb-8">
+            Đang chuyển hướng bạn đến trang đăng nhập...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Giao diện lỗi mặc định
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-6 select-none">
       <div className="max-w-md">
@@ -54,13 +91,8 @@ export default function Error({
         <p className="text-gray-500 mb-6">Đã có sự cố ngoài ý muốn. Bạn có thể thử lại hoặc quay về trang chủ.</p>
         <p className="text-gray-500 mb-8">Tự động chuyển về trang chủ trong <span className="font-bold text-blue-600">{countdown}</span> giây...</p>
         <div className="flex justify-center gap-4">
-          <Button
-            onClick={
-              // Thử render lại segment này
-              () => reset()
-            }
-          >
-            Thử Lại
+          <Button onClick={handleReset}>
+            Thử Lại {retryCount > 0 && `(Lần ${retryCount + 1})`}
           </Button>
           <Link href="/" passHref>
             <Button variant="outline"><Home className="w-4 h-4 mr-2" />Về Trang Chủ</Button>

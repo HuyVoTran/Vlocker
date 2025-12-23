@@ -50,5 +50,13 @@ export default withAuth(
 
 // Matcher để đảm bảo middleware này chỉ chạy trên các đường dẫn được chỉ định.
 export const config = {
-  matcher: ["/manager/:path*", "/resident/:path*"],
+  matcher: [
+    "/manager/:path*", 
+    "/resident/:path*",
+    "/profile",
+    "/history",
+    "/report",
+    "/contact",
+    "/notifications"
+  ],
 };
