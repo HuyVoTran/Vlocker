@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update ReadMe & Fix bugs"
+git commit -m "Update Error & Middleware"
 git push
 
 Password@12345
