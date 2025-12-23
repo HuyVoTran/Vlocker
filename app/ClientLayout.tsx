@@ -17,6 +17,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => window.removeEventListener('toggleSidebar', onToggle as EventListener);
   }, []);
 
+  // The onNavigate function is no longer needed here because the Sidebar
+  // component now handles its own navigation internally using <Link>.
   if (!role) return <>{children}</>;
 
   return (
