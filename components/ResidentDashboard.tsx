@@ -584,7 +584,11 @@ interface MyLockerItem {
               <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => onNavigate('report')}
+                onClick={() => {
+                  if (selectedMyLocker) {
+                    router.push(`/resident/report?lockerId=${selectedMyLocker.locker.lockerId}&locker_id=${selectedMyLocker.locker._id}`);
+                  }
+                }}
                 disabled={actionLoading !== null}
               >
                 Báo Cáo Lỗi

@@ -7,6 +7,7 @@ import { connectDB } from '@/lib/mongodb';
 // Giả sử bạn có model Mongoose cho Report và User
 import Report from '@/models/Report'; 
 import User from '@/models/User'; 
+import Locker from '@/models/Locker';
 
 /**
  * GET /api/reports
@@ -34,10 +35,20 @@ export async function GET() {
           model: User,
           select: 'name email', // Chỉ lấy tên và email
         })
+        .populate({
+          path: 'lockerId',
+          model: Locker,
+          select: 'lockerId building block',
+        })
         .sort({ createdAt: -1 });
     } else {
       // Resident chỉ thấy báo cáo của mình
-      reports = await Report.find({ userId }).sort({ createdAt: -1 });
+      reports = await Report.find({ userId })
+        .populate({
+          path: 'lockerId',
+          model: Locker,
+          select: 'lockerId building block',
+        }).sort({ createdAt: -1 });
     }
 
     return NextResponse.json({ success: true, data: reports });
@@ -61,13 +72,11 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     const body = await req.json();
-    const { title, description, category, priority } = body;
+    const { title, description, category, priority, lockerId } = body;
 
     if (!title || !description || !category || !priority) {
       return NextResponse.json({ success: false, message: 'Thiếu các trường bắt buộc' }, { status: 400 });
     }
-
-    // Trường lockerId đã được gỡ bỏ khỏi form tạo mới này.
 
     const newReport = new Report({
       // reportId sẽ được tự động tạo bởi Mongoose pre-save hook
@@ -75,6 +84,7 @@ export async function POST(req: NextRequest) {
       description,
       category,
       priority, // Độ ưu tiên giờ do người dùng thiết lập
+      lockerId: lockerId || null, // Gắn ID của tủ vào báo cáo nếu có
       userId: session.user.id,
       status: 'pending',
     });
@@ -88,6 +98,10 @@ export async function POST(req: NextRequest) {
       path: 'userId',
       model: User,
       select: 'name email',
+    }).populate({
+      path: 'lockerId',
+      model: Locker,
+      select: 'lockerId building block',
     });
 
     // Trả về báo cáo mới để client có thể cập nhật UI ngay lập tức
@@ -132,6 +146,11 @@ export async function PATCH(req: NextRequest) {
         path: 'userId',
         model: User,
         select: 'name email',
+      })
+      .populate({
+        path: 'lockerId',
+        model: Locker,
+        select: 'lockerId building block',
       });
 
     if (!updatedReport) {

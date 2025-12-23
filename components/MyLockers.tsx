@@ -12,6 +12,7 @@ import {
 } from "./ui/dialog";
 import { useState, useEffect } from 'react';
 import { useToast } from './ui/toast-context';
+import { useRouter } from 'next/navigation';
 
 export interface Locker {
   _id?: string;
@@ -50,6 +51,7 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date()); // For realtime countdown
   const { showToast } = useToast();
+  const router = useRouter();
 
   // Update time every minute for countdown
   useEffect(() => {
@@ -459,7 +461,11 @@ export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockers
               <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => onNavigate?.('report')}
+                onClick={() => {
+                  if (selectedLocker) {
+                    router.push(`/resident/report?lockerId=${selectedLocker.locker.lockerId}&locker_id=${selectedLocker.locker._id}`);
+                  }
+                }}
                 disabled={loading !== null}
               >
                 Báo Cáo Lỗi

@@ -43,7 +43,8 @@ type NotificationType =
   | "locker_unlocked"
   | "locker_locked"
   | "payment_completed"
-  | "booking_expired";
+  | "booking_expired"
+  | "booking_reminder";
 
 interface Notification {
   _id: string;
@@ -386,6 +387,8 @@ export default function Notifications() {
         return <Package className="w-5 h-5 text-green-500" />;
       case "booking_expired":
         return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+      case "booking_reminder":
+        return <AlertTriangle className="w-5 h-5 text-orange-500" />;
       case "locker_unlocked":
         return <KeyRound className="w-5 h-5 text-purple-500" />;
       case "locker_locked":

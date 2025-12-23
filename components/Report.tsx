@@ -23,9 +23,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast } from './ui/toast-context';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 interface ReportData {
   _id: string;
@@ -40,11 +41,18 @@ interface ReportData {
     name: string;
     email: string;
   };
+  lockerId?: {
+    lockerId: string;
+    building: string;
+    block: string;
+  } | null;
 }
 
-export default function Report() {
+function ReportComponent() {
   const { data: session, status: sessionStatus } = useSession();
   const role = session?.user?.role;
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // State cho danh sách báo cáo
   const [reports, setReports] = useState<ReportData[]>([]);
@@ -152,6 +160,21 @@ export default function Report() {
     }
   }, [sessionStatus]);
 
+  // Pre-fill form from URL query params
+  useEffect(() => {
+    if (searchParams) {
+      const lockerIdParam = searchParams.get('lockerId');
+      const locker_idParam = searchParams.get('locker_id');
+
+      if (lockerIdParam && locker_idParam) {
+        setTitle(`Báo cáo sự cố tủ ${lockerIdParam}`);
+        setDescription(`Tôi gặp sự cố với tủ ${lockerIdParam}.\n\nVui lòng mô tả chi tiết sự cố của bạn ở đây:`);
+        setCategory('locker_error');
+        setPriority('medium');
+      }
+    }
+  }, [searchParams]);
+
   // Form submission handler (for residents)
   const handleSubmitReport = async () => {
     if (!title || !description || !category || !priority) {
@@ -160,10 +183,12 @@ export default function Report() {
     }
     setSubmitting(true);
     try {
+      const locker_id = searchParams.get('locker_id');
+
       const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, category, priority }),
+        body: JSON.stringify({ title, description, category, priority, lockerId: locker_id }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -176,6 +201,9 @@ export default function Report() {
       setDescription('');
       setCategory('');
       setPriority('');
+      // Xóa query params khỏi URL sau khi gửi thành công
+      router.replace(`/${role}/report`, { scroll: false });
+
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Đã xảy ra lỗi.', 'error');
     } finally {
@@ -344,6 +372,7 @@ export default function Report() {
             <TableRow>
               <TableHead>Mã báo cáo</TableHead>
               {role === 'manager' && <TableHead>Người gửi</TableHead>}
+              <TableHead>Tủ liên quan</TableHead>
               <TableHead>Ngày gửi</TableHead>
               <TableHead>Tiêu đề</TableHead>
               <TableHead>Loại</TableHead>
@@ -355,7 +384,7 @@ export default function Report() {
           <TableBody>
             {reports.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={role === 'manager' ? 8 : 6} className="text-center">
+                <TableCell colSpan={role === 'manager' ? 9 : 7} className="text-center">
                   Không có báo cáo nào.
                 </TableCell>
               </TableRow>
@@ -376,6 +405,13 @@ export default function Report() {
                     </div>
                   </TableCell>
                 )}
+                <TableCell>
+                  {report.lockerId ? (
+                    <Badge variant="secondary">{report.lockerId.lockerId}</Badge>
+                  ) : (
+                    <span className="text-gray-400 text-xs">N/A</span>
+                  )}
+                </TableCell>
                 <TableCell>{formatDate(report.createdAt)}</TableCell>
                 <TableCell className="max-w-xs truncate">{report.title}</TableCell>
                 <TableCell>
@@ -417,6 +453,14 @@ export default function Report() {
                 <Label className="text-sm font-semibold text-gray-700">Mô tả</Label>
                 <p className="mt-1 text-gray-600 whitespace-pre-wrap">{selectedReport.description}</p>
               </div>
+              {selectedReport.lockerId && (
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Tủ liên quan</Label>
+                  <p className="mt-1 text-gray-900">
+                    {`Tủ ${selectedReport.lockerId.lockerId} (Tòa ${selectedReport.lockerId.building}, Block ${selectedReport.lockerId.block})`}
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">Người gửi</Label>
@@ -456,5 +500,14 @@ export default function Report() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function Report() {
+  return (
+    // Suspense là bắt buộc khi sử dụng useSearchParams ở cấp độ trang trong Next.js
+    <Suspense fallback={<div className="p-6">Đang tải trang báo cáo...</div>}>
+      <ReportComponent />
+    </Suspense>
   );
 }
