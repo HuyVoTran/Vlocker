@@ -8,7 +8,8 @@ interface AugmentedToken {
   role?: "manager" | "resident" | null;
 }
 
-export default withAuth(
+export const middleware = withAuth(
+  // Tên hàm đã được đổi từ `middleware` thành `proxy` để tuân thủ quy ước mới của Next.js 16+
   function middleware(req: NextRequest & { nextauth: { token: AugmentedToken | null } }) {
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
@@ -30,28 +31,24 @@ export default withAuth(
       }
     }
 
-    // Nếu logic đi đến đây, có nghĩa là vai trò của người dùng khớp với đường dẫn.
     // `withAuth` đã xử lý trường hợp chưa đăng nhập và chuyển hướng đến trang login.
     // Cho phép request tiếp tục.
     return NextResponse.next();
   },
   {
     callbacks: {
-      // Callback này quyết định người dùng có được "ủy quyền" hay không.
-      // Nếu có token, chúng ta coi là đã ủy quyền. Logic phân quyền chi tiết được xử lý ở trên.
       authorized: ({ token }) => !!token,
     },
     pages: {
-      // Chuyển hướng người dùng chưa đăng nhập đến trang /login.
       signIn: "/login",
     },
   }
 );
 
-// Matcher để đảm bảo middleware này chỉ chạy trên các đường dẫn được chỉ định.
+// Matcher để đảm bảo proxy này chỉ chạy trên các đường dẫn được chỉ định.
 export const config = {
   matcher: [
-    "/manager/:path*", 
+    "/manager/:path*",
     "/resident/:path*",
     "/profile",
     "/history",
