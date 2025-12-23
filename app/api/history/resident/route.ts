@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
-import Locker from "@/models/Locker";
-import User from "@/models/User";
+
+// Define a more specific type for the booking object after `lean()` and `populate()`
+// This helps avoid using `any`.
+interface PopulatedBooking {
+  status?: string;
+  paymentStatus?: string;
+  startTime?: string | Date;
+  cost?: number;
+  // Allow other properties since lean() returns a plain object
+  [key: string]: unknown;
+}
 
 export async function GET(req: Request) {
   try {
@@ -20,14 +29,28 @@ export async function GET(req: Request) {
 
     const bookings = await Booking.find({ userId })
       .sort({ startTime: -1 })
-      .populate<{ lockerId: typeof Locker }>("lockerId")
-      .populate<{ userId: typeof User }>("userId")
-      .lean();
+      .populate("lockerId")
+      .populate("userId")
+      .lean<PopulatedBooking[]>();
+
+    const now = new Date();
+    const calculatedBookings = bookings.map((booking) => {
+      // Tính toán lại chi phí cho các booking đang ở trạng thái 'stored' và 'pending'
+      if (booking.status === 'stored' && booking.paymentStatus === 'pending' && booking.startTime) {
+        const startTime = new Date(booking.startTime);
+        const timeDiff = now.getTime() - startTime.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        const calculatedCost = Math.max(1, daysDiff) * 5000; // 5,000 VNĐ mỗi ngày
+
+        return { ...booking, cost: calculatedCost };
+      }
+      return booking;
+    });
 
     return NextResponse.json(
       {
         success: true,
-        data: bookings,
+        data: calculatedBookings,
       },
       { status: 200 }
     );
@@ -39,5 +62,3 @@ export async function GET(req: Request) {
     );
   }
 }
-
-

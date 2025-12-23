@@ -20,7 +20,7 @@ export async function GET(req) {
     // 1. Find all user bookings (excluding completed) and populate locker details
     const bookings = await Booking.find({ 
       userId,
-      status: { $ne: 'completed' } // Exclude completed bookings
+      status: { $nin: ['completed', 'cancelled'] } // Exclude completed and cancelled bookings
     })
       .populate({ path: "lockerId", model: Locker })
       .lean();

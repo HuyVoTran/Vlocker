@@ -4,10 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from 'next-auth/react';
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { useRouter } from 'next/navigation';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const { data: session } = useSession();
   const role = (session?.user?.role as 'resident' | 'manager') || null;
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -18,18 +16,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     window.addEventListener('toggleSidebar', onToggle as EventListener);
     return () => window.removeEventListener('toggleSidebar', onToggle as EventListener);
   }, []);
-
-  const onNavigate = (page: string) => {
-    if (!role) return;
-    // Các trang dùng chung và không cần tiền tố vai trò
-    const sharedPages = ['profile', 'contact', 'notifications'];
-
-    if (sharedPages.includes(page)) {
-      router.push(`/${page}`);
-    } else {
-      router.push(`/${role}/${page}`);
-    }
-  };
 
   if (!role) return <>{children}</>;
 
