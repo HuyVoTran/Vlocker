@@ -7,29 +7,34 @@ export async function GET() {
   try {
     await connectDB();
 
-    // Get all lockers
-    const allLockers = await Locker.find({})
-      .select("lockerId building block status")
-      .lean();
+    // Run queries in parallel for better performance
+    const [allLockers, allUsers, lockerStatusCounts] = await Promise.all([
+      Locker.find({}).select("lockerId building block status").lean(),
+      User.find({}).select("name email building block").lean(),
+      // Use a single aggregation query to count statuses efficiently
+      Locker.aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+    ]);
 
-    // Get all users
-    const allUsers = await User.find({})
-      .select("name email building block")
-      .lean();
-
-    // Get lockers by status
-    const availableCount = await Locker.countDocuments({ status: "available" });
-    const bookedCount = await Locker.countDocuments({ status: "booked" });
-    const maintenanceCount = await Locker.countDocuments({ status: "maintenance" });
+    // Process the aggregation result into a more usable object
+    const lockersByStatus = lockerStatusCounts.reduce(
+      (acc, status) => {
+        acc[status._id] = status.count;
+        return acc;
+      },
+      { available: 0, booked: 0, maintenance: 0 }
+    );
 
     return NextResponse.json({
       success: true,
       data: {
         totalLockers: allLockers.length,
         lockersByStatus: {
-          available: availableCount,
-          booked: bookedCount,
-          maintenance: maintenanceCount,
+          // Ensure all keys exist even if count is 0
+          available: lockersByStatus.available || 0,
+          booked: lockersByStatus.booked || 0,
+          maintenance: lockersByStatus.maintenance || 0,
         },
         sampleLockers: allLockers.slice(0, 10),
         totalUsers: allUsers.length,

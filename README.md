@@ -35,9 +35,13 @@ Password@12345
 
 **Demo:** [VLocker - Vercel](vlocker.vercel.app) 
 
-## First Design
-<p align="center"><img src="README\FirstDesign.png" alt="First Desgin">
-<br><i>Chú thích: Bản design đầu tiên từ Figma</i></p>
+## Giao diện ứng dụng
+<p align="center"><img src="public/Final-exmaple.png" alt="Giao diện VLocker">
+<br><i>Chú thích:Giao diện trang chủ của ứng dụng.</i></p>
+<p align="center"><img src="public/Final-exmaple2.png" alt="Giao diện VLocker">
+<br><i>Chú thích:Giao diện trang đăng nhập của ứng dụng.</i></p>
+<p align="center"><img src="public/Final-exmaple3.png" alt="Giao diện VLocker">
+<br><i>Chú thích:Giao diện dashboard chính của ứng dụng.</i></p>
 
 ## Tính Năng Chính
 ### Người Dùng:
@@ -60,43 +64,124 @@ Password@12345
 - Xem tủ trống
 
 ## User Flow
-<p align="center"><img src="README\VLocker-UserFlow-User.drawio.png" alt="Đặt Tủ & Khóa Tủ">
+<p align="center"><img src="public/UserFlow.png" alt="Đặt Tủ & Khóa Tủ">
 <br><i>Chú thích: User Flow - Đặt Tủ & Khóa Tủ (Trường hợp shipper giao hàng)</i></p>
 
-<p align="center"><img src="README\VLocker-UserFlow-User2.drawio.png" alt="Mở Khóa Tủ">
+<p align="center"><img src="public/UserFlow2.png" alt="Mở Khóa Tủ">
 <br><i>Chú thích: User Flow - Mở Khóa Tủ (Thanh toán tiền thuê mới được mở khóa)</i></p>
 
 ## Admin Flow
-<p align="center"><img src="README\VLocker-UserFlow-Admin.drawio.png" alt="Xem Thống Kê & Kiểm Tra Tủ">
+<p align="center"><img src="public/AdminFlow.png" alt="Xem Thống Kê & Kiểm Tra Tủ">
 <br><i>Chú thích: Admin Flow - Xem Thống Kê & Kiểm Tra Tủ</i></p>
 
 ## Use-case Diagram
+Dự án có hai tác nhân chính là **Cư dân (Resident)** và **Quản lý (Manager)**.
 
-## System Architecture
+#### Cư dân (Resident)
+- **Quản lý tài khoản:** Đăng ký, Đăng nhập, Đăng xuất, Đổi mật khẩu.
+- **Quản lý tủ:**
+  - Xem danh sách tủ trống.
+  - Đặt một tủ trống.
+  - Xem danh sách tủ cá nhân đang thuê.
+  - Xem chi tiết và trạng thái của tủ (đã đặt, đang lưu đồ).
+  - Thanh toán phí thuê tủ để nhận mã mở khóa.
+  - Mở khóa tủ.
+- **Tương tác hệ thống:**
+  - Xem lịch sử các lần thuê tủ.
+  - Gửi báo cáo sự cố/phản ánh.
+  - Xem thông báo từ quản lý.
+  - Xem và chỉnh sửa thông tin cá nhân.
+
+#### Quản lý (Manager)
+- **Quản lý tài khoản:** Đăng nhập, Đăng xuất.
+- **Tổng quan hệ thống:**
+  - Xem Dashboard với các số liệu thống kê (tổng số tủ, tủ trống, đang dùng...).
+  - Xem xu hướng sử dụng theo thời gian.
+  - Xem thống kê chi tiết theo từng tòa nhà.
+- **Quản lý vận hành:**
+  - Xem danh sách tất cả các tủ đang được thuê.
+  - Xem chi tiết thông tin người thuê và thời gian sử dụng.
+  - Hủy một lượt đặt tủ (trong trường hợp cần thiết).
+  - Xem lịch sử tất cả các giao dịch và lọc theo thời gian (tháng, quý, năm).
+- **Quản lý báo cáo:**
+  - Xem danh sách tất cả các báo cáo từ cư dân.
+  - Xem chi tiết mô tả của báo cáo.
+  - Cập nhật trạng thái xử lý của báo cáo (chờ xử lý, đang xử lý, đã hoàn tất).
+- **Giao tiếp:**
+  - Gửi thông báo đến một hoặc nhiều cư dân.
+
+## Kiến trúc hệ thống & Công nghệ
+Hệ thống được xây dựng theo kiến trúc full-stack với Next.js, tận dụng các công nghệ và công cụ hiện đại để mang lại hiệu quả cao nhất.
+
+1.  **Frontend (Client-side):**
+    -   **Framework:** Next.js (React) với App Router.
+    -   **Styling:** TailwindCSS và `shadcn/ui` cho các component giao diện.
+    -   **State Management & Data Fetching:** Sử dụng các React hook cơ bản (`useState`, `useEffect`) kết hợp với `useSWR` để fetching và caching dữ liệu từ API một cách hiệu quả.
+
+2.  **Backend (Server-side):**
+    -   **Framework:** Next.js API Routes. Toàn bộ logic backend được xử lý trong thư mục `app/api/`.
+    -   **Database ORM:** Mongoose được sử dụng để định nghĩa schema và tương tác với MongoDB.
+
+3.  **Database:**
+    -   **Hệ quản trị CSDL:** MongoDB, một cơ sở dữ liệu NoSQL linh hoạt, phù hợp với việc lưu trữ dữ liệu người dùng, tủ khóa và các giao dịch.
+
+4.  **Authentication:**
+    -   **Thư viện:** `next-auth` được sử dụng để xử lý toàn bộ luồng xác thực.
+    -   **Chiến lược:** Sử dụng `CredentialsProvider` (email/mật khẩu) và quản lý phiên làm việc bằng JSON Web Tokens (JWT). Thông tin vai trò và ID người dùng được thêm vào token để phân quyền.
+
+5.  **Deployment:**
+    -   Ứng dụng được triển khai trên nền tảng Vercel, tối ưu cho các dự án Next.js.
+
+6.  **Công cụ phát triển (Development Tools):**
+    -   **Thiết kế (UI/UX):** Figma.
+    -   **Quản lý phiên bản:** Git & Github.
+    -   **Môi trường phát triển:** Visual Studio Code.
 
 ## Database
+Cơ sở dữ liệu MongoDB được cấu trúc với các collection chính sau:
+
+-   **`users`**: Lưu trữ thông tin người dùng.
+    -   `name`, `email`, `password` (đã được hash), `phone`.
+    -   `role` ('resident' hoặc 'manager').
+    -   `building`, `block`, `floor`, `unit` (địa chỉ chi tiết).
+    -   `resetPasswordToken`, `resetPasswordExpires` (cho chức năng quên mật khẩu).
+-   **`lockers`**: Lưu trữ thông tin về từng tủ khóa vật lý.
+    -   `lockerId` (mã định danh của tủ).
+    -   `building`, `block` (vị trí).
+    -   `status` ('available', 'booked', 'maintenance').
+    -   `currentBookingId` (tham chiếu đến lượt đặt hiện tại).
+-   **`bookings`**: Lưu trữ thông tin về các lượt thuê tủ.
+    -   `userId`, `lockerId` (tham chiếu đến người dùng và tủ).
+    -   `startTime`, `endTime`.
+    -   `status` ('active', 'stored', 'completed', 'cancelled').
+    -   `cost`, `paymentStatus`.
+-   **`notifications`**: Lưu trữ các thông báo gửi đến người dùng.
+-   **`reports`**: Lưu trữ các báo cáo sự cố từ người dùng.
 
 ## API Documentation
+Các API endpoint chính của hệ thống: [VLocker - API Docs](vlocker.vercel.app/swagger) 
 
-## Công Nghệ Đã Sử Dụng
-- Frontend: React / NextJS / TailwindCSS
-- Backend: NextJS / MongooseDB
-- Database: MongoDB
-- Tools: Figma / Git / Github / Visual Code ...
+## Cài đặt & Khởi chạy
+Làm theo các bước sau để cài đặt và chạy dự án trên máy của bạn.
 
-## Hướng Dẫn Cài Đặt & Chạy Thử Dự Án
-### Yêu cầu:
-- Cài đặt npm
-- Thêm biến môi trường .env
-- ...
+### 1. Yêu cầu
+- [Node.js](https://nodejs.org/en) (phiên bản 18.x trở lên)
+- [npm](https://www.npmjs.com/) hoặc [yarn](https://yarnpkg.com/)
+- [Git](https://git-scm.com/)
 
+### 2. Clone Repository
+```bash
+git clone https://github.com/HuyVoTran/VLocker.git
+cd VLocker
+```
+
+### 3. Cài đặt Dependencies
 ```bash
 npm install
-
-git clone ...
-cd D:/project
-npm install
 ```
+
+### 4. Cấu hình biến môi trường
+Tạo một file mới tên là `.env.local` ở thư mục gốc của dự án và sao chép nội dung từ file `.env.example`.
 
 ```bash
 # Dependencies
@@ -114,12 +199,8 @@ npm run dev
 
 ## Cấu Trúc Thư Mục
 
-## Testing
-
-## Bảo Mật
-- Hash password
-- Validation input
-- NextAuth
+## Testing: 
+[VLocker - Test Excel](https://vanlangunivn-my.sharepoint.com/:x:/g/personal/huy_2374802010192_vanlanguni_vn/IQBjqpJEX8i4SK68DhYv6WVbAXEe7AWpkchbEqIu7LxWMNM?e=exGJLx)
 
 ## Author
 - **Trần Võ Huy (Salvio Tran)**

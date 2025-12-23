@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "app/api/test-db/route.js", "app/api/auth/[...nextauth]/route.js", "models/User.js"  ],
+, "app/api/test-db/route.js", "app/api/auth/[...nextauth]/route.js", "models/User.js", "app/swagger/page.js"  ],
   "exclude": ["node_modules"]
 }
