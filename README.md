@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Error & Middleware"
+git commit -m "Update Duplicate Page"
 git push
 
 Password@12345

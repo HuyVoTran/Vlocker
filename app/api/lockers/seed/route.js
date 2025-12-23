@@ -4,6 +4,14 @@ import { connectDB } from "@/lib/mongodb";
 
 export async function POST(req) {
   try {
+    // QUAN TRỌNG: Route này chỉ nên được truy cập trong môi trường development.
+    if (process.env.NODE_ENV !== "development") {
+      return NextResponse.json(
+        { success: false, message: "This endpoint is only available in development mode." },
+        { status: 403 } // 403 Forbidden
+      );
+    }
+
     // Check for authorization token (optional security)
     const authHeader = req.headers.get("authorization");
     const expectedToken = process.env.SEED_TOKEN || "dev-seed-token";
