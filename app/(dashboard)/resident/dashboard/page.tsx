@@ -39,5 +39,5 @@ export default function Page() {
     }
   };
 
-  return <ResidentDashboard user={user} onNavigate={handleNavigate} />;
+  return <ResidentDashboard onNavigate={handleNavigate} />;
 }
