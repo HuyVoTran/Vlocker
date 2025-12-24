@@ -156,7 +156,7 @@ function ResetPasswordForm() {
           <button
             type="button"
             onClick={() => router.push("/auth/login")}
-            className="text-grey-800 hover:underline font-semibold"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
           >
             Đăng nhập
           </button>

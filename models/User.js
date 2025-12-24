@@ -11,7 +11,10 @@ const UserSchema = new mongoose.Schema({
 
   phone: {
     type: String,
-    required: [true, 'Vui lòng nhập số điện thoại'], 
+    // Trường này là bắt buộc, nhưng không phải lúc đăng ký qua Google
+    required: function() {
+      return this.isProfileComplete;
+    },
   },
 
   email: {
@@ -25,26 +28,43 @@ const UserSchema = new mongoose.Schema({
     required: false, 
   },
 
+  image: {
+    type: String,
+  },
+
+  isProfileComplete: {
+    type: Boolean,
+    default: false,
+  },
+
   //Thông tin địa chỉ cụ thể
   //Tòa A - Block 1 - Tầng 2 - Phòng 3
   building: {
     type: String,
-    required: [true, 'Vui lòng nhập tòa nhà'],
+    required: function() {
+      return this.isProfileComplete;
+    },
   },
 
   block: {
     type: String,
-    required: [true, 'Vui lòng nhập block'],
+    required: function() {
+      return this.isProfileComplete;
+    },
   },
 
   floor: {
     type: String,
-    required: [true, 'Vui lòng nhập tầng'],
+    required: function() {
+      return this.isProfileComplete;
+    },
   },
 
   unit: {
     type: String,
-    required: [true, 'Vui lòng nhập số nhà'],
+    required: function() {
+      return this.isProfileComplete;
+    },
   },
   
   //Vai trò - Dân cư - Quản lý

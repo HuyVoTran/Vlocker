@@ -73,6 +73,7 @@ export async function POST(req) {
       unit,
       role: "resident", // Mặc định dân cư đăng ký
       username: normalizedEmail.split('@')[0], // Tạo username tự động từ email (tùy chọn)
+      isProfileComplete: true, // Profile hoàn chỉnh khi đăng ký qua form
     });
 
     return NextResponse.json({ message: "Đăng ký thành công!" }, { status: 201 });

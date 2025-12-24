@@ -128,7 +128,7 @@ export default function RegisterPage() {
           errorMessage = errorData?.message || `Lỗi từ máy chủ: ${res.status}`;
         } catch (e) {
           // Nếu body của phản hồi không phải là JSON (ví dụ: trang lỗi HTML từ Next.js)
-          errorMessage = `Lỗi máy chủ nội bộ (${res.status}). Vui lòng kiểm tra logs phía server.`;
+          errorMessage = `Lỗi máy chủ nội bộ (${res.status} ${e}). Vui lòng kiểm tra logs phía server.`;
         }
         throw new Error(errorMessage);
       }
@@ -319,7 +319,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => router.push("/auth/login")}
-            className="text-gray-800 hover:underline font-semibold"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
           >
             Đăng Nhập ngay
           </button>
