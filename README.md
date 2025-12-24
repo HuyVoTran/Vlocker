@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Google Login"
+git commit -m "Update & Fix bugs"
 git push
 
 Password@12345

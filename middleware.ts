@@ -1,46 +1,43 @@
-import { withAuth } from "next-auth/middleware";
+import { withAuth, NextRequestWithAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-// Định nghĩa một kiểu cho token để bao gồm thuộc tính `role`
-// Bạn nên khai báo kiểu này trong file `next-auth.d.ts` để có được hỗ trợ tốt nhất từ TypeScript.
-interface AugmentedToken {
-  role?: "manager" | "resident" | null;
-}
 
 export const middleware = withAuth(
-  // Tên hàm đã được đổi từ `middleware` thành `proxy` để tuân thủ quy ước mới của Next.js 16+
-  function middleware(req: NextRequest & { nextauth: { token: AugmentedToken | null } }) {
+  // Hàm này sẽ được gọi khi callback `authorized` trả về `true`.
+  function middleware(req: NextRequestWithAuth) {
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // Nếu người dùng đã đăng nhập (có token)
+    // Token đã được kiểm tra tồn tại bởi callback `authorized`.
     if (token) {
-      const userRole = token.role;
+      // Kiểu của token giờ đã được bổ sung từ `types/next-auth.d.ts`.
+      const userRole = token.role; 
 
       // Chặn Quản lý (manager) truy cập vào các trang của Dân cư (resident)
       if (userRole === "manager" && pathname.startsWith("/resident")) {
-        // Chuyển hướng về trang dashboard chung hoặc trang chính của quản lý
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        // Chuyển hướng về trang dashboard của quản lý.
+        return NextResponse.redirect(new URL("/manager/dashboard", req.url));
       }
 
       // Chặn Dân cư (resident) truy cập vào các trang của Quản lý (manager)
       if (userRole === "resident" && pathname.startsWith("/manager")) {
-        // Chuyển hướng về trang dashboard chung hoặc trang chính của dân cư
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        // Chuyển hướng về trang dashboard của dân cư.
+        return NextResponse.redirect(new URL("/resident/dashboard", req.url));
       }
     }
 
-    // `withAuth` đã xử lý trường hợp chưa đăng nhập và chuyển hướng đến trang login.
-    // Cho phép request tiếp tục.
+    // Nếu không rơi vào các trường hợp trên, cho phép request tiếp tục.
     return NextResponse.next();
   },
   {
     callbacks: {
+      // Callback này quyết định một người dùng có được "ủy quyền" hay không.
+      // Nếu trả về `true`, hàm middleware bên trên sẽ được thực thi.
+      // Nếu `false`, người dùng sẽ bị chuyển hướng đến trang `signIn`.
       authorized: ({ token }) => !!token,
     },
     pages: {
-      signIn: "/login",
+      // Sửa lại đường dẫn đến trang đăng nhập cho chính xác.
+      signIn: "/auth/login",
     },
   }
 );

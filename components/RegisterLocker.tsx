@@ -22,7 +22,7 @@ export interface Locker {
 }
 
 export interface User {
-  _id: string;
+  id: string;
   building?: string;
   block?: string;
 }
@@ -46,7 +46,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
 
   // Lấy user data từ props hoặc session
   const currentUser = user || {
-    _id: session?.user?.id || '',
+    id: session?.user?.id || '',
     building: session?.user?.building || 'A',
     block: session?.user?.block || '1'
   };
@@ -92,10 +92,10 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
       }
     }
 
-    if (currentUser._id) {
+    if (currentUser.id) {
       loadLockers();
     }
-  }, [currentUser._id, currentUser.building, currentUser.block]);
+  }, [currentUser.id, currentUser.building, currentUser.block]);
 
   // Cập nhật filtered lockers khi search/filter thay đổi
   // useEffect(() => {
@@ -268,7 +268,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 const res = await fetch('/api/lockers/resident/register', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: currentUser._id, lockerId: selectedLocker._id })
+                  body: JSON.stringify({ userId: currentUser.id, lockerId: selectedLocker._id })
                 });
 
                 const json = await res.json();

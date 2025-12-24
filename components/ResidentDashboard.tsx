@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -32,11 +33,10 @@ const fetcher = async (url: string) => {
 
 interface ResidentDashboardProps {
   onNavigate: (page: string, locker?: Locker) => void;
-  user: User;
 }
 
 export interface User {
-  _id: string;
+  id: string;
   name?: string;
   building?: string;
   block?: string;
@@ -73,19 +73,18 @@ interface MyLockerItem {
 
   export default function ResidentDashboard({
     onNavigate,
-    user,
   }: ResidentDashboardProps) {
   const { showToast } = useToast();
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // SWR for My Lockers
   const {
     data: myLockers = [],
     error: myLockersError,
     isLoading: myLockersLoading,
     mutate: mutateMyLockers,
   } = useSWR<MyLockerItem[]>(
-    user._id ? `/api/lockers/resident/mylocker?userId=${user._id}` : null,
+    session?.user?.id ? `/api/lockers/resident/mylocker?userId=${session.user.id}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -97,8 +96,8 @@ interface MyLockerItem {
     isLoading: availableLockersLoading,
     mutate: mutateAvailableLockers,
   } = useSWR<Locker[]>(
-    user._id && user.building && user.block
-      ? `/api/lockers/resident/available?building=${user.building}&block=${user.block}`
+    session?.user?.id && session?.user?.building && session?.user?.block
+      ? `/api/lockers/resident/available?building=${session.user.building}&block=${session.user.block}`
       : null,
     fetcher,
     { revalidateOnFocus: false }
@@ -107,20 +106,14 @@ interface MyLockerItem {
   const isLoading = myLockersLoading || availableLockersLoading;
   const error = myLockersError || availableLockersError;
 
+  const user = session?.user;
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
   const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [registering, setRegistering] = useState<boolean>(false);
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  };
 
   const slides = [
     {
@@ -142,15 +135,23 @@ interface MyLockerItem {
     //   iconText: "Realtime"
     // },
     {
-      title: `Chào ${user.name || 'bạn'}`,
-      description: `Bạn đang quản lý ${myLockers.length} tủ đang hoạt động\nCập nhật lần cuối: Vài giây trước`,
-      cta1: { text: "Xem lịch sử", action: () => onNavigate('history') },
-      cta2: { text: "Xem chi tiết", action: () => onNavigate('my-lockers') },
+      title: `Chào ${user?.name || 'bạn'}`,
+      description: `Mọi dữ liệu của bạn được lưu trữ an toàn, mã hóa và chỉ bạn mới có quyền truy cập.\nBạn đang sử dụng ${myLockers.length} tủ, nếu bạn muốn sử dụng thêm hãy đăng ký tủ mới liền nha!`,
+      cta1: { text: "Xem tủ của tôi", action: () => onNavigate('my-lockers') },
+      cta2: { text: "Xem lịch sử", action: () => onNavigate('history') },
       image: "https://i.pinimg.com/1200x/03/98/03/039803e9538226f3dd913cf3b7246771.jpg",
       icon: <UserIcon className="w-6 h-6" />,
       iconText: "Cá nhân hoá"
     }
   ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
 
   useEffect(() => {
     const slideInterval = setInterval(() => {
@@ -308,6 +309,16 @@ interface MyLockerItem {
         setActionLoading(null);
       }
     };
+
+    // Xử lý trạng thái tải session
+    if (status === "loading") {
+      return <div className="p-6 max-w-7xl mx-auto">Đang tải phiên làm việc...</div>;
+    }
+
+    // Xử lý khi không có session hoặc user
+    if (!user) {
+      return <div className="p-6 max-w-7xl mx-auto text-red-600">Lỗi: Không thể tải dữ liệu người dùng. Vui lòng đăng nhập lại.</div>;
+    }
 
     if (isLoading) {
       return <div className="p-6">Đang tải dữ liệu...</div>;
@@ -701,7 +712,7 @@ interface MyLockerItem {
                   const res = await fetch('/api/lockers/resident/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user._id, lockerId: selectedAvailableLocker._id })
+                    body: JSON.stringify({ userId: user.id, lockerId: selectedAvailableLocker._id })
                   });
 
                   const json = await res.json();

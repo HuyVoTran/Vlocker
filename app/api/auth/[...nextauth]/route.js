@@ -21,6 +21,10 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Thêm tùy chọn này để tăng thời gian chờ
+      httpOptions: {
+        timeout: 10000, // Tăng lên 10 giây (mặc định là 3500ms)
+      },
     }),
     CredentialsProvider({
       name: 'credentials',
@@ -46,7 +50,17 @@ export const authOptions = {
           if (!passwordsMatch) return null; // Mật khẩu không khớp
 
           // Nếu xác thực thành công, trả về đối tượng user để callback 'jwt' có thể sử dụng
-          return user;
+          // Trả về một plain object thay vì Mongoose document để đảm bảo tính nhất quán
+          return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            building: user.building,
+            block: user.block,
+            isProfileComplete: user.isProfileComplete,
+            image: user.image,
+          };
         } catch (error) {
           console.error("Lỗi trong authorize callback: ", error);
           return null;
@@ -117,6 +131,8 @@ export const authOptions = {
 
             user.id = newUser._id.toString();
             user.role = newUser.role;
+            user.name = newUser.name; // Thêm tên người dùng vào đối tượng user
+            user.image = newUser.image; // Thêm ảnh người dùng vào đối tượng user
             user.isProfileComplete = newUser.isProfileComplete;
           }
         } catch (error) {
@@ -138,8 +154,12 @@ export const authOptions = {
       // Khi người dùng đăng nhập thành công, đối tượng `user` sẽ có sẵn.
       // Chúng ta thêm `id` và `role` từ `user` vào `token`.
       if (user) {
-        token.id = user.id || user._id.toString();
+        // user object từ authorize hoặc signIn callback đã được chuẩn hóa
+        // và luôn có thuộc tính 'id'
+        token.id = user.id;
         token.role = user.role;
+        token.name = user.name;
+        token.image = user.image;
         token.building = user.building;
         token.block = user.block;
         token.isProfileComplete = user.isProfileComplete;

@@ -57,7 +57,7 @@ export default function CompleteProfilePage() {
 
     try {
       // Ghi chú: API endpoint này nên được đổi tên thành /api/auth/complete-profile để rõ nghĩa hơn
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/complete-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(address),

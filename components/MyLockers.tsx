@@ -45,7 +45,7 @@ interface MyLockersProps {
   onUpdate?: () => void; // Callback to refresh data after actions
 }
 
-export default function MyLockers({ myLockers, onNavigate, onUpdate }: MyLockersProps) {
+export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   const [selectedLocker, setSelectedLocker] = useState<MyLockerItem | null>(null);
   const [loading, setLoading] = useState<string | null>(null); // Track which action is loading
   const [error, setError] = useState<string | null>(null);

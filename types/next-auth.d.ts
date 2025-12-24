@@ -16,12 +16,13 @@ declare module "next-auth" {
       role: "resident" | "manager";
       building?: string;
       block?: string;
-      isProfileComplete?: boolean; // Thêm thuộc tính này
+      isProfileComplete?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
-    isProfileComplete?: boolean; // Thêm thuộc tính này
+    id: string;
+    isProfileComplete?: boolean;
     role?: "resident" | "manager";
     building?: string;
     block?: string;
@@ -30,6 +31,10 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    isProfileComplete?: boolean; // Thêm thuộc tính này
+    id: string;
+    role: "resident" | "manager";
+    isProfileComplete?: boolean;
+    building?: string;
+    block?: string;
   }
 }
