@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { LogOut, LayoutDashboard, Package, FileText, PlusCircle, User, History, Contact } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, FileText, PlusCircle, User, Users, History, Contact } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { signOut, useSession } from "next-auth/react";
@@ -59,6 +59,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       ? [
           { id: 'manager-lockers', label: 'Thống kê tủ', icon: <Package className="w-5 h-5" /> },
           { id: 'available-lockers', label: 'Tủ trống', icon: <PlusCircle className="w-5 h-5" /> },
+          { id: 'user-management', label: 'Quản lý người dùng', icon: <Users className="w-5 h-5" /> },
         ]
       : [
           { id: 'my-lockers', label: 'Tủ của tôi', icon: <Package className="w-5 h-5" /> },

@@ -93,24 +93,36 @@ export const authOptions = {
 
           if (existingUser) {
             // Người dùng đã tồn tại.
+            const updates = {};
+            let needsUpdate = false;
+
             // Nếu họ không có mật khẩu, nghĩa là họ đã đăng ký qua Google trước đó.
             // Trong trường hợp này, việc cập nhật tên và ảnh của họ từ Google là hợp lý.
             if (!existingUser.password) {
-              existingUser.name = profile.name;
-              existingUser.image = profile.picture;
-              await existingUser.save();
-              console.log("Google-SignIn: Đã cập nhật tên/ảnh cho người dùng Google hiện tại.");
+              if (existingUser.name !== profile.name) updates.name = profile.name;
+              if (existingUser.image !== profile.picture) updates.image = profile.picture;
             }
 
-            // Quan trọng: Ghi đè các thuộc tính trên đối tượng `user` của NextAuth bằng dữ liệu từ DB.
-            // Điều này đảm bảo dữ liệu nhất quán và ngăn NextAuth ghi đè các trường quan trọng.
+            // Nếu hồ sơ chưa hoàn tất nhưng đã có thông tin địa chỉ (building, block),
+            // tự động đánh dấu là đã hoàn tất để người dùng không bị hỏi lại.
+            if (!existingUser.isProfileComplete && existingUser.building && existingUser.block) {
+              updates.isProfileComplete = true;
+              console.log("Google-SignIn: Sẽ tự động đánh dấu hồ sơ là hoàn tất vì đã có địa chỉ.");
+            }
+
+            // Nếu có bất kỳ thay đổi nào, thực hiện một lần cập nhật duy nhất
+            if (Object.keys(updates).length > 0) {
+              await User.findByIdAndUpdate(existingUser._id, { $set: updates });
+              console.log("Google-SignIn: Đã cập nhật thông tin người dùng trong DB.", updates);
+            }
+
             user.id = existingUser._id.toString();
             user.role = existingUser.role;
-            user.name = existingUser.name; // **FIX**: Luôn sử dụng tên từ DB, không phải từ Google.
-            user.image = existingUser.image || profile.picture; // Sử dụng ảnh từ DB, hoặc ảnh Google nếu chưa có.
+            user.name = updates.name || existingUser.name;
+            user.image = updates.image || existingUser.image || profile.picture;
             user.building = existingUser.building;
             user.block = existingUser.block;
-            user.isProfileComplete = existingUser.isProfileComplete;
+            user.isProfileComplete = updates.isProfileComplete || existingUser.isProfileComplete;
           } else {
             // Nếu là người dùng mới, tạo tài khoản và đánh dấu profile là chưa hoàn chỉnh.
             // Trường 'name' là bắt buộc theo schema.
