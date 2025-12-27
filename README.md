@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Notifications, User manager & Fix bugs My Locker, Warning locker"
+git commit -m "Update Husky pre-commit hooks"
 git push
 
 Password@12345
