@@ -27,6 +27,22 @@ export interface User {
   block?: string;
 }
 
+const formatSize = (size?: string) => {
+  if (!size) return 'N/A';
+  switch (size) {
+    case 'S':
+      return 'Small - Nhỏ';
+    case 'M':
+      return 'Medium - Trung bình';
+    case 'L':
+      return 'Large - Lớn';
+    case 'XL':
+      return 'Extra Large - Rất lớn';
+    default:
+      return size;
+  }
+};
+
 interface RegisterLockerProps {
   user?: User;
 }
@@ -259,7 +275,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Kích thước</p>
-                  <p className="text-gray-900">{selectedLocker.size ?? 'N/A'}</p>
+                  <p className="text-gray-900">{formatSize(selectedLocker.size)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Giá</p>

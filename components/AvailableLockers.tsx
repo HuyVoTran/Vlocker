@@ -59,10 +59,26 @@ interface Locker {
   status: string;
 }
 
+const formatSize = (size: string) => {
+  switch (size) {
+    case 'S':
+      return 'Small - Nhỏ';
+    case 'M':
+      return 'Medium - Trung bình';
+    case 'L':
+      return 'Large - Lớn';
+    case 'XL':
+      return 'Extra Large - Rất lớn';
+    default:
+      return size;
+  }
+};
+
 export default function AvailableLockers() {
   const [filterBuilding, setFilterBuilding] = useState('all');
   const [filterBlock, setFilterBlock] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterSize, setFilterSize] = useState('all');
   const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { showToast } = useToast();
@@ -95,14 +111,20 @@ export default function AvailableLockers() {
     return blocks.sort();
   }, [allLockers]);
 
+  const uniqueSizes = useMemo(() => {
+    const sizes = Array.from(new Set(allLockers.map(locker => locker.size)));
+    return sizes.sort();
+  }, [allLockers]);
+
   const filteredLockers = allLockers.filter((locker: Locker) => {
     const matchesBuilding = filterBuilding === 'all' || locker.building === filterBuilding;
     const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
     const matchesStatus = filterStatus === 'all' || locker.status === filterStatus;
+    const matchesSize = filterSize === 'all' || locker.size === filterSize;
     const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           locker.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           locker.block.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesBuilding && matchesBlock && matchesStatus && matchesSearch;
+    return matchesBuilding && matchesBlock && matchesStatus && matchesSearch && matchesSize;
   });
 
   const getStatusBadge = (status: string) => {
@@ -277,7 +299,7 @@ export default function AvailableLockers() {
 
       {/* Filters */}
       <Card className="p-6 mb-6">
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-5 gap-4">
           <div className="relative">
             <Input
               placeholder="Tìm kiếm theo mã tủ, tòa, block..."
@@ -285,7 +307,8 @@ export default function AvailableLockers() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-3"
             />
-          </div>          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
+          </div>
+          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
             <SelectTrigger>
               <SelectValue placeholder="Lọc theo tòa" />
             </SelectTrigger>
@@ -305,7 +328,19 @@ export default function AvailableLockers() {
               {uniqueBlocks.map(block => (
                 <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
               ))}
-            </SelectContent>          </Select>
+            </SelectContent>
+          </Select>
+          <Select value={filterSize} onValueChange={setFilterSize}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo kích thước" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả kích thước</SelectItem>
+              {uniqueSizes.map(size => (
+                <SelectItem key={size} value={size}>{formatSize(size)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger>
               <SelectValue placeholder="Lọc theo trạng thái" />
@@ -326,7 +361,8 @@ export default function AvailableLockers() {
           <TableHeader>
             <TableRow>
               <TableHead>Mã tủ</TableHead>
-              <TableHead>Vị trí</TableHead>              
+              <TableHead>Vị trí</TableHead>
+              <TableHead>Kích thước</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Thao tác</TableHead>
             </TableRow>
@@ -343,6 +379,7 @@ export default function AvailableLockers() {
                   </div>
                 </TableCell>
                 <TableCell>{getLocationString(locker)}</TableCell>
+                <TableCell>{formatSize(locker.size)}</TableCell>
                 <TableCell>{getStatusBadge(locker.status)}</TableCell>
                 <TableCell>
                   <Button
@@ -388,10 +425,10 @@ export default function AvailableLockers() {
                   <SelectValue placeholder="Chọn kích thước" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="S">Nhỏ (S)</SelectItem>
-                  <SelectItem value="M">Vừa (M)</SelectItem>
-                  <SelectItem value="L">Lớn (L)</SelectItem>
-                  <SelectItem value="XL">Rất lớn (XL)</SelectItem>
+                  <SelectItem value="S">{formatSize('S')}</SelectItem>
+                  <SelectItem value="M">{formatSize('M')}</SelectItem>
+                  <SelectItem value="L">{formatSize('L')}</SelectItem>
+                  <SelectItem value="XL">{formatSize('XL')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -471,7 +508,7 @@ export default function AvailableLockers() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Kích thước</p>
-                  <p className="text-gray-900">{selectedLocker.size}</p>
+                  <p className="text-gray-900">{formatSize(selectedLocker.size)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Giá thuê</p>
