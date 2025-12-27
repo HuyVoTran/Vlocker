@@ -1,20 +1,21 @@
 import mongoose from 'mongoose';
 
 const NotificationSchema = new mongoose.Schema({
+  // ID người gửi (manager) cho loại 'mailsend'
+  senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // ID người nhận (resident) cho loại 'mailreceive' và 'notice'
   recipientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
+  // ID của thông báo gốc, dùng cho 'mailreceive' để liên kết với 'mailsend'
+  parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Notification' },
   type: {
     type: String,
     enum: [
-      "admin_message",
-      "booking_created",
-      "locker_unlocked",
-      "locker_locked",
-      "payment_completed",
-      "booking_expired"
+      'mailsend',    // Thư manager gửi đi (chỉ manager thấy)
+      'mailreceive', // Thư user nhận
+      'notice',      // Thông báo từ hệ thống (cảnh báo, cập nhật,...)
     ],
     required: true,
   },

@@ -23,8 +23,11 @@ const BookingSchema = new mongoose.Schema({
 
   // Thanh toán
   cost: { type: Number, default: 0 },
-  paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' }
-
+  paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
+  
+  // Flags & Timestamps for internal logic
+  lastReminderAt: { type: Date } // Thời gian gửi thông báo nhắc nhở cuối cùng
+  
 }, { timestamps: true, collection: 'bookings' });
 
 export default mongoose.models.Booking || mongoose.model('Booking', BookingSchema);

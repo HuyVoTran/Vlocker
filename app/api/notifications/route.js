@@ -15,43 +15,43 @@ export async function GET() {
   try {
     await connectDB();
 
-    // Lấy thông tin phiên làm việc từ server để đảm bảo an toàn
     const session = await getServerSession(authOptions);
 
-    // Nếu không có session hoặc user, từ chối truy cập
     if (!session || !session.user) {
       return NextResponse.json(
         { success: false, message: "Không có quyền truy cập" },
         { status: 401 }
       );
     }
-
+ 
     const { id, role } = session.user;
     let query = {};
     let residents = [];
-
-    // Phân quyền: Manager có thể xem tất cả, Resident chỉ xem của mình
+    let notifications = [];
+ 
     if (role === "manager") {
-      // Lấy danh sách cư dân để manager có thể chọn người nhận khi gửi thông báo
+      // Manager lấy danh sách thư đã gửi (mailsend) và các thông báo hệ thống (notice)
+      // Đồng thời lấy danh sách cư dân để phục vụ cho việc gửi thông báo mới
+      query = {
+        $or: [
+          { type: "mailsend", senderId: id },
+          { type: "notice" } // Manager cũng có thể xem các thông báo hệ thống
+        ]
+      };
       residents = await User.find({ role: "resident" })
         .select("name email _id")
         .lean();
-    } else {
+    } else if (role === "resident") {
+      // Resident lấy các thư nhận được (mailreceive) và thông báo hệ thống (notice) cho chính họ
       query = { recipientId: id };
+    } else {
+        return NextResponse.json({ success: false, message: "Vai trò không hợp lệ." }, { status: 403 });
     }
-
-    // Truy vấn cơ sở dữ liệu để lấy thông báo
-    let notifications = await Notification.find(query)
+ 
+    notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .lean();
-
-    if (role === 'manager') {
-        // Đối với manager, tất cả thông báo được xem như đã đọc để không hiển thị
-        // số lượng trên icon chuông. Trạng thái đọc/chưa đọc là của người nhận.
-        // Thao tác này chỉ thay đổi dữ liệu trả về, không ảnh hưởng đến database.
-        notifications = notifications.map(n => ({ ...n, read: true }));
-    }
-
+ 
     return NextResponse.json({
       success: true,
       data: { notifications, residents },
@@ -76,7 +76,6 @@ export async function POST(req) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "manager") {
-      console.log("❌ Forbidden");
       return NextResponse.json(
         { success: false, message: "Không có quyền thực hiện hành động này" },
         { status: 403 }
@@ -93,14 +92,27 @@ export async function POST(req) {
       );
     }
 
-    const notificationsToCreate = recipientIds.map((id) => ({
-      recipientId: id,
-      type: "admin_message",
+    // 1. Tạo một thông báo gốc (parent) cho manager
+    const parentNotification = new Notification({
+      senderId: session.user.id,
+      type: 'mailsend', // Thư gửi đi từ manager
       title,
       message,
+      read: true, // Thư gửi đi mặc định là đã đọc đối với manager
+    });
+    await parentNotification.save();
+
+    // 2. Tạo các thông báo con (child) cho từng người nhận
+    const childNotifications = recipientIds.map((id) => ({
+      parentId: parentNotification._id,
+      recipientId: id,
+      type: 'mailreceive', // Thư nhận được bởi resident
+      title,
+      message,
+      // `read` sẽ là false theo mặc định của schema
     }));
 
-    await Notification.insertMany(notificationsToCreate);
+    await Notification.insertMany(childNotifications);
 
     return NextResponse.json({
       success: true,
@@ -187,27 +199,47 @@ export async function DELETE(req) {
     }
 
     const { id, role } = session.user;
-
-    // Phân quyền xóa:
-    // - Manager có thể "unsend" (xóa) bất kỳ thông báo nào.
-    // - Resident chỉ có thể xóa thông báo ở phía họ.
-    const query = {
-      _id: { $in: notificationIds },
-    };
+    let result;
 
     if (role === 'resident') {
-      // Resident chỉ có thể xóa thông báo của chính mình.
-      query.recipientId = id;
-    } else if (role !== 'manager') {
-      // Chặn các vai trò không xác định khác thực hiện hành động này.
+      // Resident chỉ xóa thông báo của chính mình (mailreceive, notice)
+      const query = {
+        _id: { $in: notificationIds },
+        recipientId: id,
+      };
+      result = await Notification.deleteMany(query);
+      return NextResponse.json({ success: true, message: "Đã xóa thông báo thành công.", deletedCount: result.deletedCount });
+
+    } else if (role === 'manager') {
+      // Manager "thu hồi" thư đã gửi. Thao tác này sẽ xóa cả thư gốc (mailsend)
+      // và tất cả các thư con (mailreceive) đã được gửi tới cư dân.
+      // notificationIds ở đây là ID của các thư gốc (mailsend).
+      
+      // 1. Đảm bảo manager chỉ có thể xóa thư do chính mình gửi
+      const parentNotifications = await Notification.find({
+        _id: { $in: notificationIds },
+        senderId: id,
+        type: 'mailsend'
+      }).select('_id').lean();
+
+      const parentIdsToDelete = parentNotifications.map(n => n._id);
+
+      if (parentIdsToDelete.length === 0) {
+        return NextResponse.json({ success: false, message: "Không tìm thấy thông báo hoặc không có quyền thu hồi." }, { status: 404 });
+      }
+
+      // 2. Xóa tất cả các thư con (mailreceive) liên quan
+      await Notification.deleteMany({ parentId: { $in: parentIdsToDelete } });
+
+      // 3. Xóa thư gốc (mailsend)
+      result = await Notification.deleteMany({ _id: { $in: parentIdsToDelete } });
+      
+      return NextResponse.json({ success: true, message: "Đã thu hồi thông báo thành công.", deletedCount: result.deletedCount });
+
+    } else {
+      // Chặn các vai trò không xác định khác
       return NextResponse.json({ success: false, message: "Vai trò không hợp lệ." }, { status: 403 });
     }
-    // Nếu là manager, không cần thêm điều kiện `recipientId`, cho phép xóa bất kỳ thông báo nào (unsend).
-
-    const result = await Notification.deleteMany(query);
-
-    const message = role === 'manager' ? "Đã thu hồi thông báo thành công." : "Đã xóa thông báo thành công.";
-    return NextResponse.json({ success: true, message, deletedCount: result.deletedCount });
   } catch (err) {
     console.error("Lỗi nghiêm trọng tại DELETE /api/notifications:", err.message, err.stack);
     return NextResponse.json({ success: false, message: "Lỗi máy chủ" }, { status: 500 });

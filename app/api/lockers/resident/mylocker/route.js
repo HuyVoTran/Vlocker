@@ -37,24 +37,26 @@ export async function GET(req) {
     const dbUpdatePromises = [];
     const completedBookingIds = new Set();
     const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+    const oneDayInMs = 24 * 60 * 60 * 1000;
 
     // 2. Iterate through bookings to fix old data and handle expirations
     for (const booking of bookings) {
-      // Case A: Send reminder for unused 'active' bookings after 2 days
-      if (
-        booking.status === 'active' &&
-        !booking.reminderSent &&
-        now.getTime() - new Date(booking.startTime).getTime() > twoDaysInMs
-      ) {
-        dbUpdatePromises.push(
-          Notification.create({
-            recipientId: userId,
-            type: 'booking_reminder',
-            title: `Nhắc nhở: Tủ ${booking.lockerId?.lockerId || ''} chưa được sử dụng`,
-            message: `Bạn đã đặt tủ ${booking.lockerId?.lockerId || ''} được hơn 2 ngày nhưng chưa sử dụng. Vui lòng sử dụng tủ hoặc hủy nếu không còn nhu cầu.`,
-          }),
-          Booking.findByIdAndUpdate(booking._id, { $set: { reminderSent: true } })
-        );
+      // Case A: Send reminder for unused 'active' bookings after 2 days, limited to once per day
+      if (booking.status === 'active' && now.getTime() - new Date(booking.startTime).getTime() > twoDaysInMs) {
+        const lastReminderTime = booking.lastReminderAt ? new Date(booking.lastReminderAt).getTime() : 0;
+        const shouldSendReminder = now.getTime() - lastReminderTime > oneDayInMs;
+
+        if (shouldSendReminder) {
+          dbUpdatePromises.push(
+            Notification.create({
+              recipientId: userId,
+              type: 'notice',
+              title: `Nhắc nhở: Tủ ${booking.lockerId?.lockerId || ''} chưa được sử dụng`,
+              message: `Bạn đã đặt tủ ${booking.lockerId?.lockerId || ''} được hơn 2 ngày nhưng chưa sử dụng. Vui lòng sử dụng tủ hoặc hủy nếu không còn nhu cầu.`,
+            }),
+            Booking.findByIdAndUpdate(booking._id, { $set: { lastReminderAt: now } })
+          );
+        }
       }
       // Case B: Fix bookings created before pickupExpiryTime was added
       if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.endTime && !booking.pickupExpiryTime) {

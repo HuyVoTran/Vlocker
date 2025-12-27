@@ -38,17 +38,13 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useToast } from "./ui/toast-context";
 
 type NotificationType =
-  | "admin_message"
-  | "booking_created"
-  | "locker_unlocked"
-  | "locker_locked"
-  | "payment_completed"
-  | "booking_expired"
-  | "booking_reminder";
+  | 'mailsend'    // Thư manager gửi đi
+  | 'mailreceive' // Thư user nhận
+  | 'notice';     // Thông báo từ hệ thống
 
 interface Notification {
   _id: string;
-  recipientId?: string;
+  recipientId?: string; // For mailreceive, notice
   type: NotificationType;
   title: string;
   message: string;
@@ -103,6 +99,9 @@ export default function Notifications() {
   // State cho việc chọn nhiều thông báo
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // State cho việc xem chi tiết thông báo trong Dialog
+  const [viewingNotification, setViewingNotification] = useState<Notification | null>(null);
 
   const { showToast } = useToast();
   // Lấy thông tin người dùng từ session một cách an toàn
@@ -219,13 +218,12 @@ export default function Notifications() {
   };
 
   /**
-   * Đánh dấu một thông báo là đã đọc khi người dùng nhấp vào.
+   * Đánh dấu một thông báo là đã đọc.
    * @param notificationId - ID của thông báo cần đánh dấu.
    */
   const handleMarkAsRead = async (notificationId: string) => {
-    // Tìm thông báo và kiểm tra xem nó đã được đọc chưa.
     const notification = notifications.find((n) => n._id === notificationId);
-    if (!notification || notification.read) {
+    if (role !== 'resident' || !notification || notification.read) {
       return; // Không làm gì nếu không tìm thấy hoặc đã đọc.
     }
 
@@ -331,6 +329,15 @@ export default function Notifications() {
     );
   };
 
+  /**
+   * Mở dialog để xem chi tiết và đánh dấu là đã đọc.
+   * @param notification - Thông báo được chọn để xem.
+   */
+  const handleViewNotification = (notification: Notification) => {
+    setViewingNotification(notification);
+    handleMarkAsRead(notification._id);
+  };
+
   // =================================================================
   // Phần Memoization (Tối ưu hóa Render)
   // =================================================================
@@ -381,20 +388,12 @@ export default function Notifications() {
    */
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
-      case "admin_message":
+      case "mailsend":
+        return <Send className="w-5 h-5 text-gray-700" />;
+      case "mailreceive":
         return <Mail className="w-5 h-5 text-blue-500" />;
-      case "booking_created":
-        return <Package className="w-5 h-5 text-green-500" />;
-      case "booking_expired":
+      case "notice":
         return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-      case "booking_reminder":
-        return <AlertTriangle className="w-5 h-5 text-orange-500" />;
-      case "locker_unlocked":
-        return <KeyRound className="w-5 h-5 text-purple-500" />;
-      case "locker_locked":
-        return <Lock className="w-5 h-5 text-gray-500" />;
-      case "payment_completed":
-        return <CreditCard className="w-5 h-5 text-teal-500" />;
       default:
         return <Bell className="w-5 h-5 text-gray-500" />;
     }
@@ -604,15 +603,13 @@ export default function Notifications() {
                 {filteredNotifications.map((n) => (
                   <div
                     key={n._id}
-                    className={`flex items-start gap-4 p-4 transition-colors ${role === 'resident' ? 'cursor-pointer' : 'cursor-default'} ${selectedNotifications.includes(n._id)
+                    className={`flex items-start gap-4 p-4 transition-colors cursor-pointer ${selectedNotifications.includes(n._id)
                         ? "bg-blue-100"
                         : !n.read
                           ? "bg-blue-50 hover:bg-blue-100"
                           : "hover:bg-gray-50"
                     }`}
-                    onClick={
-                      role === 'resident' ? () => handleMarkAsRead(n._id) : undefined
-                    }
+                    onClick={() => handleViewNotification(n)}
                   >
                     <div className="flex items-center h-full pt-1">
                       <Checkbox
@@ -630,8 +627,12 @@ export default function Notifications() {
                       {getNotificationIcon(n.type)}
                     </div>
                     <div className="flex-grow">
-                      <p className="font-semibold text-gray-900">{n.title}</p>
-                      <p className="text-sm text-gray-600">{n.message}</p>
+                      <p className="font-semibold text-gray-900 truncate pr-4">
+                        {n.title}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2 pr-4">
+                        {n.message}
+                      </p>
                       <p className="text-xs text-gray-400 mt-1">
                         {formatDateTime(n.createdAt)}
                       </p>
@@ -643,6 +644,26 @@ export default function Notifications() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog xem chi tiết thông báo */}
+      <Dialog open={!!viewingNotification} onOpenChange={(isOpen) => !isOpen && setViewingNotification(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{viewingNotification?.title}</DialogTitle>
+            <DialogDescription>
+              {formatDateTime(viewingNotification?.createdAt)}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="py-4 whitespace-pre-wrap text-sm text-gray-700">
+              {viewingNotification?.message}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button onClick={() => setViewingNotification(null)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog xác nhận xóa */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

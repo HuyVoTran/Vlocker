@@ -1,5 +1,5 @@
 'use client';
-import { User, Mail, Phone, MapPin, Edit, Search } from 'lucide-react';
+import { User, Edit, Search } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,7 +22,6 @@ import {
 } from "./ui/dialog";
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
-import { Badge } from './ui/badge';
 import { useToast } from './ui/toast-context';
 
 const fetcher = async (url: string) => {
@@ -225,10 +224,22 @@ export default function ManagerUser() {
                   <Label>Địa chỉ</Label>
                   {isEditing ? (
                     <div className="grid grid-cols-2 gap-4 mt-2">
-                      <Input placeholder="Tòa" value={editData.building} onChange={e => setEditData({...editData, building: e.target.value})} />
-                      <Input placeholder="Block" value={editData.block} onChange={e => setEditData({...editData, block: e.target.value})} />
-                      <Input placeholder="Tầng" value={editData.floor} onChange={e => setEditData({...editData, floor: e.target.value})} />
-                      <Input placeholder="Căn hộ" value={editData.unit} onChange={e => setEditData({...editData, unit: e.target.value})} />
+                      <div>
+                        <Label htmlFor="building" className="text-xs text-gray-500">Tòa</Label>
+                        <Input id="building" placeholder="Tòa" value={editData.building} onChange={e => setEditData({...editData, building: e.target.value})} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="block" className="text-xs text-gray-500">Block</Label>
+                        <Input id="block" placeholder="Block" value={editData.block} onChange={e => setEditData({...editData, block: e.target.value})} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="floor" className="text-xs text-gray-500">Tầng</Label>
+                        <Input id="floor" placeholder="Tầng" value={editData.floor} onChange={e => setEditData({...editData, floor: e.target.value})} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="unit" className="text-xs text-gray-500">Căn hộ</Label>
+                        <Input id="unit" placeholder="Căn hộ" value={editData.unit} onChange={e => setEditData({...editData, unit: e.target.value})} className="mt-1" />
+                      </div>
                     </div>
                   ) : (
                     <p className="text-gray-900 mt-1">{formatAddress(selectedUser)}</p>
