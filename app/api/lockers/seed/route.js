@@ -42,8 +42,10 @@ export async function POST(req) {
             lockerId: `${building}${block}-${String(i).padStart(3, "0")}`,
             building,
             block,
-            status: i <= 3 ? "available" : "booked", // First 3 are available
+            status: "available", // All seeded lockers are available by default
             isLocked: true,
+            size: 'M',
+            price: 10000,
           });
         }
       }

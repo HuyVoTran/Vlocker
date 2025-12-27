@@ -43,7 +43,6 @@ export async function POST(req) {
         
         await Locker.findByIdAndUpdate(booking.lockerId, {
           isLocked: true,
-          status: 'available', // Make locker available again
           currentBookingId: null,
         });
         
@@ -76,4 +75,3 @@ export async function POST(req) {
     );
   }
 }
-

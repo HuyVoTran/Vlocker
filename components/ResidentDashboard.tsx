@@ -185,7 +185,9 @@ interface MyLockerItem {
       }
     };
 
-    const calculateCost = (booking: Booking): number => {
+    const calculateCost = (item: MyLockerItem): number => {
+      const { booking, locker } = item;
+      const dailyRate = Number(locker?.price) || 10000;
       if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.cost && booking.cost > 0) {
         return booking.cost;
       }
@@ -193,7 +195,7 @@ interface MyLockerItem {
         const startTime = new Date(booking.startTime);
         const now = new Date();
         const daysDiff = Math.ceil((now.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24));
-        return Math.max(1, daysDiff) * 5000;
+        return Math.max(1, daysDiff) * dailyRate;
       }
       return booking.cost || 0;
     };
@@ -435,7 +437,7 @@ interface MyLockerItem {
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-gray-400" />
                     <span className="text-gray-600">{mylocker.booking?.status === 'stored'
-                        ? calculateCost(mylocker.booking).toLocaleString()
+                        ? calculateCost(mylocker).toLocaleString()
                         : (mylocker.booking?.cost || 0).toLocaleString()}đ</span>
                   </div>
                 </div>
@@ -511,8 +513,8 @@ interface MyLockerItem {
                   <div>
                     <p className="text-sm text-gray-500">Số tiền</p>
                     <p className="text-blue-600">
-                      {selectedMyLocker.booking?.status === 'stored'
-                        ? calculateCost(selectedMyLocker.booking).toLocaleString()
+                      {selectedMyLocker && selectedMyLocker.booking?.status === 'stored'
+                        ? calculateCost(selectedMyLocker).toLocaleString()
                         : (selectedMyLocker.booking?.cost || 0).toLocaleString()}đ
                     </p>
                   </div>
@@ -647,6 +649,12 @@ interface MyLockerItem {
                       <p className="text-xs text-gray-500">Block {locker.block}</p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-2">
+                    <CreditCard className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-gray-600">{(Number(locker.price) || 10000).toLocaleString('vi-VN')} VNĐ/Ngày</p>
+                    </div>
+                  </div>
                 </div>
 
                 <Button className="w-full" onClick={() => setSelectedAvailableLocker(locker)}>
@@ -696,7 +704,7 @@ interface MyLockerItem {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Giá</p>
-                    <p className="text-blue-600">{selectedAvailableLocker.price ?? '5,000 VNĐ/Ngày'}</p>
+                    <p className="text-blue-600">{selectedAvailableLocker.price ? `${Number(selectedAvailableLocker.price).toLocaleString('vi-VN')} VNĐ/Ngày` : '10,000 VNĐ/Ngày'}</p>
                   </div>
                 </div>
               </div>

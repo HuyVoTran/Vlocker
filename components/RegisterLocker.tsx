@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Package, MapPin, DollarSign, Search } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -18,7 +18,7 @@ export interface Locker {
   status: string;
   floor?: string;
   size?: string;
-  price?: string;
+  price?: string | number;
 }
 
 export interface User {
@@ -108,6 +108,11 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   //   setFilteredLockers(filtered);
   // }, [searchTerm, filterBlock, availableLockers]);
 
+  const minPrice = useMemo(() => {
+    if (availableLockers.length === 0) return 10000;
+    return Math.min(...availableLockers.map(l => Number(l.price || 10000)));
+  }, [availableLockers]);
+
   if (loading) {
     return <div className="p-6 max-w-7xl mx-auto">Đang tải dữ liệu...</div>;
   }
@@ -151,7 +156,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm mb-1">Giá từ</p>
-              <p className="text-gray-900">5,000 VNĐ/Ngày</p>
+              <p className="text-gray-900">{minPrice.toLocaleString('vi-VN')} VNĐ/Ngày</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-purple-600" />
@@ -203,6 +208,12 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                     <p className="text-xs text-gray-500">Block {locker.block}</p>
                   </div>
                 </div>
+                <div className="flex items-start gap-2">
+                  <DollarSign className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">{(Number(locker.price) || 10000).toLocaleString('vi-VN')} VNĐ/Ngày</p>
+                  </div>
+                </div>
               </div>
 
               <Button className="w-full" onClick={() => setSelectedLocker(locker)}>
@@ -252,7 +263,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Giá</p>
-                  <p className="text-blue-600">{selectedLocker.price ?? '5,000 VNĐ/Ngày'}</p>
+                  <p className="text-blue-600">{selectedLocker.price ? `${Number(selectedLocker.price).toLocaleString('vi-VN')} VNĐ/Ngày` : '10,000 VNĐ/Ngày'}</p>
                 </div>
               </div>
             </div>

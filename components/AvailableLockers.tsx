@@ -1,4 +1,4 @@
-import { Package, Edit, Lock, Play } from 'lucide-react';
+import { Package, Edit, Lock, Play, Plus, Trash2 } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import useSWR from 'swr';
@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { useState, useMemo } from 'react';
+import { Label } from './ui/label';
 import { useToast } from './ui/toast-context';
 
 // Hàm fetcher chung cho SWR (tái sử dụng từ các component khác)
@@ -63,9 +64,18 @@ export default function AvailableLockers() {
   const [filterBlock, setFilterBlock] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newLockerData, setNewLockerData] = useState({
+    building: '',
+    block: '',
+    size: 'M',
+    floor: '',
+    price: '10000',
+  });
 
   // Fetch tất cả các tủ không đang được cư dân thuê
   const { data: allLockers = [], error: fetchError, isLoading: fetchLoading, mutate } = useSWR<Locker[]>(
@@ -135,6 +145,63 @@ export default function AvailableLockers() {
     }
   };
 
+  const handleDeleteLocker = async () => {
+    if (!selectedLocker) return;
+
+    setUpdatingStatus(true);
+    try {
+      const res = await fetch('/api/lockers/manager/available', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lockerId: selectedLocker._id }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Xóa tủ thất bại.');
+      }
+      showToast('Xóa tủ thành công!', 'success');
+      mutate(); // Re-fetch data
+      setIsDeleteDialogOpen(false);
+      setSelectedLocker(null);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi xóa tủ.', 'error');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleAddNewLocker = async () => {
+    if (!newLockerData.building || !newLockerData.block) {
+      showToast('Vui lòng điền đầy đủ Tòa và Block.', 'error');
+      return;
+    }
+    setUpdatingStatus(true);
+    try {
+      const res = await fetch('/api/lockers/manager/available', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLockerData),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Thêm tủ mới thất bại.');
+      }
+      showToast('Thêm tủ mới thành công!', 'success');
+      mutate(); // Re-fetch data
+      setIsAddDialogOpen(false);
+      setNewLockerData({ building: '', block: '', size: 'M', floor: '', price: '10000' });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Đã xảy ra lỗi không mong muốn.', 'error');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleNewLockerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewLockerData({ ...newLockerData, [e.target.name]: e.target.value });
+  };
+
   // Helper để tạo chuỗi vị trí
   const getLocationString = (locker: Locker) => {
     return `Tòa ${locker.building} - Block ${locker.block}`;
@@ -149,9 +216,15 @@ export default function AvailableLockers() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-gray-900 mb-2">Quản lý tủ trống</h1>
-        <p className="text-gray-600">Theo dõi và quản lý trạng thái các tủ chưa được sử dụng</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-gray-900 mb-2">Quản lý tủ trống</h1>
+          <p className="text-gray-600">Theo dõi, quản lý trạng thái và thêm mới các tủ chưa được sử dụng</p>
+        </div>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Thêm tủ mới
+        </Button>
       </div>
 
       {/* Stats */}
@@ -286,6 +359,92 @@ export default function AvailableLockers() {
         </Table>
       </Card>
 
+      {/* Dialog for adding a new locker */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thêm tủ khóa mới</DialogTitle>
+            <DialogDescription>
+              Nhập thông tin chi tiết cho tủ khóa mới. Mã tủ sẽ được tạo tự động theo định dạng TòaBlock-STT (ví dụ: A1-01).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="building" className="text-right">Tòa</Label>
+              <Input id="building" name="building" value={newLockerData.building} onChange={handleNewLockerInputChange} className="col-span-3" placeholder="VD: A" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="block" className="text-right">Block</Label>
+              <Input id="block" name="block" value={newLockerData.block} onChange={handleNewLockerInputChange} className="col-span-3" placeholder="VD: 1" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="floor" className="text-right">Tầng</Label>
+              <Input id="floor" name="floor" value={newLockerData.floor} onChange={handleNewLockerInputChange} className="col-span-3" placeholder="VD: 12" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="size" className="text-right">Kích thước</Label>
+              <Select name="size" value={newLockerData.size} onValueChange={(value) => setNewLockerData({ ...newLockerData, size: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn kích thước" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="S">Nhỏ (S)</SelectItem>
+                  <SelectItem value="M">Vừa (M)</SelectItem>
+                  <SelectItem value="L">Lớn (L)</SelectItem>
+                  <SelectItem value="XL">Rất lớn (XL)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="price" className="text-right">Giá / ngày</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                value={newLockerData.price}
+                onChange={handleNewLockerInputChange}
+                className="col-span-3"
+                placeholder="VD: 10000"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                setNewLockerData({ building: '', block: '', size: 'M', floor: '', price: '10000' });
+              }}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleAddNewLocker} disabled={updatingStatus}>
+              {updatingStatus ? 'Đang thêm...' : 'Thêm tủ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for delete confirmation */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa tủ</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa vĩnh viễn tủ {selectedLocker?.lockerId}? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={updatingStatus}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteLocker} disabled={updatingStatus}>
+              {updatingStatus ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog for managing a locker */}
       <Dialog open={!!selectedLocker} onOpenChange={(open) => !open && setSelectedLocker(null)}>
         <DialogContent>
@@ -316,7 +475,7 @@ export default function AvailableLockers() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Giá thuê</p>
-                  <p className="text-blue-600">{selectedLocker.price}</p>
+                  <p className="text-blue-600">{selectedLocker.price ? `${Number(selectedLocker.price).toLocaleString('vi-VN')} VNĐ/Ngày` : '10,000 VNĐ/Ngày'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Trạng thái hiện tại</p>
@@ -344,6 +503,10 @@ export default function AvailableLockers() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedLocker(null)}>Đóng</Button>
+            <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Xóa tủ
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

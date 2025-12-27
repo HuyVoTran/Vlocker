@@ -17,8 +17,8 @@ export async function POST(req) {
       );
     }
 
-    // Find booking
-    const booking = await Booking.findById(bookingId);
+    // Find booking and populate locker to get price
+    const booking = await Booking.findById(bookingId).populate('lockerId');
     if (!booking) {
       return NextResponse.json(
         { success: false, message: "Booking not found" },
@@ -38,8 +38,9 @@ export async function POST(req) {
     const now = new Date();
     booking.status = 'stored';
     booking.startTime = now; // Set startTime when locking - bắt đầu tính tiền từ đây
-    const initialCost = 5000; // Initial cost: 5,000 VNĐ for first day (sẽ tính realtime sau)
-    booking.cost = initialCost;
+    
+    const dailyRate = Number(booking.lockerId?.price) || 10000;
+    booking.cost = dailyRate; // Set initial cost for the first day
     booking.paymentStatus = 'pending';
     await booking.save();
 
@@ -49,7 +50,7 @@ export async function POST(req) {
     });
 
     return NextResponse.json(
-      { success: true, message: "Khóa tủ thành công", data: { booking, cost: initialCost } },
+      { success: true, message: "Khóa tủ thành công", data: { booking, cost: dailyRate } },
       { status: 200 }
     );
   } catch (err) {
@@ -60,4 +61,3 @@ export async function POST(req) {
     );
   }
 }
-

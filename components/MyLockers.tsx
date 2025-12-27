@@ -20,6 +20,7 @@ export interface Locker {
   building?: string;
   block?: string;
   status?: string;
+  price?: string | number;
 }
 
 export interface Booking {
@@ -63,20 +64,22 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   }, []);
 
   // Calculate cost for 'stored' status
-  const calculateCost = (booking: Booking): number => {
+  const calculateCost = (item: MyLockerItem): number => {
+    const { booking, locker } = item;
+    const dailyRate = Number(locker?.price) || 10000;
     // If already paid, use the saved cost
     if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.cost && booking.cost > 0) {
       return booking.cost;
     }
-    
+
     // If stored but not paid yet, calculate realtime cost from startTime to now
     if (booking.status === 'stored' && booking.paymentStatus === 'pending' && booking.startTime) {
       const startTime = new Date(booking.startTime);
       const now = new Date();
       const daysDiff = Math.ceil((now.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24));
-      return Math.max(1, daysDiff) * 5000; // 5,000 VNĐ per day, at least 1 day
+      return Math.max(1, daysDiff) * dailyRate;
     }
-    
+
     // For other statuses, return saved cost or 0
     return booking.cost || 0;
   };
@@ -294,8 +297,8 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                 <div className="flex items-center gap-2 text-sm">
                   <CreditCard className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-600">
-                    {mylocker.booking.status === 'stored' 
-                      ? calculateCost(mylocker.booking).toLocaleString() 
+                    {mylocker.booking.status === 'stored'
+                      ? calculateCost(mylocker).toLocaleString()
                       : (mylocker.booking.cost || 0).toLocaleString()}đ
                   </span>
                 </div>
@@ -371,8 +374,8 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                   <div>
                     <p className="text-sm text-gray-500">Số tiền</p>
                     <p className="text-blue-600">
-                      {selectedLocker.booking?.status === 'stored'
-                        ? calculateCost(selectedLocker.booking).toLocaleString()
+                      {selectedLocker && selectedLocker.booking?.status === 'stored'
+                        ? calculateCost(selectedLocker).toLocaleString()
                         : (selectedLocker.booking?.cost || 0).toLocaleString()}đ
                     </p>
                   </div>

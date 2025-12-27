@@ -16,8 +16,8 @@ export async function POST(req) {
       );
     }
 
-    // Find booking
-    const booking = await Booking.findById(bookingId);
+    // Find booking and populate locker to get price
+    const booking = await Booking.findById(bookingId).populate('lockerId');
     if (!booking) {
       return NextResponse.json(
         { success: false, message: "Booking not found" },
@@ -37,11 +37,12 @@ export async function POST(req) {
     // In production, integrate with MoMo/VNPay APIs here
     if (paymentMethod === 'virtual' || !paymentMethod) {
       // Calculate final cost from startTime to now (5,000 VNĐ per day)
+      const dailyRate = Number(booking.lockerId?.price) || 10000;
       const startTime = booking.startTime || new Date();
       const endTime = new Date();
       const daysDiff = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24));
-      const finalCost = Math.max(1, daysDiff) * 5000; // At least 1 day, 5,000 VNĐ per day
-      
+      const finalCost = Math.max(1, daysDiff) * dailyRate;
+
       // Virtual payment - mark as paid and set final cost
       booking.paymentStatus = 'paid';
       booking.endTime = endTime; // Set endTime when payment is completed
@@ -94,4 +95,3 @@ export async function POST(req) {
     );
   }
 }
-

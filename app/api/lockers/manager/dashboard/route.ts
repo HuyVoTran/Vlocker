@@ -16,18 +16,15 @@ export async function GET() {
 
     // --- Main Stats ---
     const totalLockers = await Locker.countDocuments();
-    const bookedLockers = await Booking.countDocuments({ status: 'active' });
+    const reservedLockers = await Booking.countDocuments({ status: 'active' });
     const inUseLockers = await Booking.countDocuments({ status: 'stored' });
-    
-    // Calculate available by subtracting booked and in-use from total.
-    // This is a simplification and assumes lockers not in 'active' or 'stored' bookings are available.
-    // It doesn't account for 'maintenance' or 'locked' statuses from the Locker model itself.
-    const availableLockers = totalLockers - bookedLockers - inUseLockers;
+    // Correctly count available lockers from the Locker model itself
+    const availableLockers = await Locker.countDocuments({ status: 'available', currentBookingId: null });
 
     const stats = {
       total: totalLockers,
       inUse: inUseLockers,
-      reserved: bookedLockers,
+      reserved: reservedLockers,
       available: availableLockers,
     };
 
@@ -58,7 +55,14 @@ export async function GET() {
 
     // --- Block/Building Statistics ---
     const allLockers = await Locker.find({}).lean();
-    const allBookings = await Booking.find({ status: { $in: ['active', 'stored'] } }).lean();
+    const lockerIds = allLockers.map(l => l._id);
+    const allBookings = await Booking.find({ 
+        lockerId: { $in: lockerIds },
+        status: { $in: ['active', 'stored'] } 
+    }).lean();
+    
+    // Create a map for efficient O(1) lookup instead of O(N) in a loop
+    const bookingMap = new Map(allBookings.map(b => [b.lockerId.toString(), b]));
     
     const blockStats: Record<string, { total: number; used: number; reserved: number; empty: number }> = {};
 
@@ -69,21 +73,18 @@ export async function GET() {
         }
         blockStats[blockKey].total++;
 
-        const booking = allBookings.find(b => b.lockerId.toString() === locker._id.toString());
+        const booking = bookingMap.get(locker._id.toString());
         if (booking) {
             if (booking.status === 'stored') {
                 blockStats[blockKey].used++;
             } else if (booking.status === 'active') {
                 blockStats[blockKey].reserved++;
             }
+        } else if (locker.status === 'available') {
+            // A locker is empty for booking purposes if it has no active/stored booking AND its status is 'available'
+            blockStats[blockKey].empty++;
         }
     }
-    
-    // Adjust empty count to be more accurate based on total
-    Object.keys(blockStats).forEach(key => {
-        const block = blockStats[key];
-        block.empty = block.total - block.used - block.reserved;
-    });
 
     const blockData = Object.entries(blockStats).map(([blockName, data]) => ({
         block: blockName,

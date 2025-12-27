@@ -38,7 +38,6 @@ export async function PATCH(req) {
 
     // Free up the locker
     await Locker.findByIdAndUpdate(booking.lockerId, {
-      status: 'available',
       currentBookingId: null,
       isLocked: true,
     });

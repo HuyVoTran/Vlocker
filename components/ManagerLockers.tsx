@@ -49,6 +49,7 @@ interface PopulatedLocker {
   lockerId: string;
   building: string;
   block: string;
+  price?: string | number;
 }
 
 interface BookingDetails {
@@ -108,10 +109,11 @@ export default function ManagerLockers() {
 
   const calculateCost = (booking: BookingDetails): string => {
     if (!booking.startTime) return '0đ';
+    const dailyRate = Number(booking.lockerId?.price) || 10000;
     const start = new Date(booking.startTime);
     const now = new Date();
     const daysDiff = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const cost = Math.max(1, daysDiff) * 5000; // 5k/day
+    const cost = Math.max(1, daysDiff) * dailyRate;
     return `${cost.toLocaleString('vi-VN')}đ`;
   };
 

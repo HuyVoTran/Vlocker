@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Husky pre-commit hooks"
+git commit -m "Update model Locker & Fix bugs"
 git push
 
 Password@12345
@@ -145,8 +145,11 @@ Cơ sở dữ liệu MongoDB được cấu trúc với các collection chính s
     -   `resetPasswordToken`, `resetPasswordExpires` (cho chức năng quên mật khẩu).
 -   **`lockers`**: Lưu trữ thông tin về từng tủ khóa vật lý.
     -   `lockerId` (mã định danh của tủ).
-    -   `building`, `block` (vị trí).
-    -   `status` ('available', 'booked', 'maintenance').
+    -   `building`, `block`, `floor` (vị trí).
+    -   `size` ('S', 'M', 'L', 'XL').
+    -   `price` (giá thuê theo ngày).
+    -   `status` ('available', 'booked', 'maintenance', 'locked').
+    -   `isLocked` (trạng thái khóa vật lý).
     -   `currentBookingId` (tham chiếu đến lượt đặt hiện tại).
 -   **`bookings`**: Lưu trữ thông tin về các lượt thuê tủ.
     -   `userId`, `lockerId` (tham chiếu đến người dùng và tủ).

@@ -73,7 +73,6 @@ export async function GET(req) {
               pickupExpiryTime: new Date(endTime.getTime() + thirtyMinutes)
             }),
             Locker.findByIdAndUpdate(booking.lockerId._id, {
-              status: 'available',
               isLocked: true,
               currentBookingId: null,
             })
@@ -93,7 +92,6 @@ export async function GET(req) {
         dbUpdatePromises.push(
           Booking.findByIdAndUpdate(booking._id, { status: 'completed' }),
           Locker.findByIdAndUpdate(booking.lockerId._id, {
-            status: 'available',
             isLocked: true,
             currentBookingId: null,
           })
