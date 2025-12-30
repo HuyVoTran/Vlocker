@@ -10,6 +10,11 @@ const NotificationSchema = new mongoose.Schema({
   },
   // ID của thông báo gốc, dùng cho 'mailreceive' để liên kết với 'mailsend'
   parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Notification' },
+  // Mảng ID của những người nhận, dùng cho 'mailsend'
+  recipientIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   type: {
     type: String,
     enum: [

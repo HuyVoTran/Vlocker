@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update model Locker & Fix bugs"
+git commit -m "Update Notifications"
 git push
 
 Password@12345

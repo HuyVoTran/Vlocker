@@ -4,6 +4,7 @@ import Notification from "@/models/Notification";
 import User from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import mongoose from "mongoose";
 
 /* =================================================================
    GET /api/notifications
@@ -25,32 +26,76 @@ export async function GET() {
     }
  
     const { id, role } = session.user;
+    const userId = new mongoose.Types.ObjectId(id);
     let query = {};
     let residents = [];
     let notifications = [];
  
     if (role === "manager") {
-      // Manager lấy danh sách thư đã gửi (mailsend) và các thông báo hệ thống (notice)
-      // Đồng thời lấy danh sách cư dân để phục vụ cho việc gửi thông báo mới
-      query = {
-        $or: [
-          { type: "mailsend", senderId: id },
-          { type: "notice" } // Manager cũng có thể xem các thông báo hệ thống
-        ]
-      };
+      // Manager cần một pipeline phức tạp để lấy thông tin người nhận cho các thư đã gửi
+      notifications = await Notification.aggregate([
+        // 1. Lọc các thông báo cho manager: thư đã gửi hoặc thông báo hệ thống
+        {
+          $match: {
+            $or: [
+              { type: "mailsend", senderId: userId },
+              { type: "notice" },
+            ],
+          },
+        },
+        // 2. Dùng $lookup để lấy thông tin chi tiết của người nhận từ collection 'users'
+        {
+          $lookup: {
+            from: "users",
+            localField: "recipientIds", // Trường chứa mảng ID người nhận trong Notification
+            foreignField: "_id", // Trường ID trong User
+            as: "recipientsInfo", // Tên của mảng mới chứa thông tin người nhận
+          },
+        },
+        // 3. Sắp xếp theo ngày tạo mới nhất
+        { $sort: { createdAt: -1 } },
+      ]);
       residents = await User.find({ role: "resident" })
         .select("name email _id")
         .lean();
     } else if (role === "resident") {
-      // Resident lấy các thư nhận được (mailreceive) và thông báo hệ thống (notice) cho chính họ
-      query = { recipientId: id };
+      // Resident cần một pipeline để lấy thông tin người gửi
+      notifications = await Notification.aggregate([
+        // 1. Lọc các thông báo cho resident
+        {
+          $match: {
+            $or: [
+              { recipientId: userId }, // Thư hoặc thông báo được gửi trực tiếp
+              { type: "notice", recipientId: { $exists: false } }, // Thông báo chung
+            ],
+          },
+        },
+        // 2. Dùng $lookup để lấy thông tin người gửi từ collection 'users'
+        {
+          $lookup: {
+            from: "users",
+            localField: "senderId",
+            foreignField: "_id",
+            as: "senderInfo",
+          },
+        },
+        // 3. Chuyển senderInfo từ mảng thành object, giữ lại các thông báo không có người gửi
+        {
+          $unwind: {
+            path: "$senderInfo",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        { $sort: { createdAt: -1 } },
+      ]);
+
+      // --- BƯỚC DEBUG ---
     } else {
-        return NextResponse.json({ success: false, message: "Vai trò không hợp lệ." }, { status: 403 });
+      return NextResponse.json(
+        { success: false, message: "Vai trò không hợp lệ." },
+        { status: 403 }
+      );
     }
- 
-    notifications = await Notification.find(query)
-      .sort({ createdAt: -1 })
-      .lean();
  
     return NextResponse.json({
       success: true,
@@ -92,19 +137,24 @@ export async function POST(req) {
       );
     }
 
+    const senderObjectId = new mongoose.Types.ObjectId(session.user.id);
+    const recipientObjectIds = recipientIds.map(id => new mongoose.Types.ObjectId(id));
+
     // 1. Tạo một thông báo gốc (parent) cho manager
     const parentNotification = new Notification({
-      senderId: session.user.id,
+      senderId: senderObjectId,
       type: 'mailsend', // Thư gửi đi từ manager
       title,
       message,
       read: true, // Thư gửi đi mặc định là đã đọc đối với manager
+      recipientIds: recipientObjectIds, // Lưu lại ID của những người nhận dưới dạng ObjectId
     });
     await parentNotification.save();
 
     // 2. Tạo các thông báo con (child) cho từng người nhận
-    const childNotifications = recipientIds.map((id) => ({
+    const childNotifications = recipientObjectIds.map((id) => ({
       parentId: parentNotification._id,
+      senderId: senderObjectId, // Thêm ID người gửi vào thông báo của người nhận
       recipientId: id,
       type: 'mailreceive', // Thư nhận được bởi resident
       title,
@@ -153,11 +203,12 @@ export async function PATCH(req) {
       );
     }
 
+    const userId = new mongoose.Types.ObjectId(session.user.id);
     // Cập nhật trạng thái `read` của các thông báo được chỉ định
     await Notification.updateMany(
       {
         _id: { $in: notificationIds },
-        recipientId: session.user.id,
+        recipientId: userId,
       },
       { $set: { read: read } }
     );
@@ -199,13 +250,14 @@ export async function DELETE(req) {
     }
 
     const { id, role } = session.user;
+    const userId = new mongoose.Types.ObjectId(id);
     let result;
 
     if (role === 'resident') {
       // Resident chỉ xóa thông báo của chính mình (mailreceive, notice)
       const query = {
         _id: { $in: notificationIds },
-        recipientId: id,
+        recipientId: userId,
       };
       result = await Notification.deleteMany(query);
       return NextResponse.json({ success: true, message: "Đã xóa thông báo thành công.", deletedCount: result.deletedCount });
@@ -218,7 +270,7 @@ export async function DELETE(req) {
       // 1. Đảm bảo manager chỉ có thể xóa thư do chính mình gửi
       const parentNotifications = await Notification.find({
         _id: { $in: notificationIds },
-        senderId: id,
+        senderId: userId,
         type: 'mailsend'
       }).select('_id').lean();
 

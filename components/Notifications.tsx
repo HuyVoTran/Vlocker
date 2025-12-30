@@ -45,6 +45,13 @@ type NotificationType =
 interface Notification {
   _id: string;
   recipientId?: string; // For mailreceive, notice
+  senderInfo?: { // For mailreceive, from manager
+    name: string;
+  };
+  recipientsInfo?: { // For mailsend, to residents
+    name: string;
+    email: string;
+  }[];
   type: NotificationType;
   title: string;
   message: string;
@@ -626,11 +633,11 @@ export default function Notifications() {
                     >
                       {getNotificationIcon(n.type)}
                     </div>
-                    <div className="flex-grow">
+                    <div className="flex-grow min-w-0">
                       <p className="font-semibold text-gray-900 truncate pr-4">
                         {n.title}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2 pr-4">
+                      <p className="text-sm text-gray-600 mt-1 truncate pr-4">
                         {n.message}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
@@ -649,13 +656,55 @@ export default function Notifications() {
       <Dialog open={!!viewingNotification} onOpenChange={(isOpen) => !isOpen && setViewingNotification(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{viewingNotification?.title}</DialogTitle>
-            <DialogDescription>
-              {formatDateTime(viewingNotification?.createdAt)}
-            </DialogDescription>
+            <DialogTitle className="break-all">{viewingNotification?.title}</DialogTitle>
+            {viewingNotification && (
+              <DialogDescription asChild>
+                <div className="flex justify-between items-center text-sm text-gray-500 pt-1">
+                  <span
+                    className="min-w-0 break-all pr-4 line-clamp-2"
+                    title={
+                      role === "manager" && viewingNotification?.recipientsInfo?.length
+                        ? `Đến: ${viewingNotification.recipientsInfo.map((r) => r.name).join(", ")}`
+                        : undefined
+                    }
+                  >
+                  {(() => {
+                    if (!viewingNotification) return null;
+                    const { type, senderInfo, recipientsInfo } = viewingNotification;
+
+                    // Dành cho Manager
+                    if (role === 'manager') {
+                      // Nếu có thông tin người nhận, đây là thông báo về thư đã gửi đi.
+                      if (recipientsInfo && recipientsInfo.length > 0) {
+                        const recipientNames = recipientsInfo
+                          .map(r => r.name)
+                          .join(', ');
+                        return `Đến: ${recipientNames}`;
+                      }
+                      return 'Từ: Hệ thống'; // Các trường hợp khác là thông báo hệ thống.
+                    }
+
+                    // Dành cho Cư dân
+                    if (role === 'resident') {
+                      // Chỉ cần có thông tin người gửi là hiển thị, không cần phụ thuộc vào 'type'
+                      if (senderInfo && senderInfo.name) {
+                        return `Từ: ${senderInfo.name} - Quản lý`; 
+                      }
+                      return 'Từ: Hệ thống'; // Các loại khác cho cư dân đều từ hệ thống
+                    }
+
+                    return 'Từ: Hệ thống'; // Fallback
+                  })()}
+                  </span>
+                  <span>
+                    {formatDateTime(viewingNotification.createdAt)}
+                  </span>
+                </div>
+              </DialogDescription>
+            )}
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="py-4 whitespace-pre-wrap text-sm text-gray-700">
+            <div className="py-4 whitespace-pre-wrap text-sm text-gray-700 break-all">
               {viewingNotification?.message}
             </div>
           </ScrollArea>
