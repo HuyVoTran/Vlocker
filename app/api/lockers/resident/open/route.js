@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
 
     const body = await req.json();
@@ -17,11 +24,11 @@ export async function POST(req) {
       );
     }
 
-    // Find booking
-    const booking = await Booking.findById(bookingId);
+    // Find booking and ensure it belongs to the current user
+    const booking = await Booking.findOne({ _id: bookingId, userId: session.user.id });
     if (!booking) {
       return NextResponse.json(
-        { success: false, message: "Booking not found" },
+        { success: false, message: "Booking not found or you don't have permission to access it" },
         { status: 404 }
       );
     }

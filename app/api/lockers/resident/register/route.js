@@ -2,16 +2,24 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
 
     const body = await req.json();
-    const { userId, lockerId } = body || {};
+    const { lockerId } = body || {};
+    const userId = session.user.id; // Lấy userId từ session
 
-    if (!userId || !lockerId) {
-      return NextResponse.json({ success: false, message: "Thiếu thông tin người dùng hoặc tủ." }, { status: 400 });
+    if (!lockerId) {
+      return NextResponse.json({ success: false, message: "Thiếu thông tin tủ." }, { status: 400 });
     }
 
     // Find locker and ensure it's available

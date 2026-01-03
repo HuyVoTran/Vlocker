@@ -31,17 +31,6 @@ const fetcher = async (url: string) => {
   return json.data;
 };
 
-interface ResidentDashboardProps {
-  onNavigate: (page: string, locker?: Locker) => void;
-}
-
-export interface User {
-  id: string;
-  name?: string;
-  building?: string;
-  block?: string;
-}
-
 export interface Locker {
   _id: string;
   lockerId: string;
@@ -87,8 +76,8 @@ const formatSize = (size?: string) => {
   }
 };
   export default function ResidentDashboard({
-    onNavigate,
-  }: ResidentDashboardProps) {
+    onNavigate, // Assuming onNavigate is passed from a parent component
+  }: { onNavigate: (page: string, locker?: Locker) => void }) {
   const { showToast } = useToast();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -99,7 +88,7 @@ const formatSize = (size?: string) => {
     isLoading: myLockersLoading,
     mutate: mutateMyLockers,
   } = useSWR<MyLockerItem[]>(
-    session?.user?.id ? `/api/lockers/resident/mylocker?userId=${session.user.id}` : null,
+    session?.user?.id ? `/api/lockers/resident/mylocker` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -111,9 +100,7 @@ const formatSize = (size?: string) => {
     isLoading: availableLockersLoading,
     mutate: mutateAvailableLockers,
   } = useSWR<Locker[]>(
-    session?.user?.id && session?.user?.building && session?.user?.block
-      ? `/api/lockers/resident/available?building=${session.user.building}&block=${session.user.block}`
-      : null,
+    session?.user?.id ? `/api/lockers/resident/available` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -121,7 +108,7 @@ const formatSize = (size?: string) => {
   const isLoading = myLockersLoading || availableLockersLoading;
   const error = myLockersError || availableLockersError;
 
-  const user = session?.user;
+  const userName = session?.user?.name;
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
@@ -150,7 +137,7 @@ const formatSize = (size?: string) => {
     //   iconText: "Realtime"
     // },
     {
-      title: `Chào ${user?.name || 'bạn'}`,
+      title: `Chào ${userName || 'bạn'}`,
       description: `Bạn đang sử dụng ${myLockers.length} tủ, nếu bạn muốn sử dụng thêm hãy đăng ký tủ mới liền nha!`,
       cta1: { text: "Xem tủ của tôi", action: () => onNavigate('my-lockers') },
       cta2: { text: "Xem lịch sử", action: () => onNavigate('history') },
@@ -333,7 +320,7 @@ const formatSize = (size?: string) => {
     }
 
     // Xử lý khi không có session hoặc user
-    if (!user) {
+    if (!session?.user) {
       return <div className="p-6 max-w-7xl mx-auto text-red-600">Lỗi: Không thể tải dữ liệu người dùng. Vui lòng đăng nhập lại.</div>;
     }
 
@@ -738,7 +725,7 @@ const formatSize = (size?: string) => {
                   const res = await fetch('/api/lockers/resident/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user.id, lockerId: selectedAvailableLocker._id })
+                    body: JSON.stringify({ lockerId: selectedAvailableLocker._id })
                   });
 
                   const json = await res.json();

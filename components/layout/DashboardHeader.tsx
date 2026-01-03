@@ -26,12 +26,11 @@ export default function Header({ userRole }: HeaderProps) {
     if (session) {
       const fetchUnreadCount = async () => {
         try {
-          const res = await fetch('/api/notifications');
+          const res = await fetch('/api/notifications/unread-count'); // Sử dụng endpoint mới
           if (res.ok) {
             const data = await res.json();
             if (data.success) {
-              const count = data.data.notifications.filter((n: Notification) => !n.read).length;
-              setUnreadCount(count);
+              setUnreadCount(data.data.count); // API đã trả về số lượng
             }
           }
         } catch (error) {
@@ -42,7 +41,7 @@ export default function Header({ userRole }: HeaderProps) {
     }
   }, [session]); // Chạy lại khi session thay đổi
 
-  const role = userRole || 'resident';
+  const role = session?.user?.role || userRole || 'resident';
   const fullName = session?.user?.name || (role === 'resident' ? 'Người dùng' : 'Quản lý');
   const initial = fullName ? fullName.charAt(0).toUpperCase() : 'A';
 
@@ -68,7 +67,7 @@ export default function Header({ userRole }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="relative"
+            className="relative hover:bg-gray-100"
             onClick={() => router.push('/notifications')}
           >
             <Bell className="w-5 h-5" />
@@ -84,7 +83,7 @@ export default function Header({ userRole }: HeaderProps) {
               size="icon"
               onClick={() => router.push('/profile')}
               aria-label="Mở trang profile"
-              className="hover:bg-transparent"
+              className="hover:bg-gray-100 rounded-full"
             >
               <Avatar>
                 <AvatarFallback className="bg-blue-100 text-blue-600">{initial}</AvatarFallback>

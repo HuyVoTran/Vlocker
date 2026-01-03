@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // Define a more specific type for the booking object after `lean()` and `populate()`
 // This helps avoid using `any`.
@@ -18,19 +20,15 @@ interface PopulatedBooking {
   [key: string]: unknown;
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    await connectDB();
-
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { message: "Thiếu userId." },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
+    const userId = session.user.id;
+
+    await connectDB();
 
     const bookings = await Booking.find({ userId })
       .sort({ startTime: -1 })

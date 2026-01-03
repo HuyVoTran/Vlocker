@@ -3,20 +3,18 @@ import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
 import Notification from "@/models/Notification";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function GET(req) {
+export async function GET() {
   try {
-    await connectDB();
-
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "Missing userId" },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
+    const userId = session.user.id; // Lấy userId từ session
+
+    await connectDB();
 
     // 1. Find all user bookings (excluding completed) and populate locker details
     const bookings = await Booking.find({ 

@@ -1,21 +1,29 @@
 import { NextResponse } from "next/server";
 import Locker from "@/models/Locker";
+import User from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function GET(req) {
+export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
 
-    const { searchParams } = new URL(req.url);
-    const building = searchParams.get("building");
-    const block = searchParams.get("block");
-
-    if (!building || !block) {
+    // Lấy thông tin tòa nhà và block của người dùng từ DB thông qua session
+    const user = await User.findById(session.user.id).select('building block').lean();
+    if (!user || !user.building || !user.block) {
       return NextResponse.json(
-        { success: false, message: "Thiếu thông tin tòa nhà hoặc block." },
+        { success: false, message: "Không tìm thấy thông tin tòa nhà hoặc block của người dùng. Vui lòng cập nhật hồ sơ." },
         { status: 400 }
       );
     }
+
+    const { building, block } = user;
 
     // Lấy các tủ có trạng thái 'available' và chưa được ai đặt (currentBookingId is null)
     const lockers = await Locker.find({

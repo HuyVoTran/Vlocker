@@ -170,10 +170,7 @@ export const authOptions = {
         // và luôn có thuộc tính 'id'
         token.id = user.id;
         token.role = user.role;
-        token.name = user.name;
-        token.image = user.image;
-        token.building = user.building;
-        token.block = user.block;
+        token.name = user.name; // Thêm tên người dùng vào token
         token.isProfileComplete = user.isProfileComplete;
       }
 
@@ -191,16 +188,15 @@ export const authOptions = {
      * @returns {object} Đối tượng session đã được cập nhật.
      */
     async session({ session, token }) {
-      // Lấy dữ liệu (id, role) từ `token` và gán vào `session.user`.
-      // Điều này giúp client có thể truy cập thông tin người dùng mở rộng.
+      // Ghi đè session.user để chỉ chứa các trường cần thiết cho client,
+      // lấy dữ liệu từ token đã được xử lý bởi callback `jwt`.
       if (token && session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.name = token.name;
-        session.user.image = token.image;
-        session.user.building = token.building;
-        session.user.block = token.block;
-        session.user.isProfileComplete = token.isProfileComplete;
+        session.user = {
+          id: token.id,
+          role: token.role,
+          name: token.name, // Thêm tên người dùng vào session
+          isProfileComplete: token.isProfileComplete,
+        };
       }
       return session;
     },

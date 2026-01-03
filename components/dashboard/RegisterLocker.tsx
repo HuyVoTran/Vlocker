@@ -6,7 +6,8 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../ui/toast-context';
 
@@ -61,11 +62,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   const [blocks, setBlocks] = useState<string[]>([]);
 
   // Lấy user data từ props hoặc session
-  const currentUser = user || {
-    id: session?.user?.id || '',
-    building: session?.user?.building || 'A',
-    block: session?.user?.block || '1'
-  };
+  const currentUser = user || session?.user;
 
   useEffect(() => {
     async function loadLockers() {
@@ -73,24 +70,14 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
         setLoading(true);
         setError(null);
 
-        if (!currentUser.building || !currentUser.block) {
-          setError('Không có thông tin tòa/block của bạn');
-          setLoading(false);
-          return;
-        }
-
-        console.log("Loading available lockers for:", currentUser.building, currentUser.block);
-        
-        const res = await fetch(
-          `/api/lockers/resident/available?building=${currentUser.building}&block=${currentUser.block}`
-        );
+        // API sẽ tự động lấy thông tin tòa nhà và block của người dùng từ session phía server
+        const res = await fetch(`/api/lockers/resident/available`);
         
         if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
+          throw new Error(`Lỗi API: ${res.status}`);
         }
         
         const json = await res.json();
-        console.log("Available lockers loaded:", json);
         
         const lockers = json.data || [];
         setAvailableLockers(lockers);
@@ -100,29 +87,27 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
         const uniqueBlocks = Array.from(new Set(lockers.map((l: Locker) => l.block))).sort();
         setBlocks(uniqueBlocks as string[]);
         
-        setLoading(false);
       } catch (err) {
-        console.error("Error loading lockers:", err);
         setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
+      } finally {
         setLoading(false);
       }
     }
 
-    if (currentUser.id) {
+    if (currentUser?.id) {
       loadLockers();
     }
-  }, [currentUser.id, currentUser.building, currentUser.block]);
+  }, [currentUser?.id]);
 
   // Cập nhật filtered lockers khi search/filter thay đổi
-  // useEffect(() => {
-  //   const filtered = availableLockers.filter(locker => {
-  //     const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //                          locker.building.toLowerCase().includes(searchTerm.toLowerCase());
-  //     const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-  //     return matchesSearch && matchesBlock;
-  //   });
-  //   setFilteredLockers(filtered);
-  // }, [searchTerm, filterBlock, availableLockers]);
+  useEffect(() => {
+    const filtered = availableLockers.filter(locker => {
+      const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
+      return matchesSearch && matchesBlock;
+    });
+    setFilteredLockers(filtered);
+  }, [searchTerm, filterBlock, availableLockers]);
 
   const minPrice = useMemo(() => {
     if (availableLockers.length === 0) return 10000;
@@ -141,7 +126,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="mb-6">
         <h1 className="text-gray-900 mb-2">Đăng ký tủ mới</h1>
-        <p className="text-gray-600">Chọn tủ phù hợp với nhu cầu của bạn - Tòa {currentUser.building} Block {currentUser.block} Tầng 1</p>
+        <p className="text-gray-600">Chọn tủ phù hợp với nhu cầu của bạn. Hệ thống sẽ tự động lọc các tủ có sẵn trong khu vực của bạn.</p>
       </div>
 
       {/* Stats */}
@@ -195,6 +180,17 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
               />
             </div>
           </div>
+          <Select value={filterBlock} onValueChange={setFilterBlock}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo block" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả block</SelectItem>
+              {blocks.map(block => (
+                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
@@ -251,7 +247,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Đăng ký tủ {selectedLocker?.lockerId ?? ''}</DialogTitle>
-            <div className="text-sm text-gray-500">Xem lại thông tin trước khi xác nhận thuê</div>
+            <DialogDescription>Xem lại thông tin trước khi xác nhận thuê</DialogDescription>
           </DialogHeader>
 
           {selectedLocker ? (
@@ -295,7 +291,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 const res = await fetch('/api/lockers/resident/register', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: currentUser.id, lockerId: selectedLocker._id })
+                  body: JSON.stringify({ lockerId: selectedLocker._id })
                 });
 
                 const json = await res.json();

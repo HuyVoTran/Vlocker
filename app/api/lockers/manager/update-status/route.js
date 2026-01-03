@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Locker from "@/models/Locker";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== 'manager') {
+      return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
+    }
+
     await connectDB();
 
     const { lockerId, newStatus } = await req.json();
@@ -40,4 +47,3 @@ export async function PATCH(req) {
     return NextResponse.json({ success: false, message: "Server error", error: err.message }, { status: 500 });
   }
 }
-

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 type Period = "all" | "month" | "quarter" | "year";
 
@@ -22,6 +24,11 @@ interface PopulatedBooking {
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== 'manager') {
+      return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
+    }
+
     await connectDB();
 
     const { searchParams } = new URL(req.url);
