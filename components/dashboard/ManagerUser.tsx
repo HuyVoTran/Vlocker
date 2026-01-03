@@ -20,6 +20,13 @@ import {
   DialogTitle,
   DialogFooter
 } from "../ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { useToast } from '../ui/toast-context';
@@ -52,6 +59,8 @@ interface ResidentUser {
 
 export default function ManagerUser() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterBuilding, setFilterBuilding] = useState('all');
+  const [filterBlock, setFilterBlock] = useState('all');
   const [selectedUser, setSelectedUser] = useState<ResidentUser | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ building: '', block: '', floor: '', unit: '' });
@@ -64,13 +73,28 @@ export default function ManagerUser() {
   );
 
   const filteredUsers = useMemo(() => {
-    return allUsers.filter(user => {
+    return allUsers.filter((user) => {
       const search = searchTerm.toLowerCase();
-      return user.name.toLowerCase().includes(search) ||
-             user.email.toLowerCase().includes(search) ||
-             (user.phone && user.phone.includes(search));
+      const matchesSearch =
+        user.name.toLowerCase().includes(search) ||
+        user.email.toLowerCase().includes(search) ||
+        (user.phone && user.phone.includes(search));
+
+      const matchesBuilding =
+        filterBuilding === "all" || user.building === filterBuilding;
+      const matchesBlock = filterBlock === "all" || user.block === filterBlock;
+
+      return matchesSearch && matchesBuilding && matchesBlock;
     });
-  }, [allUsers, searchTerm]);
+  }, [allUsers, searchTerm, filterBuilding, filterBlock]);
+
+  const uniqueBuildings = useMemo(() => {
+    return Array.from(new Set(allUsers.map(u => u.building).filter((b): b is string => !!b))).sort();
+  }, [allUsers]);
+
+  const uniqueBlocks = useMemo(() => {
+    return Array.from(new Set(allUsers.map(u => u.block).filter((b): b is string => !!b))).sort();
+  }, [allUsers]);
 
   const formatAddress = (user: ResidentUser) => {
     if (!user.building && !user.block) return 'Chưa cập nhật';
@@ -131,15 +155,33 @@ export default function ManagerUser() {
       {/* Filters */}
       <Card className="p-6 mb-6">
         <div className="grid md:grid-cols-3 gap-4">
-          <div className="relative md:col-span-2">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               placeholder="Tìm kiếm theo tên, email, hoặc SĐT..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
+          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo tòa nhà" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả tòa nhà</SelectItem>
+              {uniqueBuildings.map(b => <SelectItem key={b} value={b}>Tòa {b}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterBlock} onValueChange={setFilterBlock}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo block" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả block</SelectItem>
+              {uniqueBlocks.map(b => <SelectItem key={b} value={b}>Block {b}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 

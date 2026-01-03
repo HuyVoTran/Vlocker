@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update API logics"
+git commit -m "Update Pages"
 git push
 
 Password@12345

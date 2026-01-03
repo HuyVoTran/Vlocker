@@ -6,6 +6,12 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '../ui/toast-context';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function Contact() {
   const contactInfo = [
@@ -92,12 +98,12 @@ export default function Contact() {
       {/* Contact Info Cards */}
       <div className="grid md:grid-cols-4 gap-4">
         {contactInfo.map((info, index) => (
-          <Card key={index} className="p-6 text-center hover:shadow-lg transition-shadow">
+          <Card key={index} className="p-6 text-center hover:shadow-lg transition-shadow gap-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
               {info.icon}
             </div>
-            <p className="text-sm text-gray-500 mb-1">{info.title}</p>
-            <p className="text-gray-900 mb-1">{info.content}</p>
+            <p className="text-sm text-gray-500">{info.title}</p>
+            <p className="text-gray-900">{info.content}</p>
             <p className="text-xs text-gray-500">{info.subContent}</p>
           </Card>
         ))}
@@ -230,29 +236,20 @@ export default function Contact() {
         {/* FAQ */}
         <Card className="p-6">
           <h4 className="text-gray-900 mb-4">Câu hỏi thường gặp</h4>
-          <div className="space-y-4">
+          <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
-              <div key={index} className="pb-4 border-b border-gray-200 last:border-0 last:pb-0">
-                <p className="text-gray-900 mb-2">{faq.question}</p>
-                <div className="text-sm text-gray-600 space-y-1">
-                  {faq.answer.map((line, i) => (
-                    <p key={i}>{line}</p>
-                  ))}
-                </div>
-              </div>
+              <AccordionItem value={`item-${index}`} key={index}>
+                <AccordionTrigger className='hover:no-underline'>{faq.question}</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2">
+                    {faq.answer.map((line, i) => (
+                      <p key={i}>{line}</p>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-blue-900 mb-2">💡 Cần hỗ trợ ngay?</p>
-            <p className="text-sm text-blue-700 mb-3">
-              Gọi hotline để được hỗ trợ trực tiếp 24/7
-            </p>
-            <Button className="w-full" size="sm">
-              <Phone className="w-4 h-4 mr-2" />
-              Gọi ngay 1900-0911
-            </Button>
-          </div>
+          </Accordion>
         </Card>
       </div>
 

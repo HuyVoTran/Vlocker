@@ -142,8 +142,19 @@ export default function Profile() {
   }, [status]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    const { id, value } = e.target; // 'id' được dùng thay cho 'name' trong form này
+    let processedValue = value;
+
+    // Lọc ký tự không hợp lệ tương tự trang đăng ký
+    if (id === "name") {
+      // Cho phép: A-Z, a-z, tiếng Việt có dấu, và khoảng trắng
+      processedValue = value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "");
+    } else if (id === "phone") {
+      // Chỉ cho nhập số
+      processedValue = value.replace(/[^0-9]/g, "");
+    }
+
+    setFormData(prev => ({ ...prev, [id]: processedValue }));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,11 +190,28 @@ export default function Profile() {
   };
 
   const handleSaveChanges = async () => {
+    // --- VALIDATION START ---
+    if (formData.name.trim().length < 1 || formData.name.trim().length > 25) {
+        showToast("Tên phải có từ 1 đến 25 ký tự.", "warning");
+        return;
+    }
+
+    // Regex cho SĐT Việt Nam: bắt đầu bằng 0, theo sau là 9 chữ số.
+    const phoneRegex = /^0\d{9}$/;
+    if (formData.phone && !phoneRegex.test(formData.phone)) {
+        showToast("Số điện thoại không hợp lệ. Phải có 10 chữ số và bắt đầu bằng 0.", "warning");
+        return;
+    }
+    // --- VALIDATION END ---
+
     try {
         const res = await fetch('/api/profile', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
+            body: JSON.stringify({
+              name: formData.name.trim(), // Gửi đi tên đã được trim
+              phone: formData.phone,
+            }),
         });
 
         const json = await res.json();
@@ -320,6 +348,7 @@ export default function Profile() {
                   value={formData.name}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  maxLength={25}
                   className="mt-2"
                 />
               </div>
@@ -340,6 +369,7 @@ export default function Profile() {
                   value={formData.phone}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  maxLength={10}
                   className="mt-2"
                 />
               </div>

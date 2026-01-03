@@ -107,14 +107,13 @@ export default function ManagerDashboard() {
       {/* Stats Grid */}
       <div className="grid md:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          <Card key={index} className="p-6 items-center hover:shadow-lg transition-shadow gap-0">
+            <div className="flex items-center gap-4">
               <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
                 {stat.icon}
               </div>
+                <p className="text-gray-800 text-xl font-semibold mb-1">{stat.value} {stat.label}</p>
             </div>
-            <p className="text-gray-500 text-sm mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
           </Card>
         ))}
       </div>

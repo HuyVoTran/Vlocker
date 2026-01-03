@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Package, Clock, User, Phone, Mail, MapPin } from "lucide-react";
+import { Package, Clock, User, Phone, Mail, MapPin, Search } from "lucide-react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import {
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Input } from "../ui/input";
 
 type BookingStatus = "active" | "stored" | "completed" | "cancelled";
 
@@ -93,6 +94,7 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookings, setBookings] = useState<HistoryBooking[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Manager filters
   const [period, setPeriod] = useState<PeriodFilter>("all");
@@ -114,7 +116,7 @@ export default function History() {
             setLoading(false);
             return;
           }
-          url = `/api/history/resident?userId=${userId}`;
+          url = `/api/history/resident`;
         } else {
           const params = new URLSearchParams();
           params.set("period", period);
@@ -158,11 +160,36 @@ export default function History() {
   const [activeTab, setActiveTab] = useState<BookingStatus | "all">("all");
 
   const filtered = useMemo(() => {
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+
     return bookings.filter((b) => {
-      if (activeTab === "all") return true;
-      return b.status === activeTab;
+      // Filter by tab first
+      if (activeTab !== "all" && b.status !== activeTab) {
+        return false;
+      }
+
+      // Then filter by search term
+      if (!lowercasedSearchTerm) {
+        return true; // No search term, so don't filter out
+      }
+
+      const locker = typeof b.lockerId === "string" ? undefined : b.lockerId;
+      const user = typeof b.userId === "string" ? undefined : b.userId;
+
+      if (role === "resident") {
+        return locker?.lockerId.toLowerCase().includes(lowercasedSearchTerm) ?? false;
+      }
+
+      // For manager
+      const matchesLocker = locker?.lockerId.toLowerCase().includes(lowercasedSearchTerm) ?? false;
+      const matchesUser =
+        user?.name.toLowerCase().includes(lowercasedSearchTerm) ||
+        user?.email.toLowerCase().includes(lowercasedSearchTerm) ||
+        user?.phone?.includes(lowercasedSearchTerm);
+
+      return matchesLocker || matchesUser;
     });
-  }, [bookings, activeTab]);
+  }, [bookings, activeTab, searchTerm, role]);
 
   if (loading) {
     return <div className="p-6">Đang tải lịch sử hoạt động...</div>;
@@ -193,7 +220,19 @@ export default function History() {
 
       {role === "manager" && (
         <Card className="p-4">
-          <div className="grid md:grid-cols-4 gap-4 items-end">
+          <div className="grid md:grid-cols-5 gap-4 items-end">
+            <div className="md:col-span-2">
+              <p className="text-xs text-gray-500 mb-1">Tìm kiếm</p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Mã tủ, tên, email, SĐT..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Khoảng thời gian</p>
               <Select
@@ -212,24 +251,26 @@ export default function History() {
               </Select>
             </div>
 
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Năm</p>
-              <Select
-                value={String(year)}
-                onValueChange={(val: string) => setYear(parseInt(val, 10))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn năm" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y} value={String(y)}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {period !== "all" && (
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Năm</p>
+                <Select
+                  value={String(year)}
+                  onValueChange={(val: string) => setYear(parseInt(val, 10))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn năm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {period === "month" && (
               <div>
@@ -271,6 +312,15 @@ export default function History() {
                 </Select>
               </div>
             )}
+          </div>
+        </Card>
+      )}
+
+      {role === "resident" && (
+        <Card className="p-4">
+          <div className="max-w-sm">
+            <p className="text-xs text-gray-500 mb-1">Tìm kiếm</p>
+            <Input placeholder="Tìm theo mã tủ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </Card>
       )}

@@ -61,6 +61,7 @@ interface BookingDetails {
 }
 
 export default function ManagerLockers() {
+  const [filterBuilding, setFilterBuilding] = useState('all');
   const [filterBlock, setFilterBlock] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,18 +81,24 @@ export default function ManagerLockers() {
       const user = booking.userId;
       if (!locker || !user) return false;
 
+      const matchesBuilding = filterBuilding === 'all' || locker.building === filterBuilding;
       const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
       const matchesStatus = filterStatus === 'all' || (filterStatus === 'reserved' && booking.status === 'active') || (filterStatus === 'in-use' && booking.status === 'stored');
       const matchesSearch = searchTerm.trim() === '' ||
                             locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             user.name.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesBlock && matchesStatus && matchesSearch;
+      return matchesBuilding && matchesBlock && matchesStatus && matchesSearch;
     });
-  }, [allBookings, filterBlock, filterStatus, searchTerm]);
+  }, [allBookings, filterBuilding, filterBlock, filterStatus, searchTerm]);
 
   const uniqueBlocks = useMemo(() => {
     const blocks = Array.from(new Set(allBookings.map(b => b.lockerId?.block).filter(Boolean)));
     return blocks.sort();
+  }, [allBookings]);
+
+  const uniqueBuildings = useMemo(() => {
+    const buildings = Array.from(new Set(allBookings.map(b => b.lockerId?.building).filter(Boolean)));
+    return buildings.sort();
   }, [allBookings]);
 
   const calculateDuration = (startTime?: string): string => {
@@ -148,18 +155,8 @@ export default function ManagerLockers() {
 
       {/* Filters */}
       <Card className="p-6 mb-6">
-        <div className="grid md:grid-cols-3 gap-4">
-          <Select value={filterBlock} onValueChange={setFilterBlock}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo block/tòa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả block</SelectItem>
-              {uniqueBlocks.map(block => (
-                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid md:grid-cols-4 gap-4">
+          <Input placeholder="Tìm kiếm theo mã tủ hoặc người dùng..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger>
               <SelectValue placeholder="Lọc theo trạng thái" />
@@ -170,7 +167,28 @@ export default function ManagerLockers() {
               <SelectItem value="in-use">Đang sử dụng</SelectItem>
             </SelectContent>
           </Select>
-          <Input placeholder="Tìm kiếm theo mã tủ hoặc người dùng..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo tòa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả tòa</SelectItem>
+              {uniqueBuildings.map((building: string) => (
+                <SelectItem key={building} value={building}>{`Tòa ${building}`}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterBlock} onValueChange={setFilterBlock}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo block" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả block</SelectItem>
+              {uniqueBlocks.map((block: string) => (
+                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
