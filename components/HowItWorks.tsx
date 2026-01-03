@@ -1,15 +1,25 @@
-import { Package, CheckCircle, HelpCircle} from 'lucide-react';
+"use client";
+
+import { Package, CheckCircle} from 'lucide-react';
 import { Button } from './ui/button';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
 
 export const metadata = {
   title: 'VLocker - Tủ thông minh cho chung cư',
 };
 
-export default function LandingPage() {
+export default function HowItWorks() {
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const steps = [
     {
@@ -52,9 +62,45 @@ export default function LandingPage() {
     }
   ];
 
+  const faqs = [
+    {
+      Q: 'Shipper có thể mở tủ của tôi không?',
+      A: [
+        'Không. Shipper chỉ được phép bỏ hàng vào tủ đã được đặt trước.',
+        'Sau khi đóng tủ, hệ thống sẽ tự động khóa và shipper không có quyền mở lại.'
+      ]
+    },
+    {
+      Q: 'Tôi cần thanh toán khi nào?',
+      A: [
+        'Người dùng cần thanh toán phí lưu trữ trước khi mở tủ để nhận đồ.',
+        'Phí được tính tự động theo thời gian sử dụng với mức 5.000 VNĐ/ngày.'
+      ]
+    },
+    {
+      Q: 'Nếu tôi quên đóng tủ thì sao?',
+      A: [
+        'Hệ thống sẽ cảnh báo trạng thái tủ chưa đóng trên Dashboard.',
+        'Ban quản lý có thể theo dõi và xử lý kịp thời để đảm bảo an toàn.'
+      ]
+    },
+    {
+      Q: 'Ban quản lý có xem được lịch sử sử dụng tủ không?',
+      A: [
+        'Có. Quản lý có thể xem lịch sử thuê tủ, trạng thái hiện tại và các báo cáo thống kê để phục vụ công tác vận hành.'
+      ]
+    },
+    {
+      Q: 'Tôi có thể quản lý tủ khi không ở nhà không?',
+      A: [
+        'Có. Người dùng có thể theo dõi trạng thái, thanh toán và mở tủ từ xa, giúp việc giao nhận hàng hóa linh hoạt và thuận tiện hơn.'
+      ]
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-[#1e1e1e] select-none">
-      {/* Navigation */}
+{/* Navigation */}
       <nav className="border-b border-gray-200 bg-white fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -193,61 +239,28 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-16 bg-white border rounded-t-3xl border-white">
-          <div className="max-w-7xl mx-auto px-6">
+        <section className="py-16">
+          <div className="max-w-4xl mx-auto px-6 ">
             <div className="text-center mb-12">
-              <h2 className="font-semibold text-3xl mb-4">FAQs</h2>
-              <p className="text-gray-600">
+              <h2 className="font-semibold text-3xl mb-4 text-black">FAQs</h2>
+              <p className="text-gray-800">
                 Giải đáp các thắc mắc phổ biến về VLocker
               </p>
             </div>
-            <div className="grid md:grid-cols-5 gap-8">
-            {[
-              {Q: 'Shipper có thể mở tủ của tôi không?',
-                A: [
-                  'Không. Shipper chỉ được phép bỏ hàng vào tủ đã được đặt trước.',
-                  'Sau khi đóng tủ, hệ thống sẽ tự động khóa và shipper không có quyền mở lại.']
-              },
-              {Q: 'Tôi cần thanh toán khi nào?',
-                A: [
-                  'Người dùng cần thanh toán phí lưu trữ trước khi mở tủ để nhận đồ.',
-                  'Phí được tính tự động theo thời gian sử dụng với mức 5.000 VNĐ/ngày.']
-              },
-              {Q: 'Nếu tôi quên đóng tủ thì sao?',
-                A: [
-                  'Hệ thống sẽ cảnh báo trạng thái tủ chưa đóng trên Dashboard.',
-                  'Ban quản lý có thể theo dõi và xử lý kịp thời để đảm bảo an toàn.']
-              },
-              {Q: 'Ban quản lý có xem được lịch sử sử dụng tủ không?',
-                A: [
-                  'Có. Quản lý có thể xem lịch sử thuê tủ.',
-                  'Trạng thái hiện tại và các báo cáo thống kê để phục vụ công tác vận hành.']
-              },
-              {Q: 'Tôi có thể quản lý tủ khi không ở nhà không?',
-                A: [
-                  'Có. Người dùng có thể theo dõi trạng thái, thanh toán và mở tủ từ xa.',
-                  'Giúp việc giao nhận hàng hóa linh hoạt và thuận tiện hơn.']
-              }
-            ].map((faq, index) => (
-              <div key={index} className="flex flex-col items-start gap-3">
-                {/* Question */}
-                <div className="flex items-start gap-3">
-                  <HelpCircle className="w-6 h-6 text-[#1e1e1e] flex-shrink-0 mt-0.5" />
-                  <p className="text-gray-700 font-bold leading-snug">
-                    {faq.Q}
-                  </p>
-                </div>
-
-                {/* Answer */}
-                <div className="text-gray-700 leading-relaxed space-y-1">
-                  {faq.A.map((line, i) => (
-                    <p key={i} className="mb-3">{line}</p>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem value={`item-${index + 1}`} key={index}>
+                  <AccordionTrigger className="text-black text-lg hover:no-underline">{faq.Q}</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="text-neutral-800 text-m space-y-2">
+                      {faq.A.map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </section>
       </div>
@@ -262,55 +275,20 @@ export default function LandingPage() {
             Đăng ký tài khoản và trải nghiệm dịch vụ tủ thông minh hiện đại nhất
           </p>
           <div className="flex gap-4 justify-center">
-            <Button className="bg-white text-black hover:bg-white hover:text-black" onClick={() => router.push("auth/login")}> 
-                Đăng nhập
-            </Button>
+            {status === "loading" ? (
+              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" disabled aria-busy="true" />
+            ) : status === "authenticated" ? (
+              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" onClick={() => router.push(`/${session?.user?.role || 'resident'}/dashboard`)}>
+                Dashboard
+              </Button>
+            ) : (
+              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" onClick={() => router.push("auth/login")}>
+                  Đăng nhập
+              </Button>
+            )}
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-neutral-900 text-neutral-400 py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-3">
-              <h1 className="text-white font-light">VLocker</h1>
-              </div>
-              <p className="text-sm">
-                Giải pháp tủ thông minh cho chung cư hiện đại
-              </p>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Sản phẩm</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Tủ thông minh</li>
-                <li>Ứng dụng di động</li>
-                <li>Hệ thống quản lý</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Công ty</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Về chúng tôi</li>
-                <li>Liên hệ</li>
-                <li>Chính sách bảo mật</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Liên hệ</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Hotline: 1900-xxxx</li>
-                <li>Email: support@vlocker.vn</li>
-                <li>Địa chỉ: TP. Hồ Chí Minh</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-neutral-800 mt-8 pt-8 text-center text-sm">
-            <p>&copy; 2025 VLocker. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

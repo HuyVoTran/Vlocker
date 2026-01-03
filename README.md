@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Test commit"
+git commit -m "Update AboutUs, PrivacyPolicy, TermsOfService, Layout"
 git push
 
 Password@12345

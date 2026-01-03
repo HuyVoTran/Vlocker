@@ -75,7 +75,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col select-none">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <Link href={getLink('dashboard')} className="cursor-pointer hover:opacity-80 transition-opacity">
+          <Link href={getLink('../')} className="cursor-pointer hover:opacity-80 transition-opacity">
               <h1 className="text-lg text-black font-light">VLocker</h1>
               <p className="text-xs text-neutral-500">Smart Locker System</p>
           </Link>

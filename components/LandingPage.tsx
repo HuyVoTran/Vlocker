@@ -1,8 +1,11 @@
+"use client";
+
 import { Shield, Clock, Lock, Smartphone, Package, CheckCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export const metadata = {
   title: 'VLocker - Tủ thông minh cho chung cư',
@@ -10,24 +13,25 @@ export const metadata = {
 
 export default function LandingPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const features = [
     {
-      icon: <Shield className="w-8 h-8 text-[#1e1e1e]" />,
+      icon: <Shield className="w-8 h-8 text-black" />,
       title: 'Bảo mật nhiều lớp',
       description: 'Tủ thông minh sử dụng OTP, trạng thái tủ theo thời gian thực và xác thực người dùng.'
     },
     {
-      icon: <Clock className="w-8 h-8 text-[#1e1e1e]" />,
+      icon: <Clock className="w-8 h-8 text-black" />,
       title: 'Gửi & nhận linh hoạt',
       description: 'Hỗ trợ shipper giao hàng và người dùng nhận đồ bất kỳ lúc nào.'
     },
     {
-      icon: <Lock className="w-8 h-8 text-[#1e1e1e]" />,
+      icon: <Lock className="w-8 h-8 text-black" />,
       title: 'Quản lý trạng thái tủ',
       description: 'Theo dõi tủ trống, tủ đã đặt, tủ đang mở hoặc đã khóa ngay trên dashboard.'
     },
     {
-      icon: <Smartphone className="w-8 h-8 text-[#1e1e1e]" />,
+      icon: <Smartphone className="w-8 h-8 text-black" />,
       title: 'Thanh toán & mở khóa tiện lợi',
       description: 'Thanh toán nhanh qua Momo / VNPAY để mở khóa và lấy đồ.'
     }
@@ -58,22 +62,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#1e1e1e] select-none">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200 bg-white fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-black font-light">VLocker</h1>
-            </div>
-            <div className="flex gap-3">
-              <Button className="bg-[#1e1e1e]" onClick={() => router.push("auth/login")}> 
-                Đăng nhập
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <section className="pt-24 pb-16 bg-[#1e1e1e]">
         <div className="max-w-7xl mx-auto px-6">
@@ -196,55 +184,20 @@ export default function LandingPage() {
             Đăng ký tài khoản và trải nghiệm dịch vụ tủ thông minh hiện đại nhất
           </p>
           <div className="flex gap-4 justify-center">
-            <Button className="bg-white text-black hover:bg-white hover:text-black" onClick={() => router.push("auth/login")}> 
-                Đăng nhập
-            </Button>
+            {status === "loading" ? (
+              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" disabled aria-busy="true" />
+            ) : status === "authenticated" ? (
+              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" onClick={() => router.push(`/${session?.user?.role || 'resident'}/dashboard`)}>
+                Dashboard
+              </Button>
+            ) : (
+              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" onClick={() => router.push("auth/login")}>
+                  Đăng nhập
+              </Button>
+            )}
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-neutral-900 text-neutral-400 py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-3">
-              <h1 className="text-white font-light">VLocker</h1>
-              </div>
-              <p className="text-sm">
-                Giải pháp tủ thông minh cho chung cư hiện đại
-              </p>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Sản phẩm</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Tủ thông minh</li>
-                <li>Ứng dụng di động</li>
-                <li>Hệ thống quản lý</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Công ty</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Về chúng tôi</li>
-                <li>Liên hệ</li>
-                <li>Chính sách bảo mật</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Liên hệ</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Hotline: 1900-xxxx</li>
-                <li>Email: support@vlocker.vn</li>
-                <li>Địa chỉ: TP. Hồ Chí Minh</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-neutral-800 mt-8 pt-8 text-center text-sm">
-            <p>&copy; 2025 VLocker. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
