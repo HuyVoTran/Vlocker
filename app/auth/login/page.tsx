@@ -8,27 +8,54 @@ import GoogleIcon from "@/components/ui/GoogleIcon"; // Sửa đường dẫn im
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Chuyển hướng nếu người dùng chưa đăng nhập hoặc hồ sơ đã hoàn chỉnh
+  // Chuyển hướng sau khi đăng nhập
   useEffect(() => {
-    // Chỉ thực hiện chuyển hướng khi session đã được xác thực
-    if (status === "authenticated") {
-      if (session?.user?.isProfileComplete === false) {
-        // Bắt buộc người dùng hoàn tất thông tin nếu chưa có
-        router.push("/auth/complete-profile");
-      } else if (session?.user?.role === "resident") {
-        router.push("/resident/dashboard");
-      } else if (session?.user?.role === "manager") {
-        router.push("/manager/dashboard");
+    const verifyAndRedirect = async () => {
+      if (status === "authenticated") {
+        // Nếu session nói profile đã hoàn tất, chuyển hướng ngay
+        if (session.user?.isProfileComplete) {
+          const role = session.user?.role;
+          router.push(role === 'manager' ? '/manager/dashboard' : '/resident/dashboard');
+          return;
+        }
+
+        // Nếu session nói profile chưa hoàn tất, gọi API để xác minh lại.
+        // Điều này xử lý trường hợp người dùng đã có địa chỉ trong DB
+        // nhưng cờ isProfileComplete chưa được cập nhật trong session.
+        try {
+          const res = await fetch('/api/auth/complete-profile'); // GET request
+          if (!res.ok) {
+            throw new Error(`API call failed with status: ${res.status}`);
+          }
+          const data = await res.json();
+
+          if (data.isProfileComplete) {
+            // API xác nhận profile đã hoàn tất (hoặc vừa tự động hoàn tất).
+            // Cập nhật session phía client và chuyển hướng đến dashboard.
+            await update({ isProfileComplete: true });
+            const role = session.user?.role;
+            router.push(role === 'manager' ? '/manager/dashboard' : '/resident/dashboard');
+          } else {
+            // API xác nhận profile thực sự chưa hoàn tất.
+            router.push("/auth/complete-profile");
+          }
+        } catch (apiError) {
+          console.error("Lỗi khi xác minh hồ sơ:", apiError);
+          // Nếu có lỗi, an toàn nhất là đưa họ đến trang hoàn tất hồ sơ.
+          router.push("/auth/complete-profile");
+        }
       }
-    }
-  }, [session, status, router]);
+    };
+
+    verifyAndRedirect();
+  }, [session, status, router, update]);
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

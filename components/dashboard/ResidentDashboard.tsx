@@ -151,7 +151,7 @@ const formatSize = (size?: string) => {
     // },
     {
       title: `Chào ${user?.name || 'bạn'}`,
-      description: `Mọi dữ liệu của bạn được lưu trữ an toàn, mã hóa và chỉ bạn mới có quyền truy cập.\nBạn đang sử dụng ${myLockers.length} tủ, nếu bạn muốn sử dụng thêm hãy đăng ký tủ mới liền nha!`,
+      description: `Bạn đang sử dụng ${myLockers.length} tủ, nếu bạn muốn sử dụng thêm hãy đăng ký tủ mới liền nha!`,
       cta1: { text: "Xem tủ của tôi", action: () => onNavigate('my-lockers') },
       cta2: { text: "Xem lịch sử", action: () => onNavigate('history') },
       image: "https://i.pinimg.com/1200x/03/98/03/039803e9538226f3dd913cf3b7246771.jpg",
