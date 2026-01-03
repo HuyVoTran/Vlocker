@@ -175,7 +175,7 @@ export default function LandingPage() {
       </div>
 
       {/* CTA Section */}
-      <section className="py-16 mb-8">
+      <section className="py-16 h-[40vh]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-white mb-4">
             Bắt đầu sử dụng VLocker ngay hôm nay
