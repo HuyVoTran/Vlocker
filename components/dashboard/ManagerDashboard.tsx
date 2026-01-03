@@ -1,7 +1,7 @@
 'use client';
 
 import { Package, PackageCheck, PackageX, TrendingUp, AlertCircle } from 'lucide-react';
-import { Card } from './ui/card';
+import { Card } from '../ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import useSWR from 'swr';
 

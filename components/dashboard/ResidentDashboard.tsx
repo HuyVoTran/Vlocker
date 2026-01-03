@@ -3,12 +3,12 @@ import useSWR from "swr";
 import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import { useToast } from './ui/toast-context';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { useToast } from '../ui/toast-context';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -415,7 +415,10 @@ const formatSize = (size?: string) => {
       {/* My Lockers Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-gray-900">Tủ của tôi</h2>
+          <div>
+            <h2 className="text-gray-900">Tủ của tôi</h2>
+            <p className="text-sm text-gray-500">Xem các tủ đang thuê hoặc đang sử dụng</p>
+          </div>
           <Button variant="outline" onClick={() => onNavigate('my-lockers')}>
             Xem tất cả
           </Button>

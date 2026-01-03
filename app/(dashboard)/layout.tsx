@@ -1,7 +1,7 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
+import Sidebar from "@/components/layout/DashboardSidebar";
+import Header from "@/components/layout/DashboardHeader";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";

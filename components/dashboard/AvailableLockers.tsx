@@ -1,10 +1,10 @@
 import { Package, Edit, Lock, Play, Plus, Trash2 } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
 import useSWR from 'swr';
-import { Badge } from './ui/badge';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "../ui/table";
 import {
   Dialog,
   DialogContent,
@@ -20,10 +20,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
+} from "../ui/dialog";
 import { useState, useMemo } from 'react';
-import { Label } from './ui/label';
-import { useToast } from './ui/toast-context';
+import { Label } from '../ui/label';
+import { useToast } from '../ui/toast-context';
 
 // Hàm fetcher chung cho SWR (tái sử dụng từ các component khác)
 const fetcher = async (url: string) => {

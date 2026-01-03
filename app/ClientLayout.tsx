@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from 'next-auth/react';
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
+import Sidebar from "@/components/layout/DashboardSidebar";
+import Header from "@/components/layout/DashboardHeader";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();

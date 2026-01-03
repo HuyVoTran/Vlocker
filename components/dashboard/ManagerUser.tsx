@@ -1,9 +1,9 @@
 'use client';
 import { User, Edit, Search } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "../ui/table";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter
-} from "./ui/dialog";
+} from "../ui/dialog";
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
-import { useToast } from './ui/toast-context';
+import { useToast } from '../ui/toast-context';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);

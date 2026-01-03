@@ -13,8 +13,8 @@ import {
   Lock,
   CreditCard,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
+import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -23,19 +23,19 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogDescription,
-} from "./ui/dialog";
-import { Card } from "./ui/card";
+} from "../ui/dialog";
+import { Card } from "../ui/card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "./ui/tabs";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
-import { ScrollArea } from "./ui/scroll-area";
-import { useToast } from "./ui/toast-context";
+} from "../ui/tabs";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { ScrollArea } from "../ui/scroll-area";
+import { useToast } from "../ui/toast-context";
 
 type NotificationType =
   | 'mailsend'    // Thư manager gửi đi

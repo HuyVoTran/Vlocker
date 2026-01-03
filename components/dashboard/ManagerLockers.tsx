@@ -1,9 +1,9 @@
 'use client';
 import { Package, Clock, X } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Input } from './ui/input';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Input } from '../ui/input';
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "../ui/table";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter
-} from "./ui/dialog";
+} from "../ui/dialog";
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
-import { useToast } from './ui/toast-context';
+import { useToast } from '../ui/toast-context';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);

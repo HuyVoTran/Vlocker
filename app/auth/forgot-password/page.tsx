@@ -61,9 +61,19 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         
-        <h1 className="text-2xl font-bold text-center mb-6 text-black-600">
-          Quên Mật Khẩu
-        </h1>
+        <div className="relative flex items-center justify-center mb-6">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="absolute left-0 text-neutral-300 hover:text-neutral-400"
+            aria-label="Về trang chủ"
+          >
+            <svg className="w-4 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h1 className="text-2xl font-bold text-center text-black-600">
+            Quên Mật Khẩu
+          </h1>
+        </div>
 
         {/* ERROR */}
         {error && (

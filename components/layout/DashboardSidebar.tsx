@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { LogOut, LayoutDashboard, Package, FileText, PlusCircle, User, Users, History, Contact } from 'lucide-react';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 import Link from 'next/link';
 import { signOut, useSession } from "next-auth/react";
 
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "./ui/alert-dialog";
+} from "../ui/alert-dialog";
 
 interface SidebarProps {
   isOpen: boolean;

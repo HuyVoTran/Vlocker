@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Package, Clock, User, Phone, Mail, MapPin } from "lucide-react";
-import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card } from "../ui/card";
+import { Badge } from "../ui/badge";
 import {
   Table,
   TableBody,
@@ -10,20 +10,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "../ui/table";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "./ui/tabs";
+} from "../ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 
 type BookingStatus = "active" | "stored" | "completed" | "cancelled";
 
@@ -285,7 +285,7 @@ export default function History() {
       >
         <TabsList className="grid w-full max-w-xl grid-cols-5">
           <TabsTrigger value="all">Tất cả</TabsTrigger>
-          <TabsTrigger value="active">Đang hoạt động</TabsTrigger>
+          <TabsTrigger value="active">Đã đặt tủ</TabsTrigger>
           <TabsTrigger value="stored">Đã lưu đồ</TabsTrigger>
           <TabsTrigger value="completed">Hoàn tất</TabsTrigger>
           <TabsTrigger value="cancelled">Đã hủy</TabsTrigger>
@@ -398,7 +398,7 @@ export default function History() {
                                   : "bg-blue-100 text-blue-700"
                               }
                             >
-                              {b.status === "active" && "Đang hoạt động"}
+                              {b.status === "active" && "Đã đặt tủ"}
                               {b.status === "stored" && "Đã lưu đồ"}
                               {b.status === "completed" && "Hoàn tất"}
                               {b.status === "cancelled" && "Đã hủy"}

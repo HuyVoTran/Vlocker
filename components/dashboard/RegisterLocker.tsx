@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Package, MapPin, DollarSign, Search } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Input } from './ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { useSession } from 'next-auth/react';
-import { useToast } from './ui/toast-context';
+import { useToast } from '../ui/toast-context';
 
 export interface Locker {
   _id: string;

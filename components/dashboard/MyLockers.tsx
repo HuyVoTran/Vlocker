@@ -1,7 +1,7 @@
 import { Package, Clock, CreditCard, Unlock, Lock } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
+} from "../ui/dialog";
 import { useState, useEffect } from 'react';
-import { useToast } from './ui/toast-context';
+import { useToast } from '../ui/toast-context';
 import { useRouter } from 'next/navigation';
 
 export interface Locker {

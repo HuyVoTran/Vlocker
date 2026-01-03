@@ -1,10 +1,10 @@
 import { Mail, Phone, MapPin, Edit, Calendar, Package } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { Separator } from './ui/separator';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Separator } from '../ui/separator';
 import {
   Table,
   TableBody,
@@ -12,12 +12,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Badge } from './ui/badge';
+} from "../ui/table";
+import { Badge } from '../ui/badge';
 import { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useToast } from './ui/toast-context';
+import { useToast } from '../ui/toast-context';
 
 // Định nghĩa các kiểu dữ liệu sẽ lấy về
 interface UserProfile {

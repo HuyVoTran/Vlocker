@@ -1,4 +1,4 @@
-import PublicPagesLayout from "@/components/PublicPagesLayout";
+import PublicPagesLayout from "@/components/layout/PublicPagesLayout";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (

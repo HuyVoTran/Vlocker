@@ -1,4 +1,4 @@
-import LandingPage from './components/LandingPage';
+import LandingPage from './components/public/LandingPage';
 
 export default function App() {
   // Hiện tại bạn chỉ giữ LandingPage trên App

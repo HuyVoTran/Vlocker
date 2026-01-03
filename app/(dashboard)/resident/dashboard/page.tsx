@@ -1,9 +1,9 @@
 "use client";
 
-import ResidentDashboard from "@/components/ResidentDashboard";
+import ResidentDashboard from "@/components/dashboard/ResidentDashboard";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import type { Locker } from "@/components/ResidentDashboard";
+import type { Locker } from "@/components/dashboard/ResidentDashboard";
 
 export default function Page() {
   const { data: session, status } = useSession();

@@ -1,5 +1,5 @@
 "use client";
-import Notifications from "@/components/Notifications";
+import Notifications from "@/components/dashboard/Notifications";
 
 export default function Page() {
   return <Notifications />;

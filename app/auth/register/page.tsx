@@ -20,6 +20,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [agreedToTerms, setAgreedToTerms] = useState<boolean>(false);
 
   // 2. Sử dụng Interface đã định nghĩa cho state
   const [formData, setFormData] = useState<FormData>({
@@ -101,6 +102,12 @@ export default function RegisterPage() {
         return;
       }
 
+      if (!agreedToTerms) {
+        setError("Bạn phải đồng ý với Chính sách và Điều khoản để đăng ký.");
+        setLoading(false);
+        return;
+      }
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -149,10 +156,20 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-10 select-none">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
-        <h1 className="text-2xl font-bold text-center mb-6 text-black-600">
-          Đăng Ký Cư Dân
-        </h1>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-xl">
+        <div className="relative flex items-center justify-center mb-6">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="absolute left-0 text-neutral-300 hover:text-neutral-400"
+            aria-label="Về trang chủ"
+          >
+            <svg className="w-4 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h1 className="text-2xl font-bold text-center text-black-600">
+            Đăng Ký Cư Dân
+          </h1>
+        </div>
 
         {error && (
           <p className="text-red-500 text-sm mb-4 text-center bg-red-50 p-2 rounded border border-red-200">
@@ -171,7 +188,7 @@ export default function RegisterPage() {
                 placeholder="Nguyễn Văn A"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+                className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
                 required
               />
             </div>
@@ -183,7 +200,7 @@ export default function RegisterPage() {
                 placeholder="0901234567"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+                className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
                 required
                 maxLength={11}
               />
@@ -198,7 +215,7 @@ export default function RegisterPage() {
               placeholder="email@example.com"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
               required
             />
           </div>
@@ -212,7 +229,7 @@ export default function RegisterPage() {
                 placeholder="******"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+                className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
                 required
               />
             </div>
@@ -224,7 +241,7 @@ export default function RegisterPage() {
                 placeholder="******"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+                className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
                 required
               />
             </div>
@@ -234,13 +251,13 @@ export default function RegisterPage() {
           <p className="text-sm font-semibold text-gray-600 mb-2">Địa chỉ căn hộ</p>
 
           {/* Nhóm thông tin địa chỉ */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           <div>
             <select
               name="building"
               value={formData.building}
               onChange={handleSelect}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
               required
             >
               <option value="">Tòa</option>
@@ -257,7 +274,7 @@ export default function RegisterPage() {
               name="block"
               value={formData.block}
               onChange={handleSelect}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
               required
             >
               <option value="">Block</option>
@@ -274,7 +291,7 @@ export default function RegisterPage() {
               name="floor"
               value={formData.floor}
               onChange={handleSelect}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
               required
             >
               <option value="">Tầng</option>
@@ -291,7 +308,7 @@ export default function RegisterPage() {
               name="unit"
               value={formData.unit}
               onChange={handleSelect}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
+              className="text-sm w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-black-400"
               required
             >
               <option value="">Căn</option>
@@ -303,10 +320,36 @@ export default function RegisterPage() {
           </div>
           </div>
 
+          {/* Điều khoản và chính sách */}
+          <div className="flex justify-center items-center pt-2">
+            <div className="flex items-center h-5">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="terms" className="text-gray-700">
+                Tôi đã đọc và đồng ý với{' '}
+                <a href="/PrivacyPolicy" target="_blank" rel="noopener noreferrer" className="font-medium text-indigo-600 hover:text-indigo-500">
+                  Chính sách
+                </a>
+                {' và '}
+                <a href="/TermsofService" target="_blank" rel="noopener noreferrer" className="font-medium text-indigo-600 hover:text-indigo-500">
+                  Điều khoản
+                </a>
+              </label>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white py-2 rounded-md transition mt-6 ${
+            className={`w-full text-white py-2 rounded-md transition ${
               loading ? "bg-gray-400 cursor-not-allowed" : "bg-neutral-800 hover:bg-neutral-700"
             }`}
           >

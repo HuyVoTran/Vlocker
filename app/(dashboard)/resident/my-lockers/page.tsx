@@ -1,10 +1,10 @@
 "use client";
 
-import MyLockers from "@/components/MyLockers";
+import MyLockers from "@/components/dashboard/MyLockers";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import type { MyLockerItem } from "@/components/MyLockers";
+import type { MyLockerItem } from "@/components/dashboard/MyLockers";
 
 // Hàm fetcher chung cho SWR
 const fetcher = async (url: string) => {

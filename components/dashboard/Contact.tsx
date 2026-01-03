@@ -1,11 +1,11 @@
 import { Phone, Mail, MapPin, Clock, Send, MessageSquare, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { useToast } from './ui/toast-context';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { useToast } from '../ui/toast-context';
 
 export default function Contact() {
   const contactInfo = [

@@ -1,12 +1,12 @@
 'use client';
 import { FileText, Upload, AlertCircle, CheckCircle, Clock, User, XCircle } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Badge } from './ui/badge';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Badge } from '../ui/badge';
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "../ui/table";
 import {
   Dialog,
   DialogContent,
@@ -22,10 +22,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "./ui/dialog";
+} from "../ui/dialog";
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useToast } from './ui/toast-context';
+import { useToast } from '../ui/toast-context';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 interface ReportData {

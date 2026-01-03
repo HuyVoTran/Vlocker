@@ -1,6 +1,6 @@
 'use client';
 
-import ManagerUser from "@/components/ManagerUser";
+import ManagerUser from "@/components/dashboard/ManagerUser";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

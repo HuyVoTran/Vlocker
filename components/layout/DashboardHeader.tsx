@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Menu, Bell } from 'lucide-react';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback } from './ui/avatar';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
