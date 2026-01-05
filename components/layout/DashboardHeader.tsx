@@ -22,24 +22,30 @@ export default function Header({ userRole }: HeaderProps) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Chỉ fetch khi người dùng đã được xác thực
-    if (session) {
-      const fetchUnreadCount = async () => {
-        try {
-          const res = await fetch('/api/notifications/unread-count'); // Sử dụng endpoint mới
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success) {
-              setUnreadCount(data.data.count); // API đã trả về số lượng
-            }
+    const fetchUnreadCount = async () => {
+      if (!session) return; // Không fetch nếu không có session
+      try {
+        const res = await fetch('/api/notifications/unread-count');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setUnreadCount(data.data.unreadCount);
           }
-        } catch (error) {
-          console.error("Không thể tải số lượng thông báo:", error);
         }
-      };
-      fetchUnreadCount();
-    }
-  }, [session]); // Chạy lại khi session thay đổi
+      } catch (error) {
+        console.error("Không thể tải số lượng thông báo:", error);
+      }
+    };
+
+    // Fetch lần đầu khi có session
+    fetchUnreadCount();
+
+    // Lắng nghe sự kiện để cập nhật realtime
+    window.addEventListener('notificationsUpdated', fetchUnreadCount);
+
+    // Dọn dẹp listener khi component unmount
+    return () => window.removeEventListener('notificationsUpdated', fetchUnreadCount);
+  }, [session]);
 
   const role = session?.user?.role || userRole || 'resident';
   const fullName = session?.user?.name || (role === 'resident' ? 'Người dùng' : 'Quản lý');

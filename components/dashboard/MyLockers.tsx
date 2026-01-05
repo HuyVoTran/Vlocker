@@ -1,4 +1,4 @@
-import { Package, Clock, CreditCard, Unlock, Lock } from 'lucide-react';
+import { Package, Clock, CreditCard, Unlock, Lock, Search } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -10,9 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../ui/toast-context';
 import { useRouter } from 'next/navigation';
+import { Input } from '../ui/input';
 
 export interface Locker {
   _id?: string;
@@ -51,6 +59,8 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   const [loading, setLoading] = useState<string | null>(null); // Track which action is loading
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date()); // For realtime countdown
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'pending', 'paid', 'active'
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -252,6 +262,36 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
     }
   };
 
+  const filteredAndSortedLockers = useMemo(() => {
+    // Define sort order priority
+    const getSortPriority = (item: MyLockerItem) => {
+      if (item.booking.status === 'stored' && item.booking.paymentStatus === 'paid') {
+        return 1; // 1. Đã thanh toán
+      }
+      if (item.booking.status === 'stored' && item.booking.paymentStatus === 'pending') {
+        return 2; // 2. Chưa thanh toán
+      }
+      if (item.booking.status === 'active') {
+        return 3; // 3. Chưa dùng
+      }
+      return 4; // Others
+    };
+
+    return myLockers
+      .filter(item => {
+        const matchesFilter =
+          activeFilter === 'all' ||
+          (activeFilter === 'pending' && item.booking.status === 'stored' && item.booking.paymentStatus === 'pending') ||
+          (activeFilter === 'paid' && item.booking.status === 'stored' && item.booking.paymentStatus === 'paid') ||
+          (activeFilter === 'active' && item.booking.status === 'active');
+
+        const matchesSearch = item.locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesFilter && matchesSearch;
+      })
+      .sort((a, b) => getSortPriority(a) - getSortPriority(b));
+  }, [myLockers, searchTerm, activeFilter]);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
@@ -259,9 +299,35 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
         <p className="text-gray-600">Quản lý tất cả các tủ bạn đang sử dụng</p>
       </div>
 
+      {/* Filters and Search */}
+      <Card className="p-4 mb-6">
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Tìm theo mã tủ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lọc theo trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="paid">Đã thanh toán</SelectItem>
+              <SelectItem value="pending">Chưa thanh toán</SelectItem>
+              <SelectItem value="active">Chưa dùng</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
       <div className="grid md:grid-cols-3 gap-4">
-        {myLockers && myLockers.length > 0 ? (
-          myLockers.map((mylocker) => (
+        {filteredAndSortedLockers.length > 0 ? (
+          filteredAndSortedLockers.map((mylocker) => (
             <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -274,24 +340,26 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                   </div>
                 </div>
                 {mylocker.booking.status === 'active' ? (
-                  <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
+                  <Badge className="bg-gray-100 text-gray-700">Đang thuê</Badge>
                 ) : mylocker.booking.paymentStatus === 'pending' ? (
                   <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
                 ) : mylocker.booking.paymentStatus === 'paid' ? (
                   <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
                 ) : (
-                  <Badge className="bg-grey-100 text-grey-700">Không có</Badge>
+                  <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
                 )}
               </div>
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  {mylocker.booking.status === 'active' ? (
+                  {mylocker.booking.paymentStatus === 'active' ? (
                     <span className="text-gray-600">Chưa tính tiền</span>
-                  ) : mylocker.booking.status === 'stored' ? (
+                  ) : mylocker.booking.paymentStatus === 'pending' ? (
                     <span className="text-gray-600">Chờ thanh toán</span>
+                  ): mylocker.booking.paymentStatus === 'paid' ? (
+                    <span className="text-gray-600">Đã thanh toán</span>
                   ) : (
-                    <span className="text-green-700">Đã thanh toán</span>
+                    <span className="text-gray-600">Không có</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
@@ -307,15 +375,28 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                 <Button className="w-full" variant="default" onClick={() => setSelectedLocker(mylocker)}>
                   Chi tiết
                 </Button>
-              ) : (
-                <Button className="w-full" variant="outline" onClick={() => setSelectedLocker(mylocker)}>
+              ) : mylocker.booking.paymentStatus === 'pending' ? (
+                <Button className="w-full" variant="default" onClick={() => setSelectedLocker(mylocker)}>
                   Thanh toán ngay
+                </Button>
+              ) : mylocker.booking.paymentStatus === 'paid' ? (
+                <Button className="w-full" variant="default" onClick={() => setSelectedLocker(mylocker)}>
+                  Mở tủ
+                </Button>
+              ) : (
+                <Button className="w-full" variant="default" onClick={() => setSelectedLocker(mylocker)}>
+                  Không có
                 </Button>
               )}
             </Card>
           ))
         ) : (
-          <p className="text-gray-500 col-span-3">Bạn chưa có tủ nào</p>
+          <div className="col-span-3 text-center py-10">
+            <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500">
+              {myLockers.length === 0 ? "Bạn chưa có tủ nào." : "Không tìm thấy tủ nào phù hợp với bộ lọc."}
+            </p>
+          </div>
         )}
       </div>
       <div>
@@ -383,7 +464,7 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                     <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
                     {selectedLocker.booking?.paymentStatus === 'paid' ? (
                       <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
-                    ) : selectedLocker.booking?.status === 'stored' ? (
+                    ) : selectedLocker.booking?.paymentStatus === 'pending' ? (
                       <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
                     ) : (
                       <Badge className="bg-gray-100 text-gray-700">Không có</Badge>

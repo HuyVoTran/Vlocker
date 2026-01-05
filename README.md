@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Pages"
+git commit -m "Update Notifications API & UI, Lazy load, My Locker Search & Filter; Fix Bugs, My Lockers"
 git push
 
 Password@12345

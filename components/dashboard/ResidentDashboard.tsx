@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSession } from "next-auth/react";
@@ -116,6 +116,24 @@ const formatSize = (size?: string) => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [registering, setRegistering] = useState<boolean>(false);
+
+  const sortedMyLockers = useMemo(() => {
+    // Define sort order priority from MyLockers.tsx
+    const getSortPriority = (item: MyLockerItem) => {
+      if (item.booking.status === 'stored' && item.booking.paymentStatus === 'paid') {
+        return 1; // 1. Đã thanh toán
+      }
+      if (item.booking.status === 'stored' && item.booking.paymentStatus === 'pending') {
+        return 2; // 2. Chưa thanh toán
+      }
+      if (item.booking.status === 'active') {
+        return 3; // 3. Chưa dùng
+      }
+      return 4; // Others
+    };
+
+    return [...myLockers].sort((a, b) => getSortPriority(a) - getSortPriority(b));
+  }, [myLockers]);
 
   const slides = [
     {
@@ -412,7 +430,7 @@ const formatSize = (size?: string) => {
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           {myLockers.length > 0 ? (
-            myLockers.slice(0, 3).map((mylocker) => (
+            sortedMyLockers.slice(0, 3).map((mylocker) => (
               <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -425,9 +443,13 @@ const formatSize = (size?: string) => {
                     </div>
                   </div>
                   {mylocker.booking.status === 'active' ? (
-                    <Badge className="bg-green-100 text-green-700">Đang thuê</Badge>
+                    <Badge className="bg-gray-100 text-gray-700">Đang thuê</Badge>
+                  ) : mylocker.booking.paymentStatus === 'pending' ? (
+                    <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                  ) : mylocker.booking.paymentStatus === 'paid' ? (
+                    <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
                   ) : (
-                    <Badge className="bg-yellow-100 text-yellow-700">Đang sử dụng</Badge>
+                    <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
                   )}
                 </div>
                 <div className="space-y-2 mb-4">
@@ -435,24 +457,38 @@ const formatSize = (size?: string) => {
                     <Clock className="w-4 h-4 text-gray-400" />
                     {mylocker.booking.status === 'active' ? (
                       <span className="text-gray-600">Chưa tính tiền</span>
-                    ) : (
+                    ) : mylocker.booking.paymentStatus === 'pending' ? (
                       <span className="text-gray-600">Chờ thanh toán</span>
+                    ): mylocker.booking.paymentStatus === 'paid' ? (
+                      <span className="text-gray-600">Đã thanh toán</span>
+                    ) : (
+                      <span className="text-gray-600">Không có</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">{mylocker.booking?.status === 'stored'
+                    <span className="text-gray-600">
+                      {mylocker.booking.status === 'stored'
                         ? calculateCost(mylocker).toLocaleString()
-                        : (mylocker.booking?.cost || 0).toLocaleString()}đ</span>
+                        : (mylocker.booking.cost || 0).toLocaleString()}đ
+                    </span>
                   </div>
                 </div>
                 {mylocker.booking.status === 'active' ? (
                   <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
                     Chi tiết
                   </Button>
-                ) : (
-                  <Button className="w-full" variant="outline" onClick={() => setSelectedMyLocker(mylocker)}>
+                ) : mylocker.booking.paymentStatus === 'pending' ? (
+                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
                     Thanh toán ngay
+                  </Button>
+                ) : mylocker.booking.paymentStatus === 'paid' ? (
+                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
+                    Mở tủ
+                  </Button>
+                ) : (
+                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
+                    Không có
                   </Button>
                 )}
               </Card>

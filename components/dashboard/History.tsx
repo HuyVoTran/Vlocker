@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Package, Clock, User, Phone, Mail, MapPin, Search } from "lucide-react";
 import { Card } from "../ui/card";
@@ -191,6 +191,47 @@ export default function History() {
     });
   }, [bookings, activeTab, searchTerm, role]);
 
+  // State for lazy loading
+  const ITEMS_PER_PAGE = 10;
+  const [displayedItems, setDisplayedItems] = useState<HistoryBooking[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPage(1);
+    const initialItems = filtered.slice(0, ITEMS_PER_PAGE);
+    setDisplayedItems(initialItems);
+    setHasMore(filtered.length > ITEMS_PER_PAGE);
+  }, [filtered]);
+
+  // Function to load the next page of items
+  const loadMore = useCallback(() => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      const nextPage = page + 1;
+      const newItems = filtered.slice(page * ITEMS_PER_PAGE, nextPage * ITEMS_PER_PAGE);
+      setDisplayedItems(prev => [...prev, ...newItems]);
+      setPage(nextPage);
+      setHasMore(filtered.length > nextPage * ITEMS_PER_PAGE);
+      setIsLoadingMore(false);
+    }, 300); // Small delay for better UX
+  }, [page, hasMore, isLoadingMore, filtered]);
+
+  // Scroll listener to trigger loading more items
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
+        loadMore();
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loadMore]);
+
   if (loading) {
     return <div className="p-6">Đang tải lịch sử hoạt động...</div>;
   }
@@ -347,134 +388,143 @@ export default function History() {
               <p className="text-gray-500 text-sm">
                 Không có lịch sử cho bộ lọc hiện tại.
               </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã tủ</TableHead>
-                    {role === "manager" && <TableHead>Người dùng</TableHead>}
-                    <TableHead>Vị trí</TableHead>
-                    <TableHead>Bắt đầu</TableHead>
-                    <TableHead>Kết thúc</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Số tiền</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((b) => {
-                    const locker =
-                      typeof b.lockerId === "string" ? undefined : b.lockerId;
-                    const user =
-                      typeof b.userId === "string" ? undefined : b.userId;
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mã tủ</TableHead>
+                      {role === "manager" && <TableHead>Người dùng</TableHead>}
+                      <TableHead>Vị trí</TableHead>
+                      <TableHead>Bắt đầu</TableHead>
+                      <TableHead>Kết thúc</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Số tiền</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedItems.map((b) => {
+                      const locker =
+                        typeof b.lockerId === "string" ? undefined : b.lockerId;
+                      const user =
+                        typeof b.userId === "string" ? undefined : b.userId;
 
-                    return (
-                      <TableRow key={b._id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-50 rounded flex items-center justify-center">
-                              <Package className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-900">
-                                {locker?.lockerId || "N/A"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                ID đơn: {b._id.slice(-6)}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {role === "manager" && (
+                      return (
+                        <TableRow key={b._id}>
                           <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-gray-900">
-                                <User className="w-3 h-3 text-gray-400" />
-                                <span>{user?.name || "N/A"}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-blue-50 rounded flex items-center justify-center">
+                                <Package className="w-4 h-4 text-blue-600" />
                               </div>
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
-                                <Mail className="w-3 h-3" />
-                                <span>{user?.email || "-"}</span>
+                              <div>
+                                <p className="text-sm text-gray-900">
+                                  {locker?.lockerId || "N/A"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  ID đơn: {b._id.slice(-6)}
+                                </p>
                               </div>
-                              {user?.phone && (
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                  <Phone className="w-3 h-3" />
-                                  <span>{user.phone}</span>
+                            </div>
+                          </TableCell>
+
+                          {role === "manager" && (
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1 text-sm text-gray-900">
+                                  <User className="w-3 h-3 text-gray-400" />
+                                  <span>{user?.name || "N/A"}</span>
                                 </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                  <Mail className="w-3 h-3" />
+                                  <span>{user?.email || "-"}</span>
+                                </div>
+                                {user?.phone && (
+                                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <Phone className="w-3 h-3" />
+                                    <span>{user.phone}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+
+                          <TableCell>
+                            {locker ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1 text-sm text-gray-900">
+                                  <MapPin className="w-3 h-3 text-gray-400" />
+                                  <span>
+                                    Tòa {locker.building} - Block {locker.block}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">N/A</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-gray-900">
+                              <Clock className="w-3 h-3 text-gray-400" />
+                              <span>{formatDateTime(b.startTime)}</span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-gray-900">
+                              <Clock className="w-3 h-3 text-gray-400" />
+                              <span>{formatDateTime(b.endTime)}</span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                className={
+                                  b.status === "completed"
+                                    ? "bg-green-100 text-green-700"
+                                    : b.status === "cancelled"
+                                    ? "bg-red-100 text-red-700"
+                                    : b.status === "stored"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-blue-100 text-blue-700"
+                                }
+                              >
+                                {b.status === "active" && "Đã đặt tủ"}
+                                {b.status === "stored" && "Đã lưu đồ"}
+                                {b.status === "completed" && "Hoàn tất"}
+                                {b.status === "cancelled" && "Đã hủy"}
+                              </Badge>
+                              {b.paymentStatus && (
+                                <span className="text-xs text-gray-500">
+                                  Thanh toán:{" "}
+                                  {b.paymentStatus === "paid"
+                                    ? "Đã thanh toán"
+                                    : "Chưa thanh toán"}
+                                </span>
                               )}
                             </div>
                           </TableCell>
-                        )}
 
-                        <TableCell>
-                          {locker ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-gray-900">
-                                <MapPin className="w-3 h-3 text-gray-400" />
-                                <span>
-                                  Tòa {locker.building} - Block {locker.block}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-500">N/A</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-gray-900">
-                            <Clock className="w-3 h-3 text-gray-400" />
-                            <span>{formatDateTime(b.startTime)}</span>
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-gray-900">
-                            <Clock className="w-3 h-3 text-gray-400" />
-                            <span>{formatDateTime(b.endTime)}</span>
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge
-                              className={
-                                b.status === "completed"
-                                  ? "bg-green-100 text-green-700"
-                                  : b.status === "cancelled"
-                                  ? "bg-red-100 text-red-700"
-                                  : b.status === "stored"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }
-                            >
-                              {b.status === "active" && "Đã đặt tủ"}
-                              {b.status === "stored" && "Đã lưu đồ"}
-                              {b.status === "completed" && "Hoàn tất"}
-                              {b.status === "cancelled" && "Đã hủy"}
-                            </Badge>
-                            {b.paymentStatus && (
-                              <span className="text-xs text-gray-500">
-                                Thanh toán:{" "}
-                                {b.paymentStatus === "paid"
-                                  ? "Đã thanh toán"
-                                  : "Chưa thanh toán"}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="text-sm text-blue-600">
-                            {formatMoney(b.cost)}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
+                          <TableCell>
+                            <span className="text-sm text-blue-600">
+                              {formatMoney(b.cost)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {isLoadingMore && (
+                <div className="text-center py-4 text-sm text-gray-500">
+                  Đang tải thêm...
+                </div>
+              )}
+            </>
+          )}
           </Card>
         </TabsContent>
       </Tabs>

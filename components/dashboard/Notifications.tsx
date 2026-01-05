@@ -121,17 +121,6 @@ export default function Notifications() {
 
   // useEffect chính để tải dữ liệu thông báo khi component được render hoặc session thay đổi
   useEffect(() => {
-    // Chờ cho đến khi session được tải xong để có thông tin người dùng.
-    if (status === 'loading') {
-      return;
-    }
-
-    if (!role || !userId) {
-      // Trạng thái lỗi sẽ được xử lý ở phần render chính của component
-      setLoading(false);
-      return;
-    }
-
     async function loadNotifications() {
       try {
         setLoading(true);
@@ -176,7 +165,21 @@ export default function Notifications() {
       }
     }
 
+    // Chờ cho đến khi session được tải xong để có thông tin người dùng.
+    if (status === 'loading') {
+      return;
+    }
+
+    if (!role || !userId) {
+      setLoading(false);
+      return;
+    }
+
     loadNotifications();
+
+    // Lắng nghe sự kiện để cập nhật danh sách thông báo realtime
+    window.addEventListener('notificationsUpdated', loadNotifications);
+    return () => window.removeEventListener('notificationsUpdated', loadNotifications);
   }, [status, role, userId]);
 
   // Xóa lựa chọn khi chuyển tab
@@ -217,6 +220,8 @@ export default function Notifications() {
       setNotificationTitle("");
       setNotificationMessage("");
       setSelectedResidents([]);
+      // Kích hoạt sự kiện để làm mới danh sách thông báo và số lượng chưa đọc
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Đã xảy ra lỗi.", "error");
     } finally {
@@ -252,6 +257,7 @@ export default function Notifications() {
       if (!res.ok) {
         throw new Error("Không thể đánh dấu thông báo là đã đọc.");
       }
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
       showToast("Lỗi khi đánh dấu đã đọc.", "error");
@@ -286,6 +292,7 @@ export default function Notifications() {
       }
       // Xóa lựa chọn sau khi thành công
       setSelectedNotifications([]);
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (error) {
       console.error("Lỗi khi cập nhật thông báo:", error);
       // Hoàn tác lại nếu có lỗi
@@ -320,6 +327,7 @@ export default function Notifications() {
       showToast(`Đã xóa ${selectedNotifications.length} thông báo đã chọn.`, "success");
       // Xóa lựa chọn sau khi thành công
       setSelectedNotifications([]);
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (error) {
       console.error("Lỗi khi xóa thông báo:", error);
       // Hoàn tác lại nếu có lỗi
