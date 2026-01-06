@@ -31,7 +31,7 @@ export async function GET(req) {
       building: user.building,
       block: user.block, // Luôn lọc theo block của người dùng
       status: 'available',
-      currentBookingId: { $exists: false },
+      currentBookingId: null, // Tủ trống là tủ có currentBookingId là null hoặc không tồn tại
     };
 
     if (size !== 'all') {
