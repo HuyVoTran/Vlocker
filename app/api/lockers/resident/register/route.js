@@ -44,11 +44,26 @@ export async function POST(req) {
 
     // Update locker: set the current booking reference.
     // The status remains 'available' in terms of physical state, but currentBookingId makes it unavailable for others.
-    await Locker.findByIdAndUpdate(lockerId, {
+    const updatedLocker = await Locker.findByIdAndUpdate(lockerId, {
       currentBookingId: newBooking._id,
-    });
+    }, { new: true });
 
-    return NextResponse.json({ success: true, data: { bookingId: newBooking._id } }, { status: 201 });
+    // Để client có thể cập nhật UI ngay lập tức, trả về đối tượng booking mới
+    // với cấu trúc giống như API /mylocker.
+    const responseData = {
+      locker: updatedLocker,
+      booking: {
+        _id: newBooking._id,
+        status: newBooking.status,
+        cost: newBooking.cost || 0,
+        paymentStatus: newBooking.paymentStatus,
+        startTime: newBooking.startTime,
+        endTime: newBooking.endTime,
+        pickupExpiryTime: newBooking.pickupExpiryTime || null,
+      },
+    };
+
+    return NextResponse.json({ success: true, data: responseData }, { status: 201 });
   } catch (err) {
     console.error("Error in register locker API:", err);
     return NextResponse.json({ success: false, message: "Server error", error: err.message }, { status: 500 });

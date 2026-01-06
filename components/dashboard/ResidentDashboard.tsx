@@ -117,6 +117,24 @@ const formatSize = (size?: string) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [registering, setRegistering] = useState<boolean>(false);
 
+  // Lắng nghe sự kiện từ các trang khác (ví dụ: RegisterLocker) để cập nhật danh sách tủ của tôi
+  useEffect(() => {
+    const handleMyLockersUpdate = (event: CustomEvent<MyLockerItem>) => {
+      const newLockerItem = event.detail;
+      if (newLockerItem) {
+        // Cập nhật cache của SWR ngay lập tức với dữ liệu mới mà không cần gọi lại API
+        mutateMyLockers((currentData = []) => [...currentData, newLockerItem], false);
+        showToast(`Đã thêm tủ ${newLockerItem.locker.lockerId} vào danh sách của bạn!`, 'info');
+      }
+    };
+
+    window.addEventListener('myLockersUpdated', handleMyLockersUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('myLockersUpdated', handleMyLockersUpdate as EventListener);
+    };
+  }, [mutateMyLockers, showToast]);
+
   const sortedMyLockers = useMemo(() => {
     // Define sort order priority from MyLockers.tsx
     const getSortPriority = (item: MyLockerItem) => {
@@ -771,8 +789,16 @@ const formatSize = (size?: string) => {
                   }
 
                   showToast('Đăng ký tủ thành công!', 'success');
-                  mutateMyLockers();
-                  mutateAvailableLockers();
+                  // Cập nhật giao diện ngay lập tức thay vì tải lại
+                  const newMyLockerItem = json.data as MyLockerItem;
+                  mutateMyLockers(
+                    (currentData = []) => [...currentData, newMyLockerItem],
+                    false // false = không revalidate lại từ server
+                  );
+                  mutateAvailableLockers(
+                    (currentLockers = []) => currentLockers.filter(l => l._id !== selectedAvailableLocker._id),
+                    false
+                  );
                   setSelectedAvailableLocker(null);
                 } catch (err) {
                   console.error('Register error', err);

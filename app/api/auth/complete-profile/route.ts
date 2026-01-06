@@ -5,13 +5,13 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user?.id) {
-    return NextResponse.json({ isProfileComplete: false, message: "Không được phép." }, { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ isProfileComplete: false, message: "Không được phép." }, { status: 401 });
+    }
+
     await connectDB();
     const user = await User.findById(session.user.id).select('building block isProfileComplete');
 
@@ -48,13 +48,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user?.id) {
-    return NextResponse.json({ message: "Không được phép." }, { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ message: "Không được phép." }, { status: 401 });
+    }
     const { building, block, floor, unit } = await req.json();
 
     if (!building || !block || !floor || !unit) {

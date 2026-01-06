@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import mongoose from "mongoose";
 
 type Period = "all" | "month" | "quarter" | "year";
 
@@ -22,7 +23,9 @@ interface PopulatedBooking {
   [key: string]: unknown;
 }
 
-export async function GET(req: Request) {
+const ITEMS_PER_PAGE = 10;
+
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (session?.user?.role !== 'manager') {
@@ -36,6 +39,11 @@ export async function GET(req: Request) {
     const yearParam = searchParams.get("year");
     const monthParam = searchParams.get("month");
     const quarterParam = searchParams.get("quarter");
+    const searchTerm = searchParams.get("searchTerm") || "";
+    const status = searchParams.get("status") || "all";
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || String(ITEMS_PER_PAGE), 10);
+    const skip = (page - 1) * limit;
 
     const now = new Date();
     const year = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
@@ -56,21 +64,81 @@ export async function GET(req: Request) {
       endDate = new Date(year, startMonth + 3, 1);
     }
 
-    const query: {
-      startTime?: {
-        $gte: Date;
-        $lt: Date;
-      };
+    const matchQuery: {
+      startTime?: { $gte: Date; $lt: Date };
+      status?: string;
     } = {};
     if (startDate && endDate) {
-      query.startTime = { $gte: startDate, $lt: endDate };
+      matchQuery.startTime = { $gte: startDate, $lt: endDate };
+    }
+    if (status !== "all") {
+      matchQuery.status = status;
     }
 
-    const bookings = await Booking.find(query)
-      .sort({ startTime: -1 })
-      .populate("lockerId")
-      .populate("userId")
-      .lean<PopulatedBooking[]>();
+    // To search on populated fields, we need an aggregation pipeline.
+    const pipeline: mongoose.PipelineStage[] = [
+      // Initial match for date and status
+      { $match: matchQuery },
+      // Populate locker and user info
+      {
+        $lookup: {
+          from: 'lockers',
+          localField: 'lockerId',
+          foreignField: '_id',
+          as: 'lockerInfo'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      // Deconstruct the array from lookup
+      { $unwind: { path: '$lockerInfo', preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: true } },
+    ];
+
+    if (searchTerm) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'lockerInfo.lockerId': { $regex: searchTerm, $options: 'i' } },
+            { 'userInfo.name': { $regex: searchTerm, $options: 'i' } },
+            { 'userInfo.email': { $regex: searchTerm, $options: 'i' } },
+            { 'userInfo.phone': { $regex: searchTerm, $options: 'i' } },
+          ]
+        }
+      });
+    }
+
+    // We need to count total documents for pagination *before* skip and limit
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const totalResult = await Booking.aggregate(countPipeline);
+    const totalDocs = totalResult.length > 0 ? totalResult[0].total : 0;
+
+    // Add sorting and pagination to the main pipeline
+    pipeline.push({ $sort: { startTime: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Rename fields to match original populate structure
+    pipeline.push({
+      $addFields: {
+        lockerId: '$lockerInfo',
+        userId: '$userInfo'
+      }
+    });
+    pipeline.push({
+      $project: {
+        lockerInfo: 0,
+        userInfo: 0
+      }
+    });
+
+    const bookings: PopulatedBooking[] = await Booking.aggregate(pipeline);
 
     const calculatedBookings = bookings.map((booking) => {
       // Tính toán lại chi phí cho các booking đang ở trạng thái 'stored' và 'pending'
@@ -90,6 +158,12 @@ export async function GET(req: Request) {
       {
         success: true,
         data: calculatedBookings,
+        pagination: {
+          total: totalDocs,
+          page,
+          limit,
+          hasMore: (page * limit) < totalDocs,
+        }
       },
       { status: 200 }
     );

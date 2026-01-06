@@ -6,13 +6,12 @@ import User from "@/models/User";
 
 // GET: Fetch all resident users
 export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (session?.user?.role !== 'manager') {
-    return NextResponse.json({ success: false, message: "Không được phép." }, { status: 403 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+
+    if (session?.user?.role !== 'manager') {
+      return NextResponse.json({ success: false, message: "Không được phép." }, { status: 403 });
+    }
     await connectDB();
     const users = await User.find({ role: 'resident' }).select('-password').sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: users });
@@ -27,13 +26,12 @@ export async function GET() {
 
 // PATCH: Update a user's address
 export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (session?.user?.role !== 'manager') {
-    return NextResponse.json({ success: false, message: "Không được phép." }, { status: 403 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+
+    if (session?.user?.role !== 'manager') {
+      return NextResponse.json({ success: false, message: "Không được phép." }, { status: 403 });
+    }
     const { userId, building, block, floor, unit } = await req.json();
 
     if (!userId || !building || !block || !floor || !unit) {

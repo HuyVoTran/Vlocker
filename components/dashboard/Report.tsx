@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "../ui/dialog";
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../ui/toast-context';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -58,6 +58,9 @@ function ReportComponent() {
   const [reports, setReports] = useState<ReportData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedReport, setSelectedReport] = useState<ReportData | null>(null);
 
   // State cho form gửi báo cáo
@@ -141,12 +144,14 @@ function ReportComponent() {
       const fetchReports = async () => {
         try {
           setLoading(true);
-          const res = await fetch('/api/reports');
+          setPage(1);
+          const res = await fetch('/api/reports?page=1');
           const json = await res.json();
           if (!res.ok || !json.success) {
             throw new Error(json.message || 'Không thể tải lịch sử báo cáo.');
           }
           setReports(json.data);
+          setHasMore(json.pagination.hasMore);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Lỗi không xác định.');
         } finally {
@@ -159,6 +164,26 @@ function ReportComponent() {
       setError('Bạn cần đăng nhập để sử dụng chức năng này.');
     }
   }, [sessionStatus]);
+
+  const loadMoreReports = useCallback(async () => {
+    if (isLoadingMore || !hasMore || loading) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await fetch(`/api/reports?page=${nextPage}`);
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      setReports(prev => [...prev, ...json.data]);
+      setHasMore(json.pagination.hasMore);
+      setPage(nextPage);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Không thể tải thêm báo cáo.', 'error');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, loading, page, showToast]);
 
   // Pre-fill form from URL query params
   useEffect(() => {
@@ -174,6 +199,17 @@ function ReportComponent() {
       }
     }
   }, [searchParams]);
+
+  // Scroll listener for lazy loading
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
+        loadMoreReports();
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadMoreReports]);
 
   // Form submission handler (for residents)
   const handleSubmitReport = async () => {
@@ -432,6 +468,16 @@ function ReportComponent() {
             )))}
           </TableBody>
         </Table>
+        {isLoadingMore && (
+          <div className="text-center py-4 text-sm text-gray-500">
+            Đang tải thêm...
+          </div>
+        )}
+        {!hasMore && reports.length > 0 && (
+          <div className="text-center py-4 text-sm text-gray-400">
+            Đã tải hết báo cáo.
+          </div>
+        )}
       </Card>
 
       {/* Dialog for manager to view details and update status */}

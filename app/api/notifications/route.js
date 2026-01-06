@@ -164,9 +164,24 @@ export async function POST(req) {
 
     await Notification.insertMany(childNotifications);
 
+    // Lấy lại thông báo vừa tạo và populate thông tin người nhận để trả về cho client.
+    // Điều này giúp client cập nhật UI ngay lập tức mà không cần gọi lại API GET.
+    const newSentMail = await Notification.aggregate([
+        { $match: { _id: parentNotification._id } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "recipientIds",
+            foreignField: "_id",
+            as: "recipientsInfo", // Giữ cấu trúc nhất quán với API GET
+          },
+        },
+    ]);
+
     return NextResponse.json({
       success: true,
       message: "Gửi thông báo thành công",
+      data: newSentMail[0], // aggregate trả về một mảng, ta lấy phần tử đầu tiên
     });
   } catch (err) {
     console.error("Lỗi nghiêm trọng tại POST /api/notifications:", err.message, err.stack);

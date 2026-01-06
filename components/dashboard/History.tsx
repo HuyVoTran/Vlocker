@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Package, Clock, User, Phone, Mail, MapPin, Search } from "lucide-react";
 import { Card } from "../ui/card";
@@ -85,6 +85,19 @@ interface SessionUser {
   role?: "resident" | "manager";
 }
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function History() {
   const { data: session } = useSession();
   const currentUser = session?.user as SessionUser | undefined;
@@ -94,137 +107,101 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookings, setBookings] = useState<HistoryBooking[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Manager filters
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [quarter, setQuarter] = useState<number>(1);
-
-  useEffect(() => {
-    async function loadHistory() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        let url = "";
-
-        if (role === "resident") {
-          if (!userId) {
-            setError("Không tìm thấy thông tin người dùng.");
-            setLoading(false);
-            return;
-          }
-          url = `/api/history/resident`;
-        } else {
-          const params = new URLSearchParams();
-          params.set("period", period);
-          params.set("year", String(year));
-          if (period === "month") {
-            params.set("month", String(month));
-          }
-          if (period === "quarter") {
-            params.set("quarter", String(quarter));
-          }
-          url = `/api/history/manager?${params.toString()}`;
-        }
-
-        const res = await fetch(url);
-        const json = await res.json();
-
-        if (!res.ok || !json.success) {
-          throw new Error(json.message || `Lỗi tải lịch sử (${res.status})`);
-        }
-
-        setBookings(json.data || []);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Không thể tải lịch sử hoạt động."
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // For manager, reload when period filter changes; for resident, just once when session ready
-    if (role === "resident") {
-      if (userId) {
-        loadHistory();
-      }
-    } else {
-      loadHistory();
-    }
-  }, [role, userId, period, year, month, quarter]);
-
   const [activeTab, setActiveTab] = useState<BookingStatus | "all">("all");
 
-  const filtered = useMemo(() => {
-    const lowercasedSearchTerm = searchTerm.toLowerCase();
+  const loadHistory = useCallback(async (loadMore = false) => {
+    if (!loadMore) {
+      setLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+    setError(null);
 
-    return bookings.filter((b) => {
-      // Filter by tab first
-      if (activeTab !== "all" && b.status !== activeTab) {
-        return false;
-      }
-
-      // Then filter by search term
-      if (!lowercasedSearchTerm) {
-        return true; // No search term, so don't filter out
-      }
-
-      const locker = typeof b.lockerId === "string" ? undefined : b.lockerId;
-      const user = typeof b.userId === "string" ? undefined : b.userId;
+    try {
+      const currentPage = loadMore ? page + 1 : 1;
+      let url = "";
+      const params = new URLSearchParams();
+      params.set("page", String(currentPage));
+      params.set("limit", String(ITEMS_PER_PAGE));
+      params.set("status", activeTab);
+      params.set("searchTerm", debouncedSearchTerm);
 
       if (role === "resident") {
-        return locker?.lockerId.toLowerCase().includes(lowercasedSearchTerm) ?? false;
+        if (!userId) {
+          setError("Không tìm thấy thông tin người dùng.");
+          setLoading(false);
+          return;
+        }
+        url = `/api/history/resident?${params.toString()}`;
+      } else { // manager
+        params.set("period", period);
+        params.set("year", String(year));
+        if (period === "month") {
+          params.set("month", String(month));
+        }
+        if (period === "quarter") {
+          params.set("quarter", String(quarter));
+        }
+        url = `/api/history/manager?${params.toString()}`;
       }
 
-      // For manager
-      const matchesLocker = locker?.lockerId.toLowerCase().includes(lowercasedSearchTerm) ?? false;
-      const matchesUser =
-        user?.name.toLowerCase().includes(lowercasedSearchTerm) ||
-        user?.email.toLowerCase().includes(lowercasedSearchTerm) ||
-        user?.phone?.includes(lowercasedSearchTerm);
+      const res = await fetch(url);
+      const json = await res.json();
 
-      return matchesLocker || matchesUser;
-    });
-  }, [bookings, activeTab, searchTerm, role]);
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || `Lỗi tải lịch sử (${res.status})`);
+      }
+
+      if (loadMore) {
+        setBookings(prev => [...prev, ...(json.data || [])]);
+        setPage(currentPage);
+      } else {
+        setBookings(json.data || []);
+        setPage(1);
+      }
+      setHasMore(json.pagination.hasMore);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Không thể tải lịch sử hoạt động."
+      );
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [page, role, userId, activeTab, debouncedSearchTerm, period, year, month, quarter]);
+
+  useEffect(() => {
+    // Fetch data when filters change
+    if ((role === "resident" && userId) || role === "manager") {
+      loadHistory(false);
+    }
+  }, [role, userId, period, year, month, quarter, activeTab, debouncedSearchTerm]);
 
   // State for lazy loading
   const ITEMS_PER_PAGE = 10;
-  const [displayedItems, setDisplayedItems] = useState<HistoryBooking[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    setPage(1);
-    const initialItems = filtered.slice(0, ITEMS_PER_PAGE);
-    setDisplayedItems(initialItems);
-    setHasMore(filtered.length > ITEMS_PER_PAGE);
-  }, [filtered]);
 
   // Function to load the next page of items
   const loadMore = useCallback(() => {
     if (isLoadingMore || !hasMore) return;
-
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      const nextPage = page + 1;
-      const newItems = filtered.slice(page * ITEMS_PER_PAGE, nextPage * ITEMS_PER_PAGE);
-      setDisplayedItems(prev => [...prev, ...newItems]);
-      setPage(nextPage);
-      setHasMore(filtered.length > nextPage * ITEMS_PER_PAGE);
-      setIsLoadingMore(false);
-    }, 300); // Small delay for better UX
-  }, [page, hasMore, isLoadingMore, filtered]);
+    loadHistory(true);
+  }, [isLoadingMore, hasMore, loadHistory]);
 
   // Scroll listener to trigger loading more items
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
+      // Load more when 300px from the bottom
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 300) {
         loadMore();
       }
     };
@@ -232,7 +209,7 @@ export default function History() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loadMore]);
 
-  if (loading) {
+  if (loading && page === 1) {
     return <div className="p-6">Đang tải lịch sử hoạt động...</div>;
   }
 
@@ -384,7 +361,7 @@ export default function History() {
 
         <TabsContent value={activeTab}>
           <Card className="p-4 md:p-6">
-            {filtered.length === 0 ? (
+            {bookings.length === 0 && !loading ? (
               <p className="text-gray-500 text-sm">
                 Không có lịch sử cho bộ lọc hiện tại.
               </p>
@@ -404,7 +381,7 @@ export default function History() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayedItems.map((b) => {
+                    {bookings.map((b) => {
                       const locker =
                         typeof b.lockerId === "string" ? undefined : b.lockerId;
                       const user =
@@ -521,6 +498,11 @@ export default function History() {
               {isLoadingMore && (
                 <div className="text-center py-4 text-sm text-gray-500">
                   Đang tải thêm...
+                </div>
+              )}
+              {!hasMore && bookings.length > 0 && (
+                <div className="text-center py-4 text-sm text-gray-400">
+                  Đã tải hết lịch sử.
                 </div>
               )}
             </>

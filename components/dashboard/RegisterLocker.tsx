@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Package, MapPin, DollarSign, Search } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -48,66 +48,106 @@ interface RegisterLockerProps {
   user?: User;
 }
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function RegisterLocker({ user }: RegisterLockerProps) {
   const { data: session } = useSession();
   const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
   const [availableLockers, setAvailableLockers] = useState<Locker[]>([]);
-  const [filteredLockers, setFilteredLockers] = useState<Locker[]>([]);
   const [registering, setRegistering] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const { showToast } = useToast();
-  const [filterBlock, setFilterBlock] = useState('all');
-  const [blocks, setBlocks] = useState<string[]>([]);
+  const [filterSize, setFilterSize] = useState('all');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalAvailable, setTotalAvailable] = useState(0);
 
   // Lấy user data từ props hoặc session
   const currentUser = user || session?.user;
 
-  useEffect(() => {
-    async function loadLockers() {
-      try {
-        setLoading(true);
-        setError(null);
+  const loadLockers = useCallback(async (loadMore = false) => {
+    if (!currentUser?.id) return;
 
-        // API sẽ tự động lấy thông tin tòa nhà và block của người dùng từ session phía server
-        const res = await fetch(`/api/lockers/resident/available`);
-        
-        if (!res.ok) {
-          throw new Error(`Lỗi API: ${res.status}`);
-        }
-        
-        const json = await res.json();
-        
-        const lockers = json.data || [];
-        setAvailableLockers(lockers);
-        setFilteredLockers(lockers);
-        
-        // Lấy danh sách blocks duy nhất
-        const uniqueBlocks = Array.from(new Set(lockers.map((l: Locker) => l.block))).sort();
-        setBlocks(uniqueBlocks as string[]);
-        
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
-      } finally {
-        setLoading(false);
+    if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const currentPage = loadMore ? page + 1 : 1;
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '9', // 9 items for a 3-column grid
+        search: debouncedSearchTerm,
+        size: filterSize,
+      });
+
+      const res = await fetch(`/api/lockers/resident/available?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Lỗi API: ${res.status}`);
       }
-    }
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.message || "Lỗi tải dữ liệu tủ");
+      }
 
-    if (currentUser?.id) {
-      loadLockers();
-    }
-  }, [currentUser?.id]);
+      const newLockers: Locker[] = json.data || [];
+      if (loadMore) {
+        setAvailableLockers(prev => [...prev, ...newLockers]);
+        setPage(currentPage);
+      } else {
+        setAvailableLockers(newLockers);
+        setPage(1);
+      }
 
-  // Cập nhật filtered lockers khi search/filter thay đổi
+      setHasMore(json.pagination.hasMore);
+      setTotalAvailable(json.pagination.total);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [currentUser?.id, page, debouncedSearchTerm, filterSize]);
+
   useEffect(() => {
-    const filtered = availableLockers.filter(locker => {
-      const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-      return matchesSearch && matchesBlock;
-    });
-    setFilteredLockers(filtered);
-  }, [searchTerm, filterBlock, availableLockers]);
+    // Fetch data when filters change
+    loadLockers(false);
+  }, [debouncedSearchTerm, filterSize, currentUser?.id]); // Dependency on loadLockers is implicitly handled by useCallback
+
+  const loadMore = useCallback(() => {
+    if (isLoadingMore || !hasMore || loading) return;
+    loadLockers(true);
+  }, [isLoadingMore, hasMore, loading, loadLockers]);
+
+  // Scroll listener for lazy loading
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 300) {
+        loadMore();
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadMore]);
 
   const minPrice = useMemo(() => {
     if (availableLockers.length === 0) return 10000;
@@ -115,7 +155,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   }, [availableLockers]);
 
   if (loading) {
-    return <div className="p-6 max-w-7xl mx-auto">Đang tải dữ liệu...</div>;
+    return <div className="p-6 max-w-7xl mx-auto">Đang tải danh sách tủ...</div>;
   }
 
   if (error) {
@@ -135,18 +175,18 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm mb-1">Tổng số tủ trống</p>
-              <p className="text-gray-900">{availableLockers.length} tủ</p>
+              <p className="text-gray-900">{totalAvailable} tủ</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Package className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </Card>
-        <Card className="p-6">
+        <Card className="p-6 hidden md:block">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm mb-1">Kết quả lọc</p>
-              <p className="text-gray-900">{filteredLockers.length} tủ</p>
+              <p className="text-gray-900">{totalAvailable} tủ</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <Search className="w-6 h-6 text-green-600" />
@@ -180,15 +220,16 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
               />
             </div>
           </div>
-          <Select value={filterBlock} onValueChange={setFilterBlock}>
+          <Select value={filterSize} onValueChange={setFilterSize}>
             <SelectTrigger>
-              <SelectValue placeholder="Lọc theo block" />
+              <SelectValue placeholder="Lọc theo kích thước" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả block</SelectItem>
-              {blocks.map(block => (
-                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
-              ))}
+              <SelectItem value="all">Tất cả kích thước</SelectItem>
+              <SelectItem value="S">{formatSize('S')}</SelectItem>
+              <SelectItem value="M">{formatSize('M')}</SelectItem>
+              <SelectItem value="L">{formatSize('L')}</SelectItem>
+              <SelectItem value="XL">{formatSize('XL')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -196,8 +237,8 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
 
       {/* Lockers Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredLockers.length > 0 ? (
-          filteredLockers.map((locker) => (
+        {availableLockers.length > 0 ? (
+          availableLockers.map((locker) => (
             <Card key={locker._id} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -241,6 +282,17 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           </Card>
         )}
       </div>
+      {isLoadingMore && (
+        <div className="text-center py-4 text-sm text-gray-500 col-span-full">
+          Đang tải thêm...
+        </div>
+      )}
+      {!hasMore && availableLockers.length > 0 && (
+        <div className="text-center py-4 text-sm text-gray-400 col-span-full">
+          Đã hiển thị tất cả tủ trống.
+        </div>
+      )}
+
 
       {/* Lockers Pop-up */}
       <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
@@ -301,9 +353,11 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
                 }
 
                 showToast('Đăng ký tủ thành công!', 'success');
+                // Gửi sự kiện để các component khác (như Dashboard) có thể cập nhật danh sách "My Lockers"
+                window.dispatchEvent(new CustomEvent('myLockersUpdated', { detail: json.data }));
+
                 // success: remove locker from lists and close dialog
                 setAvailableLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
-                setFilteredLockers(prev => prev.filter(l => l._id !== selectedLocker._id));
                 setSelectedLocker(null);
               } catch (err) {
                 console.error('Register error', err);

@@ -1,50 +1,65 @@
-import { NextResponse } from "next/server";
-import Locker from "@/models/Locker";
-import User from "@/models/User";
-import { connectDB } from "@/lib/mongodb";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { NextResponse } from 'next/server';
+import { connectDB } from '@/lib/mongodb';
+import Locker from '@/models/Locker';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import User from '@/models/User';
 
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
     await connectDB();
 
-    // Lấy thông tin tòa nhà và block của người dùng từ DB thông qua session
-    const user = await User.findById(session.user.id).select('building block').lean();
+    // Lấy thông tin user đầy đủ để có building và block
+    const user = await User.findById(session.user.id).lean();
     if (!user || !user.building || !user.block) {
-      return NextResponse.json(
-        { success: false, message: "Không tìm thấy thông tin tòa nhà hoặc block của người dùng. Vui lòng cập nhật hồ sơ." },
-        { status: 400 }
-      );
+        return NextResponse.json({ success: false, message: 'Thông tin người dùng không đầy đủ (thiếu Tòa hoặc Block), không thể tìm tủ.' }, { status: 400 });
     }
 
-    const { building, block } = user;
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '9', 10);
+    const skip = (page - 1) * limit;
+    const search = searchParams.get('search') || '';
+    const size = searchParams.get('size') || 'all';
 
-    // Lấy các tủ có trạng thái 'available' và chưa được ai đặt (currentBookingId is null)
-    const lockers = await Locker.find({
-      status: "available",
-      currentBookingId: null, // Quan trọng: Chỉ lấy tủ thực sự trống
-      building,
-      block,
-    })
-      .select("_id lockerId building block status floor size price")
+    const query = {
+      building: user.building,
+      block: user.block, // Luôn lọc theo block của người dùng
+      status: 'available',
+      currentBookingId: { $exists: false },
+    };
+
+    if (size !== 'all') {
+      query.size = size;
+    }
+
+    if (search) {
+      query.lockerId = { $regex: search, $options: 'i' };
+    }
+
+    const lockers = await Locker.find(query)
+      .sort({ lockerId: 1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
+
+    const total = await Locker.countDocuments(query);
 
     return NextResponse.json({
       success: true,
-      count: lockers.length,
-      data: lockers || [],
+      data: lockers,
+      pagination: {
+        total,
+        hasMore: (page * limit) < total,
+      },
     });
   } catch (err) {
-    console.error("Lỗi khi tải danh sách tủ trống:", err);
-    return NextResponse.json(
-      { success: false, message: "Lỗi máy chủ.", error: err.message },
-      { status: 500 }
-    );
+    console.error('Error in /api/lockers/resident/available:', err);
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

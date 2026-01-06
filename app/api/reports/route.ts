@@ -15,19 +15,26 @@ import Locker from '@/models/Locker';
  * - Manager: Lấy tất cả báo cáo.
  * - Resident: Chỉ lấy các báo cáo của chính họ.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = 15; // Items per page
+    const skip = (page - 1) * limit;
+
     await connectDB();
 
     const { role, id: userId } = session.user;
     let reports;
+    let query;
 
     if (role === 'manager') {
+      query = {};
       // Manager thấy tất cả báo cáo, populate thông tin người gửi
       reports = await Report.find({})
         .populate({
@@ -40,18 +47,28 @@ export async function GET() {
           model: Locker,
           select: 'lockerId building block',
         })
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     } else {
+      query = { userId };
       // Resident chỉ thấy báo cáo của mình
-      reports = await Report.find({ userId })
+      reports = await Report.find(query)
         .populate({
           path: 'lockerId',
           model: Locker,
           select: 'lockerId building block',
-        }).sort({ createdAt: -1 });
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     }
 
-    return NextResponse.json({ success: true, data: reports });
+    const total = await Report.countDocuments(query);
+
+    return NextResponse.json({ success: true, data: reports, pagination: {
+      hasMore: (page * limit) < total
+    } });
   } catch (error) {
     console.error('GET /api/reports error:', error);
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
