@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Package, MapPin, DollarSign, Search } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -138,17 +138,21 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
     loadLockers(true);
   }, [isLoadingMore, hasMore, loading, loadLockers]);
 
-  // Scroll listener for lazy loading
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 300) {
+  // Sử dụng IntersectionObserver để lazy load, hiệu quả hơn scroll listener
+  const observer = useRef<IntersectionObserver | null>(null);
+  const loadMoreTriggerRef = useCallback((node: HTMLDivElement) => {
+    if (loading) return; // Không làm gì nếu đang tải lần đầu
+    if (observer.current) observer.current.disconnect(); // Dọn dẹp observer cũ
+
+    observer.current = new IntersectionObserver(entries => {
+      // Nếu phần tử trigger hiển thị trên màn hình và còn dữ liệu để tải
+      if (entries[0].isIntersecting && hasMore) {
         loadMore();
       }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [loadMore]);
+    });
 
+    if (node) observer.current.observe(node); // Bắt đầu theo dõi phần tử trigger
+  }, [loading, hasMore, loadMore]);
   const minPrice = useMemo(() => {
     if (availableLockers.length === 0) return 10000;
     return Math.min(...availableLockers.map(l => Number(l.price || 10000)));
@@ -282,6 +286,9 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
           </Card>
         )}
       </div>
+      {/* Phần tử trigger vô hình để kích hoạt lazy load */}
+      <div ref={loadMoreTriggerRef} />
+
       {isLoadingMore && (
         <div className="text-center py-4 text-sm text-gray-500 col-span-full">
           Đang tải thêm...

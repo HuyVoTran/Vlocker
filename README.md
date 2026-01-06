@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Lazy load, Pagination, Search, Filter, Sort and Improve UI/UX, fix bugs"
+git commit -m "Fix bugs"
 git push
 
 Password@12345
