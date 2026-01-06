@@ -93,17 +93,23 @@ export async function PATCH(req) {
         }
 
         // Cập nhật mật khẩu nếu được cung cấp
-        if (newPassword && currentPassword) {
-            const passwordsMatch = await bcrypt.compare(currentPassword, userToUpdate.password);
-            if (!passwordsMatch) {
-                return NextResponse.json({ success: false, message: "Mật khẩu hiện tại không đúng" }, { status: 400 });
-            }
+        if (newPassword) {
+            // Validate new password length
             if (newPassword.length < 8 || newPassword.length > 30) {
-                 return NextResponse.json({ success: false, message: "Mật khẩu mới phải có từ 8 đến 30 ký tự" }, { status: 400 });
+                return NextResponse.json({ success: false, message: "Mật khẩu mới phải có từ 8 đến 30 ký tự" }, { status: 400 });
+            }
+
+            // If user already has a password (not a Google-only account), require current password
+            if (userToUpdate.password) {
+                if (!currentPassword) {
+                    return NextResponse.json({ success: false, message: "Vui lòng nhập mật khẩu hiện tại" }, { status: 400 });
+                }
+                const passwordsMatch = await bcrypt.compare(currentPassword, userToUpdate.password);
+                if (!passwordsMatch) {
+                    return NextResponse.json({ success: false, message: "Mật khẩu hiện tại không đúng" }, { status: 400 });
+                }
             }
             userToUpdate.password = await bcrypt.hash(newPassword, 10);
-        } else if (newPassword && !currentPassword) {
-            return NextResponse.json({ success: false, message: "Vui lòng nhập mật khẩu hiện tại" }, { status: 400 });
         }
 
         await userToUpdate.save();

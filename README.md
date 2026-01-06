@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Fix bugs"
+git commit -m "Fix bugs and improve features"
 git push
 
 Password@12345

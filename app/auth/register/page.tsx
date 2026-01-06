@@ -2,6 +2,15 @@
 
 import { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // 1. Định nghĩa kiểu dữ liệu cho Form
 interface FormData {
@@ -20,6 +29,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false);
   const [agreedToTerms, setAgreedToTerms] = useState<boolean>(false);
 
   // 2. Sử dụng Interface đã định nghĩa cho state
@@ -141,8 +151,7 @@ export default function RegisterPage() {
       }
 
       // Đăng ký thành công -> Chuyển về trang login
-      alert("Đăng ký thành công! Vui lòng đăng nhập.");
-      router.push("/auth/login");
+      setShowSuccessDialog(true);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Đã xảy ra lỗi không xác định");
@@ -367,6 +376,27 @@ export default function RegisterPage() {
             Đăng Nhập ngay
           </button>
         </div>
+
+        <Dialog
+          open={showSuccessDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              router.push("/auth/login");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Đăng ký thành công!</DialogTitle>
+              <DialogDescription>
+                Tài khoản của bạn đã được tạo. Bạn sẽ được chuyển đến trang đăng nhập trong giây lát.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => router.push("/auth/login")}>Đăng nhập ngay</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -60,6 +60,7 @@ export const authOptions = {
             block: user.block,
             isProfileComplete: user.isProfileComplete,
             image: user.image,
+            hasPassword: true, // User with credentials always has a password
           };
         } catch (error) {
           console.error("Lỗi trong authorize callback: ", error);
@@ -123,6 +124,7 @@ export const authOptions = {
             user.building = existingUser.building;
             user.block = existingUser.block;
             user.isProfileComplete = updates.isProfileComplete || existingUser.isProfileComplete;
+            user.hasPassword = !!existingUser.password; // Check if password exists
           } else {
             // Nếu là người dùng mới, tạo tài khoản và đánh dấu profile là chưa hoàn chỉnh.
             // Trường 'name' là bắt buộc theo schema.
@@ -146,6 +148,7 @@ export const authOptions = {
             user.name = newUser.name; // Thêm tên người dùng vào đối tượng user
             user.image = newUser.image; // Thêm ảnh người dùng vào đối tượng user
             user.isProfileComplete = newUser.isProfileComplete;
+            user.hasPassword = false; // New Google user has no password
           }
         } catch (error) {
           console.error("Lỗi trong Google signIn callback: ", error);
@@ -172,6 +175,7 @@ export const authOptions = {
         token.role = user.role;
         token.name = user.name; // Thêm tên người dùng vào token
         token.isProfileComplete = user.isProfileComplete;
+        token.hasPassword = user.hasPassword;
       }
 
       // Khi session được cập nhật từ client (ví dụ: sau khi hoàn tất hồ sơ)
@@ -196,6 +200,7 @@ export const authOptions = {
           role: token.role,
           name: token.name, // Thêm tên người dùng vào session
           isProfileComplete: token.isProfileComplete,
+          hasPassword: token.hasPassword,
         };
       }
       return session;

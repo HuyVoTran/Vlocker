@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Edit, Calendar, Package } from 'lucide-react';
+import { Mail, Phone, MapPin, Edit, Calendar, Package, AlertCircle } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -29,6 +29,17 @@ interface UserProfile {
   createdAt?: string;
   floor?: string;
   unit?: string;
+  hasPassword?: boolean;
+}
+
+// Define an extended user type for the session to avoid 'any'
+interface SessionUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  id?: string;
+  role?: 'resident' | 'manager';
+  hasPassword?: boolean;
 }
 
 interface Activity {
@@ -89,7 +100,7 @@ function getActivityDescription(activity: Activity): string {
 }
 
 export default function Profile() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -104,6 +115,9 @@ export default function Profile() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '' });
   const { showToast } = useToast();
+
+  // Use hasPassword from session as the source of truth
+  const userHasPassword = (session?.user as SessionUser)?.hasPassword;
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -163,8 +177,14 @@ export default function Profile() {
   };
 
   const handleUpdatePassword = async () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword) {
-      showToast("Vui lòng điền đầy đủ mật khẩu hiện tại và mật khẩu mới.", "warning");
+    // Nếu user có pass, phải nhập pass hiện tại.
+    if (profile?.hasPassword && !passwordData.currentPassword) {
+      showToast("Vui lòng điền mật khẩu hiện tại.", "warning");
+      return;
+    }
+    // Luôn phải nhập pass mới.
+    if (!passwordData.newPassword) {
+      showToast("Vui lòng điền mật khẩu mới.", "warning");
       return;
     }
     try {
@@ -172,17 +192,20 @@ export default function Profile() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
+          ...(userHasPassword && { currentPassword: passwordData.currentPassword }),
           newPassword: passwordData.newPassword,
         }),
       });
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.message || "Đổi mật khẩu thất bại.");
+        throw new Error(json.message || "Cập nhật mật khẩu thất bại.");
       }
 
       showToast("Đổi mật khẩu thành công!", "success");
+      // Cập nhật lại profile state để phản ánh việc đã có mật khẩu
+      // Update the session to reflect the new password status
+      update({ hasPassword: true });
       setPasswordData({ currentPassword: '', newPassword: '' }); // Reset form
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Đã xảy ra lỗi.", "error");
@@ -413,8 +436,15 @@ export default function Profile() {
                     onChange={handlePasswordChange}
                     type="password"
                     className="mt-2"
-                    placeholder="Nhập mật khẩu hiện tại"
+                    placeholder={userHasPassword ? "Nhập mật khẩu hiện tại" : "Tài khoản Google không cần mật khẩu hiện tại"}
+                    disabled={!userHasPassword}
                   />
+                  {!userHasPassword && (
+                    <div className="mt-2 flex items-center gap-1 text-xs text-red-600" title="Tài khoản của bạn được tạo qua Google và chưa có mật khẩu.">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>Hãy thêm mật khẩu cho tài khoản của bạn!</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="newPassword">Mật khẩu mới</Label>
