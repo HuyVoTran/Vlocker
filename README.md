@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Pages"
+git commit -m "Update Notification Realtime"
 git push
 
 Password@12345

@@ -40,11 +40,21 @@ export default function Header({ userRole }: HeaderProps) {
     // Fetch lần đầu khi có session
     fetchUnreadCount();
 
-    // Lắng nghe sự kiện để cập nhật realtime
+    // Lắng nghe sự kiện để cập nhật ngay lập tức sau hành động của người dùng
+    // 'notificationsUpdated' được gửi khi có thông báo mới (cần reload cả list)
     window.addEventListener('notificationsUpdated', fetchUnreadCount);
+    // 'updateUnreadCount' được gửi khi chỉ cần cập nhật số lượng (đánh dấu đã đọc, xóa)
+    window.addEventListener('updateUnreadCount', fetchUnreadCount);
+
+    // Polling để kiểm tra thông báo mới từ server một cách tự động (real-time)
+    const intervalId = setInterval(fetchUnreadCount, 30000); // 30 giây một lần
 
     // Dọn dẹp listener khi component unmount
-    return () => window.removeEventListener('notificationsUpdated', fetchUnreadCount);
+    return () => {
+      window.removeEventListener('notificationsUpdated', fetchUnreadCount);
+      window.removeEventListener('updateUnreadCount', fetchUnreadCount);
+      clearInterval(intervalId);
+    };
   }, [session]);
 
   const role = session?.user?.role || userRole || 'resident';

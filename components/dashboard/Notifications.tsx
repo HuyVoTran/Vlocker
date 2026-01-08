@@ -257,7 +257,8 @@ export default function Notifications() {
       if (!res.ok) {
         throw new Error("Không thể đánh dấu thông báo là đã đọc.");
       }
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      // Chỉ cập nhật lại số lượng trên chuông, không reload cả danh sách
+      window.dispatchEvent(new CustomEvent('updateUnreadCount'));
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
       showToast("Lỗi khi đánh dấu đã đọc.", "error");
@@ -292,7 +293,8 @@ export default function Notifications() {
       }
       // Xóa lựa chọn sau khi thành công
       setSelectedNotifications([]);
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      // Chỉ cập nhật lại số lượng trên chuông, không reload cả danh sách
+      window.dispatchEvent(new CustomEvent('updateUnreadCount'));
     } catch (error) {
       console.error("Lỗi khi cập nhật thông báo:", error);
       // Hoàn tác lại nếu có lỗi
@@ -327,7 +329,8 @@ export default function Notifications() {
       showToast(`Đã xóa ${selectedNotifications.length} thông báo đã chọn.`, "success");
       // Xóa lựa chọn sau khi thành công
       setSelectedNotifications([]);
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      // Chỉ cập nhật lại số lượng trên chuông, không reload cả danh sách
+      window.dispatchEvent(new CustomEvent('updateUnreadCount'));
     } catch (error) {
       console.error("Lỗi khi xóa thông báo:", error);
       // Hoàn tác lại nếu có lỗi
