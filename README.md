@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update Notification Realtime"
+git commit -m "Update README.md"
 git push
 
 Password@12345
@@ -58,6 +58,21 @@ Password@12345
 - Dashboard (Thống kê tất cả tủ, xem nhanh danh sách tủ của cả dân cư, danh sách tủ trống)
 - Thống kê tủ (Quản lý)
 - Xem tủ trống
+
+## Cải tiến & Tính năng mới (v1.1.0)
+- **Trải nghiệm người dùng (UX) mượt mà hơn:**
+  - **Banner trượt (Draggable Carousel):** Banner trên Dashboard chính giờ đây hỗ trợ thao tác kéo-thả trên máy tính và vuốt trên di động.
+  - **Cập nhật thông báo Real-time:** Số lượng thông báo chưa đọc trên header được cập nhật tự động mà không cần tải lại trang.
+  - **Lazy Loading:** Tối ưu hóa tốc độ tải trang bằng cách chỉ tải các hình ảnh và bản đồ khi người dùng cuộn đến.
+- **Cải tiến hiệu suất và logic:**
+  - **Tối ưu hóa API và tốc độ Route:** Giảm số lượng lệnh gọi không cần thiết đến cơ sở dữ liệu và cải thiện tốc độ tải trang.
+  - **Cải tiến truy xuất và sắp xếp:** Tối ưu hóa logic truy vấn dữ liệu, thêm các chức năng sắp xếp để hiển thị thông tin hợp lý hơn.
+  - **Sửa lỗi hiển thị và tải dữ liệu:** Khắc phục các vấn đề liên quan đến việc tải và hiển thị dữ liệu, giảm thiểu hiện tượng "chớp" (flicker).
+- **Tính năng mới và bảo mật:**
+  - **Quản lý người dùng (Manager):** Thêm chức năng cho quản lý để xem, tìm kiếm, và chỉnh sửa thông tin người dùng.
+  - **Thêm mật khẩu cho tài khoản Google:** Người dùng đăng nhập bằng Google giờ đây có thể thiết lập mật khẩu cho tài khoản.
+- **Nội dung và cấu trúc:**
+  - **Bổ sung các trang thông tin:** Thêm các trang quan trọng như "Về chúng tôi" (How It Works), "Chính sách Bảo mật" (Privacy Policy), và "Điều khoản Dịch vụ" (Terms of Service).
 
 ## User Flow
 <p align="center"><img src="public/UserFlow.png" alt="Đặt Tủ & Khóa Tủ">
