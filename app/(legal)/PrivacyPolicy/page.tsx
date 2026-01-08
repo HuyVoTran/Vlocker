@@ -3,63 +3,161 @@
 export default function PrivacyPolicy() {
   const policies = [
     {
-      title: "1. Giới thiệu",
+      title: '1. Phạm vi áp dụng',
       content: [
-        "Chính sách Bảo mật này mô tả cách VLocker ('chúng tôi', 'của chúng tôi') thu thập, sử dụng và chia sẻ thông tin cá nhân của bạn khi bạn sử dụng trang web và dịch vụ của chúng tôi ('Dịch vụ').",
-        "Bằng cách sử dụng Dịch vụ, bạn đồng ý với việc thu thập, sử dụng và tiết lộ thông tin của bạn theo Chính sách này."
-      ]
+        'Chính sách này áp dụng cho:',
+        '•\tNgười dùng cá nhân sử dụng Smart Locker',
+        '•\tNgười dùng đăng ký tài khoản trên dashboard',
+        '•\tShipper (nếu có quyền truy cập hạn chế)',
+        '•\tQuản trị viên/đơn vị vận hành hệ thống',
+      ],
     },
     {
-      title: "2. Thông tin chúng tôi thu thập",
+      title: '2. Định nghĩa',
       content: [
-        "Chúng tôi thu thập các loại thông tin sau:",
-        "Thông tin cá nhân: Khi bạn đăng ký tài khoản, chúng tôi thu thập thông tin như tên, email, số điện thoại, và địa chỉ (tòa nhà, block, tầng, căn hộ).",
-        "Thông tin giao dịch: Khi bạn sử dụng dịch vụ thuê tủ, chúng tôi thu thập thông tin về các lượt đặt tủ, thời gian sử dụng và lịch sử thanh toán.",
-        "Thông tin sử dụng: Chúng tôi có thể thu thập thông tin về cách bạn tương tác với Dịch vụ của chúng tôi, chẳng hạn như địa chỉ IP, loại trình duyệt, và các trang bạn đã truy cập."
-      ]
+        '•\tDữ liệu cá nhân: Thông tin có thể dùng để nhận dạng một cá nhân trực tiếp hoặc gián tiếp',
+        '•\tNgười dùng: Cá nhân hoặc tổ chức sử dụng Dịch vụ VLocker',
+        '•\tXử lý dữ liệu: Thu thập, lưu trữ, sử dụng, chỉnh sửa, xoá dữ liệu',
+      ],
     },
     {
-      title: "3. Cách chúng tôi sử dụng thông tin của bạn",
+      title: '3. Thông tin chúng tôi thu thập',
       content: [
-        "Chúng tôi sử dụng thông tin chúng tôi thu thập cho các mục đích sau:",
-        "Để cung cấp, vận hành và duy trì Dịch vụ của chúng tôi.",
-        "Để xử lý các giao dịch của bạn và gửi cho bạn thông tin liên quan, bao gồm xác nhận đặt tủ và hóa đơn thanh toán.",
-        "Để giao tiếp với bạn, bao gồm việc trả lời các yêu cầu hỗ trợ và gửi các thông báo quan trọng về hệ thống.",
-        "Để cải thiện và cá nhân hóa Dịch vụ, cũng như để phát triển các tính năng mới.",
-        "Để tuân thủ các nghĩa vụ pháp lý."
-      ]
+        '3.1. Thông tin do bạn cung cấp',
+        '•\tHọ tên',
+        '•\tEmail, số điện thoại',
+        '•\tĐịa chỉ căn hộ',
+        '•\tThông tin tài khoản đăng nhập',
+        '•\tYêu cầu hỗ trợ, phản hồi, khiếu nại',
+        '',
+        '3.2. Thông tin phát sinh trong quá trình sử dụng',
+        '•\tID tủ, kích thước tủ',
+        '•\tThời gian đặt tủ, mở/đóng tủ',
+        '•\tThời gian sử dụng và trạng thái tủ',
+        '•\tLịch sử giao dịch, trạng thái thanh toán',
+        '',
+        '3.3. Thông tin thanh toán',
+        '•\tTrạng thái thanh toán (thành công/thất bại)',
+        '•\tMã giao dịch từ bên thứ ba',
+        '⚠️ Chúng tôi không lưu thông tin thẻ, tài khoản ngân hàng hoặc ví điện tử.',
+        '',
+        '3.4. Thông tin kỹ thuật',
+        '•\tĐịa chỉ IP',
+        '•\tThiết bị, hệ điều hành, trình duyệt',
+        '•\tLog hệ thống, thời gian truy cập',
+      ],
     },
     {
-      title: "4. Chia sẻ và Tiết lộ Thông tin",
+      title: '4. Mục đích sử dụng dữ liệu',
       content: [
-        "Chúng tôi không bán hoặc cho thuê thông tin cá nhân của bạn cho bên thứ ba.",
-        "Chúng tôi có thể chia sẻ thông tin với các nhà cung cấp dịch vụ bên thứ ba để thực hiện các chức năng thay mặt chúng tôi, chẳng hạn như xử lý thanh toán (Momo, VNPAY) và phân tích dữ liệu. Các nhà cung cấp này chỉ được phép sử dụng thông tin của bạn cho các mục đích đã được chỉ định.",
-        "Chúng tôi có thể tiết lộ thông tin nếu được yêu cầu bởi pháp luật hoặc để bảo vệ quyền, tài sản và sự an toàn của chúng tôi, người dùng của chúng tôi, hoặc công chúng."
-      ]
+        'Chúng tôi sử dụng dữ liệu để:',
+        '•\tCung cấp và vận hành dịch vụ Smart Locker',
+        '•\tXác thực danh tính và phân quyền mở tủ',
+        '•\tTính phí, xử lý và đối soát thanh toán',
+        '•\tGhi nhận lịch sử sử dụng tủ',
+        '•\tPhát hiện gian lận, truy cập trái phép',
+        '•\tCải thiện chất lượng sản phẩm và trải nghiệm người dùng',
+        '•\tHỗ trợ khách hàng và xử lý sự cố',
+        '•\tTuân thủ nghĩa vụ pháp lý',
+      ],
     },
     {
-      title: "5. Bảo mật Dữ liệu",
+      title: '5. Cơ sở pháp lý cho việc xử lý dữ liệu',
       content: [
-        "Chúng tôi cam kết bảo vệ thông tin của bạn. Chúng tôi sử dụng các biện pháp bảo mật hợp lý về mặt kỹ thuật và tổ chức để bảo vệ thông tin cá nhân của bạn khỏi bị mất, lạm dụng, truy cập trái phép, tiết lộ, thay đổi và phá hủy. Tuy nhiên, không có phương thức truyền tải qua Internet hoặc lưu trữ điện tử nào là an toàn 100%."
-      ]
+        'Chúng tôi xử lý dữ liệu cá nhân dựa trên:',
+        '•\tSự đồng ý của người dùng',
+        '•\tViệc thực hiện hợp đồng cung cấp dịch vụ',
+        '•\tNghĩa vụ pháp lý theo quy định hiện hành',
+        '•\tLợi ích hợp pháp trong vận hành hệ thống',
+      ],
     },
     {
-      title: "6. Quyền của bạn",
+      title: '6. Chia sẻ dữ liệu với bên thứ ba',
       content: [
-        "Bạn có quyền truy cập, sửa đổi hoặc xóa thông tin cá nhân của mình. Bạn có thể thực hiện các quyền này thông qua trang Hồ sơ cá nhân trong ứng dụng hoặc bằng cách liên hệ với chúng tôi.",
-        "Bạn có thể từ chối nhận các thông tin tiếp thị từ chúng tôi bằng cách làm theo hướng dẫn hủy đăng ký trong các email đó."
-      ]
+        'Chúng tôi không bán dữ liệu cá nhân của bạn.',
+        '',
+        'Dữ liệu có thể được chia sẻ với:',
+        '•\tĐối tác thanh toán (chỉ để xử lý giao dịch)',
+        '•\tNhà cung cấp hạ tầng (hosting, cloud, logging)',
+        '•\tBan quản lý/đơn vị vận hành tủ',
+        '•\tCơ quan nhà nước có thẩm quyền theo yêu cầu pháp luật',
+        '',
+        'Tất cả bên thứ ba đều bị ràng buộc nghĩa vụ bảo mật.',
+      ],
     },
     {
-      title: "7. Thay đổi Chính sách Bảo mật này",
+      title: '7. Lưu trữ và bảo mật dữ liệu',
       content: [
-        "Chúng tôi có thể cập nhật Chính sách Bảo mật này theo thời gian. Chúng tôi sẽ thông báo cho bạn về bất kỳ thay đổi nào bằng cách đăng chính sách mới trên trang này và cập nhật ngày 'Cập nhật lần cuối'. Bạn nên xem lại Chính sách Bảo mật này định kỳ."
-      ]
+        '7.1. Biện pháp bảo mật',
+        '•\tMã hóa dữ liệu (ở mức phù hợp)',
+        '•\tPhân quyền truy cập theo vai trò',
+        '•\tGhi log hành vi truy cập hệ thống',
+        '•\tKiểm soát truy cập vật lý & kỹ thuật',
+        '',
+        '7.2. Thời gian lưu trữ',
+        'Dữ liệu được lưu trữ:',
+        '•\tTrong thời gian tài khoản còn hoạt động',
+        '•\tHoặc theo yêu cầu pháp luật',
+        '•\tHoặc cho mục đích giải quyết tranh chấp, kiểm toán',
+      ],
     },
     {
-      title: "8. Liên hệ với chúng tôi",
+      title: '8. Quyền của người dùng',
       content: [
-        "Nếu bạn có bất kỳ câu hỏi nào về Chính sách Bảo mật này, vui lòng liên hệ với chúng tôi qua trang Liên hệ của chúng tôi."
+        'Bạn có quyền:',
+        '•\tTruy cập và xem dữ liệu cá nhân',
+        '•\tChỉnh sửa hoặc cập nhật thông tin',
+        '•\tYêu cầu xoá dữ liệu (trong phạm vi pháp luật cho phép)',
+        '•\tRút lại sự đồng ý xử lý dữ liệu',
+        '•\tKhiếu nại về việc xử lý dữ liệu cá nhân',
+        '',
+        'Yêu cầu có thể được gửi qua dashboard hoặc email hỗ trợ.',
+      ],
+    },
+    {
+      title: '9. Cookie và công nghệ tương tự',
+      content: [
+        'Chúng tôi sử dụng cookie để:',
+        '•\tDuy trì phiên đăng nhập',
+        '•\tTăng cường bảo mật',
+        '•\tPhân tích hành vi sử dụng (ẩn danh)',
+        '',
+        'Bạn có thể tắt cookie trong trình duyệt, nhưng một số tính năng có thể không hoạt động đúng.',
+      ],
+    },
+    {
+      title: '10. Dữ liệu của trẻ em',
+      content: [
+        'Dịch vụ VLocker không dành cho trẻ em dưới 16 tuổi.',
+        'Chúng tôi không cố ý thu thập dữ liệu cá nhân của trẻ em.',
+      ],
+    },
+    {
+      title: '11. Truy cập từ bên thứ ba',
+      content: [
+        'Website có thể chứa liên kết tới dịch vụ bên thứ ba.',
+        'Chúng tôi không chịu trách nhiệm cho chính sách quyền riêng tư của các bên này.',
+      ],
+    },
+    {
+      title: '12. Thay đổi Chính sách Quyền riêng tư',
+      content: [
+        'Chúng tôi có thể cập nhật chính sách này theo thời gian.',
+        'Phiên bản mới sẽ được công bố trên website và có hiệu lực ngay khi đăng tải.',
+      ],
+    },
+    {
+      title: '13. Liên hệ',
+      content: [
+        'Nếu bạn có câu hỏi hoặc yêu cầu liên quan đến dữ liệu cá nhân, vui lòng liên hệ:',
+        '•\tEmail: noreply.vlocker@gmail.com',
+        '•\tHoặc gửi yêu cầu trực tiếp qua dashboard VLocker',
+      ],
+    },
+    {
+      title: '14. Hiệu lực',
+      content: [
+        'Việc bạn tiếp tục sử dụng Dịch vụ đồng nghĩa với việc bạn đồng ý với Chính sách Quyền riêng tư này.',
       ]
     }
   ];
@@ -75,14 +173,28 @@ export default function PrivacyPolicy() {
           </div>
 
           <div className="prose prose-lg max-w-none mx-auto text-gray-700 space-y-8">
+            <p>VLocker (“chúng tôi”, “VLocker”) cam kết tôn trọng và bảo vệ quyền riêng tư của người dùng khi bạn truy cập và sử dụng hệ thống Smart Locker, bao gồm website, web dashboard, API, phần mềm và thiết bị liên quan (gọi chung là “Dịch vụ”).</p>
+            <p>Chính sách này giải thích cách chúng tôi thu thập, sử dụng, lưu trữ, chia sẻ và bảo vệ dữ liệu cá nhân của bạn.</p>
             {policies.map((policy, index) => (
               <div key={index}>
                 <h2 className="text-2xl font-semibold text-gray-900">{policy.title}</h2>
-                <div className="space-y-4">
-                  {policy.content.map((paragraph, pIndex) => (
-                    <p key={pIndex}>{paragraph}</p>
-                  ))}
-                </div>
+                {policy.content.map((paragraph, pIndex) => {
+                  // Các mục con như "3.1. ..."
+                  if (/^\d+\.\d+\./.test(paragraph)) {
+                    return <p key={pIndex} className="font-bold !mt-6 !mb-2">{paragraph}</p>;
+                  }
+                  // Các mục có dấu đầu dòng
+                  if (paragraph.startsWith('•\t')) {
+                    return <p key={pIndex} className="!m-0 !p-0 ml-6">{paragraph.replace('•\t', '• ')}</p>;
+                  }
+                  // Các thông báo cảnh báo
+                  if (paragraph.startsWith('⚠️')) {
+                    return <p key={pIndex} className="!my-2 font-medium">{paragraph}</p>;
+                  }
+                  // Bỏ qua các dòng trống để không tạo khoảng trắng thừa
+                  if (paragraph.trim() === '') return null;
+                  return <p key={pIndex}>{paragraph}</p>;
+                })}
               </div>
             ))}
           </div>

@@ -43,38 +43,45 @@ export default function Contact() {
 
   const faqs = [
     {
+      question: 'Khi nào tôi phải thanh toán?',
+      answer: [
+        'Bạn phải thanh toán phí lưu trữ trước khi có thể mở tủ để lấy đồ.'
+      ]
+    },
+    {
+      question: 'Phí sử dụng được tính như thế nào?',
+      answer: [
+        'Phí tính theo ngày sử dụng và kích thước tủ bạn chọn; thanh toán mỗi lần sử dụng.'
+      ]
+    },
+    {
       question: 'Shipper có thể mở tủ của tôi không?',
       answer: [
-        'Không. Shipper chỉ được phép bỏ hàng vào tủ đã được đặt trước.',
-        'Sau khi đóng tủ, hệ thống sẽ tự động khóa và shipper không có quyền mở lại.'
+        'Không. Chỉ người dùng đã đã thanh toán hoặc quản lý được cấp quyền mới mở tủ.'
       ]
     },
     {
-      question: 'Tôi cần thanh toán khi nào?',
+      question: 'Tôi quên đóng tủ thì sao?',
       answer: [
-        'Người dùng cần thanh toán phí lưu trữ trước khi mở tủ để nhận đồ.',
-        'Phí được tính tự động theo thời gian sử dụng với mức 5.000 VNĐ/ngày.'
+        'Nếu tủ không được đóng lại, sẽ không bắt đầu tính phí. Bạn cần đóng tủ để kích hoạt việc tính tiền.'
       ]
     },
     {
-      question: 'Nếu tôi quên đóng tủ thì sao?',
+      question: 'Tôi có thể mở tủ khi ở ngoài không?',
       answer: [
-        'Hệ thống sẽ cảnh báo trạng thái tủ chưa đóng trên Dashboard.',
-        'Ban quản lý có thể theo dõi và xử lý kịp thời để đảm bảo an toàn.'
+        'Có. Chỉ cần bạn đã thanh toán và đăng nhập dashboard để mở tủ từ xa.'
       ]
     },
     {
-      question: 'Ban quản lý có xem được lịch sử sử dụng tủ không?',
+      question: 'Làm sao để tôi theo dõi trạng thái tủ?',
       answer: [
-        'Có. Quản lý có thể xem lịch sử thuê tủ.',
-        'Trạng thái hiện tại và các báo cáo thống kê để phục vụ công tác vận hành.'
+        'Bạn có thể xem trạng thái tủ theo thời gian thực ngay trên dashboard.'
       ]
     },
     {
-      question: 'Tôi có thể quản lý tủ khi không ở nhà không?',
+      question: 'Quản lý có xem được lịch sử sử dụng tủ không?',
       answer: [
-        'Có. Người dùng có thể theo dõi trạng thái, thanh toán và mở tủ từ xa.',
-        'Giúp việc giao nhận hàng hóa linh hoạt và thuận tiện hơn.'
+        'Có. Ban quản lý có thể xem lịch sử sử dụng tủ trên hệ thống dashboard.'
       ]
     }
   ];

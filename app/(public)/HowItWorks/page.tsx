@@ -60,37 +60,54 @@ export default function HowItWorks() {
 
   const faqs = [
     {
+      Q: 'VLocker là gì?',
+      A: [
+        'VLocker là hệ thống tủ khóa thông minh giúp bạn nhận và gửi đồ an toàn, tiện lợi, quản lý toàn bộ qua dashboard web.'
+      ]
+    },
+    {
+      Q: 'Tôi cần làm gì để sử dụng tủ?',
+      A: [
+        'Đăng nhập, chọn tủ trống và đặt tủ trên dashboard. Sau đó bạn hoặc shipper bỏ đồ vào tủ đã đặt.'
+      ]
+    },
+    {
+      Q: 'Khi nào tôi phải thanh toán?',
+      A: [
+        'Bạn phải thanh toán phí lưu trữ trước khi có thể mở tủ để lấy đồ.'
+      ]
+    },
+    {
+      Q: 'Phí sử dụng được tính như thế nào?',
+      A: [
+        'Phí tính theo ngày sử dụng và kích thước tủ bạn chọn; thanh toán mỗi lần sử dụng.'
+      ]
+    },
+    {
       Q: 'Shipper có thể mở tủ của tôi không?',
       A: [
-        'Không. Shipper chỉ được phép bỏ hàng vào tủ đã được đặt trước.',
-        'Sau khi đóng tủ, hệ thống sẽ tự động khóa và shipper không có quyền mở lại.'
+        'Không. Chỉ người dùng đã đã thanh toán hoặc quản lý được cấp quyền mới mở tủ.'
       ]
     },
     {
-      Q: 'Tôi cần thanh toán khi nào?',
-      A: [
-        'Người dùng cần thanh toán phí lưu trữ trước khi mở tủ để nhận đồ.',
-        'Phí được tính tự động theo thời gian sử dụng với mức 5.000 VNĐ/ngày.'
-      ]
+      Q: 'Tôi quên đóng tủ thì sao?',
+      A: ['Nếu tủ không được đóng lại, sẽ không bắt đầu tính phí. Bạn cần đóng tủ để kích hoạt việc tính tiền.']
     },
     {
-      Q: 'Nếu tôi quên đóng tủ thì sao?',
-      A: [
-        'Hệ thống sẽ cảnh báo trạng thái tủ chưa đóng trên Dashboard.',
-        'Ban quản lý có thể theo dõi và xử lý kịp thời để đảm bảo an toàn.'
-      ]
+      Q: 'Tôi có thể mở tủ khi ở ngoài không?',
+      A: ['Có. Chỉ cần bạn đã thanh toán và đăng nhập dashboard để mở tủ từ xa.']
     },
     {
-      Q: 'Ban quản lý có xem được lịch sử sử dụng tủ không?',
-      A: [
-        'Có. Quản lý có thể xem lịch sử thuê tủ, trạng thái hiện tại và các báo cáo thống kê để phục vụ công tác vận hành.'
-      ]
+      Q: 'Làm sao để tôi theo dõi trạng thái tủ?',
+      A: ['Bạn có thể xem trạng thái tủ theo thời gian thực ngay trên dashboard.']
     },
     {
-      Q: 'Tôi có thể quản lý tủ khi không ở nhà không?',
-      A: [
-        'Có. Người dùng có thể theo dõi trạng thái, thanh toán và mở tủ từ xa, giúp việc giao nhận hàng hóa linh hoạt và thuận tiện hơn.'
-      ]
+      Q: 'Quản lý có xem được lịch sử sử dụng tủ không?',
+      A: ['Có. Ban quản lý có thể xem lịch sử sử dụng tủ trên hệ thống dashboard.']
+    },
+    {
+      Q: 'Tôi gặp sự cố khi mở tủ?',
+      A: ['Kiểm tra lại thanh toán và kết nối dashboard. Nếu vẫn lỗi, liên hệ hỗ trợ kỹ thuật.']
     }
   ];
 

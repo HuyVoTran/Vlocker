@@ -165,7 +165,7 @@ export default function AboutUs() {
             <p className="text-gray-600 mb-6">
               Đừng ngần ngại liên hệ với chúng tôi nếu bạn có bất kỳ câu hỏi nào.
             </p>
-            <Button onClick={() => router.push('/contact')}>
+            <Button onClick={() => router.push('https://salviotran.vercel.app/')}>
               Đến Trang Liên Hệ
             </Button>
           </Card>
