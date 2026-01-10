@@ -18,15 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export default function AboutUs() {
   const router = useRouter();
 
-  const developers = [
-    {
-      name: "Trần Võ Huy",
-      role: "Full-stack Developer",
-      avatar: "/Avatar.jpg",
-      description: "Chịu trách nhiệm chính trong việc phát triển cả frontend và backend, thiết kế cơ sở dữ liệu và triển khai hệ thống.",
-    }
-  ];
-
   const technologies = [
     {
       name: "Next.js",
@@ -80,42 +71,46 @@ export default function AboutUs() {
             </p>
           </div>
 
-          {/* Giới thiệu VLocker */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Giới thiệu VLocker</CardTitle>
-            </CardHeader>
-            <CardContent className="text-gray-700 space-y-4">
-              <p>
-                VLocker là một dự án hệ thống tủ khóa thông minh (Smart Locker) được thiết kế để hiện đại hóa quy trình giao nhận hàng hóa tại các khu dân cư, đặc biệt là chung cư. Dự án giải quyết các vấn đề phổ biến như lỡ đơn hàng, chờ đợi shipper, và thiếu an toàn khi gửi/nhận đồ.
-              </p>
-              <p>
-                Với VLocker, chúng tôi mang đến một giải pháp toàn diện: cư dân có thể nhận hàng bất cứ lúc nào, shipper giao hàng nhanh chóng và an toàn, còn ban quản lý có thể giám sát toàn bộ hệ thống một cách dễ dàng thông qua một dashboard trực quan.
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Người phát triển */}
+          {/* Nhóm phát triển */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-6 h-6" />
-                Người Phát Triển
+                Nhóm Phát Triển
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {developers.map((dev, index) => (
-                <div key={index} className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex flex-col sm:flex-row items-center gap-6 mb-12">
                   <div className="relative w-[100px] h-[100px] rounded-full overflow-hidden flex-shrink-0">
-                    <Image src={dev.avatar} alt={dev.name} fill className="object-cover" />
+                    <Image src="/Avatar.jpg" alt="Trần Võ Huy" fill className="object-cover" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold">{dev.name}</h3>
-                    <p className="text-blue-600 mb-2">{dev.role}</p>
-                    <p className="text-gray-700">{dev.description}</p>
+                    <h3 className="text-xl font-semibold">Trần Võ Huy</h3>
+                    <p className="text-blue-600 mb-2">Full-stack Developer (Project-based)</p>
+                    <p className="text-gray-700">Chịu trách nhiệm toàn phần từ thiết kế đến xây dựng như một dự án cá nhân.</p>
+                    <ul className="mt-2 text-gray-600">
+                      <li>- Phân tích và thiết kế hệ thống và kiến trúc dự án</li>
+                      <li>- Thiết kế UX/UI & bố cục website</li>
+                      <li>- Phát triển giao diện người dùng qua React</li>
+                      <li>- Phát triển backend với Next.js</li>
+                      <li>- Thiết kế cơ sở dữ liệu với MongoDB</li>
+                      <li>- Tích hợp API Thanh toán Momo/VNPay/Paypal</li>
+                      <li>- Triển khai hệ thống quản lý, kiểm soát phiên bản và bảo trì hệ thống</li>
+                      </ul>
                   </div>
                 </div>
-              ))}
+            </CardContent>
+            <CardContent>
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <div className="relative w-[100px] h-[100px] rounded-full overflow-hidden flex-shrink-0">
+                    <Image src="/Avatar-tester.png" alt="Nguyễn Quốc Việt" fill className="object-cover cropper" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Nguyễn Quốc Việt</h3>
+                    <p className="text-blue-600 mb-2">QA Engineer / Tester</p>
+                    <p className="text-gray-700">Chịu trách nhiệm kiểm thử và đảm bảo chất lượng phần mềm cho dự án.</p>
+                  </div>
+                </div>
             </CardContent>
           </Card>
 

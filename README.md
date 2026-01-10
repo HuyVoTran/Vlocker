@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update README.md"
+git commit -m "Update README.md & About Us page"
 git push
 
 Password@12345
@@ -19,7 +19,7 @@ Password@12345
 
 1.  **Tăng cường Bảo mật:** Cung cấp quy trình giao nhận hàng hóa an toàn, đặc biệt cho kịch bản Shipper bỏ đồ, đảm bảo chỉ người thanh toán mới có thể mở tủ.
 2.  **Phân quyền Rõ ràng:** Xây dựng hai vai trò Người dùng chính (**Dân cư** và **Quản lý**) với các quyền hạn truy cập và thao tác riêng biệt.
-3.  **Tự động hóa Thanh toán:** Xử lý việc tính toán chi phí lưu trữ theo thời gian thực (5k/ngày) và tích hợp cổng thanh toán để kích hoạt mở khóa.
+3.  **Tự động hóa Thanh toán:** Xử lý việc tính toán chi phí lưu trữ theo thời gian thực và tích hợp cổng thanh toán để kích hoạt mở khóa.
 
 <br>
 
