@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import useSWR from "swr";
-import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card } from '../ui/card';
@@ -114,6 +114,7 @@ const formatSize = (size?: string) => {
   const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [registering, setRegistering] = useState<boolean>(false);
 
   // Draggable Carousel states
@@ -388,6 +389,36 @@ const formatSize = (size?: string) => {
       }
     };
 
+    const handleCancel = async () => {
+      if (!selectedMyLocker) return;
+      
+      setActionLoading('cancel');
+      
+      try {
+        const res = await fetch('/api/lockers/resident/cancel', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedMyLocker.booking._id }),
+        });
+
+        const json = await res.json();
+        
+        if (!res.ok || !json.success) {
+          throw new Error(json.message || 'Lỗi hủy lượt đặt');
+        }
+
+        showToast('Hủy lượt đặt thành công!', 'success');
+        mutateMyLockers();
+        mutateAvailableLockers();
+        setSelectedMyLocker(null);
+        setIsCancelDialogOpen(false);
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Lỗi hủy lượt đặt', 'error');
+      } finally {
+        setActionLoading(null);
+      }
+    };
+
     // Xử lý trạng thái tải session
     if (status === "loading") {
       return <div className="p-6 max-w-7xl mx-auto">Đang tải phiên làm việc...</div>;
@@ -638,30 +669,27 @@ const formatSize = (size?: string) => {
             )}
 
             <DialogFooter className="flex-col sm:flex-col gap-2">
-              {/* Status: active - Có thể mở tủ và khóa tủ */}
-              {selectedMyLocker && selectedMyLocker.booking?.status === 'active' && (
-                <>
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700" 
-                    onClick={handleOpen}
-                    disabled={actionLoading !== null}
-                  >
+              {selectedMyLocker && selectedMyLocker.booking?.status === 'active' ? (
+                // GRID 2x2 cho trạng thái 'active'
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleOpen} disabled={actionLoading !== null}>
                     <Unlock className="w-4 h-4 mr-2" />
                     {actionLoading === 'open' ? 'Đang mở...' : 'Mở tủ'}
                   </Button>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700" 
-                    onClick={handleLock}
-                    disabled={actionLoading !== null}
-                  >
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleLock} disabled={actionLoading !== null}>
                     <Lock className="w-4 h-4 mr-2" />
-                    {actionLoading === 'lock' ? 'Đang khóa...' : 'Khóa tủ (Bắt đầu tính tiền)'}
+                    {actionLoading === 'lock' ? 'Đang khóa...' : 'Khóa tủ'}
                   </Button>
-                </>
-              )}
-
-              {/* Status: stored - Phải thanh toán mới được mở tủ */}
-              {selectedMyLocker && selectedMyLocker.booking?.status === 'stored' && (
+                  <Button variant="destructive" className="w-full" onClick={() => setIsCancelDialogOpen(true)} disabled={actionLoading !== null}>
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Hủy tủ
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => { if (selectedMyLocker) { router.push(`/resident/report?lockerId=${selectedMyLocker.locker.lockerId}&locker_id=${selectedMyLocker.locker._id}`); } }} disabled={actionLoading !== null}>
+                    Báo Cáo Lỗi
+                  </Button>
+                </div>
+              ) : selectedMyLocker && selectedMyLocker.booking?.status === 'stored' ? (
+                // Layout dọc cho trạng thái 'stored'
                 <>
                   {selectedMyLocker.booking?.paymentStatus === 'pending' ? (
                     <Button 
@@ -694,20 +722,37 @@ const formatSize = (size?: string) => {
                       )}
                     </>
                   )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => {
+                      if (selectedMyLocker) {
+                        router.push(`/resident/report?lockerId=${selectedMyLocker.locker.lockerId}&locker_id=${selectedMyLocker.locker._id}`);
+                      }
+                    }}
+                    disabled={actionLoading !== null}
+                  >
+                    Báo Cáo Lỗi
+                  </Button>
                 </>
-              )}
-
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => {
-                  if (selectedMyLocker) {
-                    router.push(`/resident/report?lockerId=${selectedMyLocker.locker.lockerId}&locker_id=${selectedMyLocker.locker._id}`);
-                  }
-                }}
-                disabled={actionLoading !== null}
-              >
-                Báo Cáo Lỗi
+              ) : null}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Xác nhận hủy lượt đặt</DialogTitle>
+              <DialogDescription>
+                Bạn có chắc chắn muốn hủy lượt đặt cho tủ {selectedMyLocker?.locker?.lockerId}? Thao tác này sẽ giải phóng tủ và không thể hoàn tác.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)} disabled={actionLoading === 'cancel'}>
+                Không
+              </Button>
+              <Button variant="destructive" onClick={handleCancel} disabled={actionLoading === 'cancel'}>
+                {actionLoading === 'cancel' ? 'Đang hủy...' : 'Có, hủy tủ'}
               </Button>
             </DialogFooter>
           </DialogContent>

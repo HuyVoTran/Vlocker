@@ -1,4 +1,4 @@
-import { Package, Clock, CreditCard, Unlock, Lock, Search } from 'lucide-react';
+import { Package, Clock, CreditCard, Unlock, Lock, Search, XCircle } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -61,6 +61,7 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   const [currentTime, setCurrentTime] = useState(new Date()); // For realtime countdown
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'pending', 'paid', 'active'
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -262,6 +263,41 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
     }
   };
 
+  const handleCancel = async () => {
+    if (!selectedLocker) return;
+    
+    setLoading('cancel');
+    setError(null);
+    
+    try {
+      const res = await fetch('/api/lockers/resident/cancel', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: selectedLocker.booking._id }),
+      });
+
+      const json = await res.json();
+      
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Lỗi hủy lượt đặt');
+      }
+
+      showToast('Hủy lượt đặt thành công!', 'success');
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+      
+      setSelectedLocker(null);
+      setIsCancelDialogOpen(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi hủy lượt đặt', 'error');
+      setError(err instanceof Error ? err.message : 'Lỗi hủy lượt đặt');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const filteredAndSortedLockers = useMemo(() => {
     // Define sort order priority
     const getSortPriority = (item: MyLockerItem) => {
@@ -400,6 +436,26 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
         )}
       </div>
       <div>
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Xác nhận hủy lượt đặt</DialogTitle>
+              <DialogDescription>
+                Bạn có chắc chắn muốn hủy lượt đặt cho tủ {selectedLocker?.locker?.lockerId}? Thao tác này sẽ giải phóng tủ và không thể hoàn tác.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)} disabled={loading === 'cancel'}>
+                Không
+              </Button>
+              <Button variant="destructive" onClick={handleCancel} disabled={loading === 'cancel'}>
+                {loading === 'cancel' ? 'Đang hủy...' : 'Có, hủy tủ'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div>
         <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -483,30 +539,27 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
             )}
 
             <DialogFooter className="flex-col sm:flex-col gap-2">
-              {/* Status: active - Có thể mở tủ và khóa tủ */}
-              {selectedLocker && selectedLocker.booking?.status === 'active' && (
-                <>
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700" 
-                    onClick={handleOpen}
-                    disabled={loading !== null}
-                  >
+              {selectedLocker && selectedLocker.booking?.status === 'active' ? (
+                // GRID 2x2 cho trạng thái 'active'
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleOpen} disabled={loading !== null}>
                     <Unlock className="w-4 h-4 mr-2" />
                     {loading === 'open' ? 'Đang mở...' : 'Mở tủ'}
                   </Button>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700" 
-                    onClick={handleLock}
-                    disabled={loading !== null}
-                  >
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleLock} disabled={loading !== null}>
                     <Lock className="w-4 h-4 mr-2" />
-                    {loading === 'lock' ? 'Đang khóa...' : 'Khóa tủ (Bắt đầu tính tiền)'}
+                    {loading === 'lock' ? 'Đang khóa...' : 'Khóa tủ'}
                   </Button>
-                </>
-              )}
-
-              {/* Status: stored - Phải thanh toán mới được mở tủ */}
-              {selectedLocker && selectedLocker.booking?.status === 'stored' && (
+                  <Button variant="destructive" className="w-full" onClick={() => setIsCancelDialogOpen(true)} disabled={loading !== null}>
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Hủy tủ
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => { if (selectedLocker) { router.push(`/resident/report?lockerId=${selectedLocker.locker.lockerId}&locker_id=${selectedLocker.locker._id}`); } }} disabled={loading !== null}>
+                    Báo Cáo Lỗi
+                  </Button>
+                </div>
+              ) : selectedLocker && selectedLocker.booking?.status === 'stored' ? (
+                // Layout dọc cho trạng thái 'stored'
                 <>
                   {selectedLocker.booking?.paymentStatus === 'pending' ? (
                     <Button 
@@ -539,21 +592,20 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                       )}
                     </>
                   )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => {
+                      if (selectedLocker) {
+                        router.push(`/resident/report?lockerId=${selectedLocker.locker.lockerId}&locker_id=${selectedLocker.locker._id}`);
+                      }
+                    }}
+                    disabled={loading !== null}
+                  >
+                    Báo Cáo Lỗi
+                  </Button>
                 </>
-              )}
-
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => {
-                  if (selectedLocker) {
-                    router.push(`/resident/report?lockerId=${selectedLocker.locker.lockerId}&locker_id=${selectedLocker.locker._id}`);
-                  }
-                }}
-                disabled={loading !== null}
-              >
-                Báo Cáo Lỗi
-              </Button>
+              ) : null}
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update README.md & About Us page"
+git commit -m "Update cancel locker"
 git push
 
 Password@12345
