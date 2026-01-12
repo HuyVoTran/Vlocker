@@ -5,11 +5,10 @@ import { Package, MapPin, DollarSign, Search } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../ui/toast-context';
+import { FilterBar, FilterConfig } from '../ui/FilterBar';
 
 export interface Locker {
   _id: string;
@@ -68,10 +67,12 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
   const [registering, setRegistering] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    size: 'all',
+  });
+  const debouncedSearchTerm = useDebounce(filters.searchTerm, 500);
   const { showToast } = useToast();
-  const [filterSize, setFilterSize] = useState('all');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -96,7 +97,7 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
         page: String(currentPage),
         limit: '9', // 9 items for a 3-column grid
         search: debouncedSearchTerm,
-        size: filterSize,
+        size: filters.size,
       });
 
       const res = await fetch(`/api/lockers/resident/available?${params.toString()}`);
@@ -126,12 +127,12 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
       setLoading(false);
       setIsLoadingMore(false);
     }
-  }, [currentUser?.id, page, debouncedSearchTerm, filterSize]);
+  }, [currentUser?.id, page, debouncedSearchTerm, filters.size]);
 
   useEffect(() => {
     // Fetch data when filters change
     loadLockers(false);
-  }, [debouncedSearchTerm, filterSize, currentUser?.id]); // Dependency on loadLockers is implicitly handled by useCallback
+  }, [debouncedSearchTerm, filters.size, currentUser?.id]); // Dependency on loadLockers is implicitly handled by useCallback
 
   const loadMore = useCallback(() => {
     if (isLoadingMore || !hasMore || loading) return;
@@ -157,6 +158,26 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
     if (availableLockers.length === 0) return 10000;
     return Math.min(...availableLockers.map(l => Number(l.price || 10000)));
   }, [availableLockers]);
+
+  const handleFilterChange = (id: string, value: string) => {
+    setFilters(prev => ({ ...prev, [id]: value }));
+  };
+
+  const filterConfig: FilterConfig[] = [
+    {
+      id: 'searchTerm',
+      type: 'search',
+      placeholder: 'Tìm kiếm theo mã tủ...',
+    },
+    {
+      id: 'size',
+      type: 'select',
+      placeholder: 'Lọc theo kích thước',
+      options: [
+        { value: 'all', label: 'Tất cả kích thước' }, { value: 'S', label: formatSize('S') }, { value: 'M', label: formatSize('M') }, { value: 'L', label: formatSize('L') }, { value: 'XL', label: formatSize('XL') }
+      ],
+    },
+  ];
 
   if (loading) {
     return <div className="p-6 max-w-7xl mx-auto">Đang tải danh sách tủ...</div>;
@@ -211,33 +232,13 @@ export default function RegisterLocker({ user }: RegisterLockerProps) {
       </div>
 
       {/* Filters */}
-      <Card className="p-6">
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Tìm kiếm theo mã tủ..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <Select value={filterSize} onValueChange={setFilterSize}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo kích thước" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả kích thước</SelectItem>
-              <SelectItem value="S">{formatSize('S')}</SelectItem>
-              <SelectItem value="M">{formatSize('M')}</SelectItem>
-              <SelectItem value="L">{formatSize('L')}</SelectItem>
-              <SelectItem value="XL">{formatSize('XL')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+      <FilterBar
+        filters={filterConfig}
+        filterValues={filters}
+        onFilterChange={handleFilterChange}
+        gridClass="grid md:grid-cols-3 gap-4"
+        className="p-6"
+      />
 
       {/* Lockers Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

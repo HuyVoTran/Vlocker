@@ -24,6 +24,7 @@ import {
 import { useState, useMemo } from 'react';
 import { Label } from '../ui/label';
 import { useToast } from '../ui/toast-context';
+import { FilterBar, FilterConfig } from '../ui/FilterBar';
 
 // Hàm fetcher chung cho SWR (tái sử dụng từ các component khác)
 const fetcher = async (url: string) => {
@@ -75,14 +76,16 @@ const formatSize = (size: string) => {
 };
 
 export default function AvailableLockers() {
-  const [filterBuilding, setFilterBuilding] = useState('all');
-  const [filterBlock, setFilterBlock] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterSize, setFilterSize] = useState('all');
+  const [filters, setFilters] = useState({
+    building: 'all',
+    block: 'all',
+    status: 'all',
+    size: 'all',
+    searchTerm: '',
+  });
   const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newLockerData, setNewLockerData] = useState({
@@ -117,13 +120,13 @@ export default function AvailableLockers() {
   }, [allLockers]);
 
   const filteredLockers = allLockers.filter((locker: Locker) => {
-    const matchesBuilding = filterBuilding === 'all' || locker.building === filterBuilding;
-    const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-    const matchesStatus = filterStatus === 'all' || locker.status === filterStatus;
-    const matchesSize = filterSize === 'all' || locker.size === filterSize;
-    const matchesSearch = locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          locker.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          locker.block.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesBuilding = filters.building === 'all' || locker.building === filters.building;
+    const matchesBlock = filters.block === 'all' || locker.block === filters.block;
+    const matchesStatus = filters.status === 'all' || locker.status === filters.status;
+    const matchesSize = filters.size === 'all' || locker.size === filters.size;
+    const matchesSearch = locker.lockerId.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                          locker.building.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                          locker.block.toLowerCase().includes(filters.searchTerm.toLowerCase());
     return matchesBuilding && matchesBlock && matchesStatus && matchesSearch && matchesSize;
   });
 
@@ -229,6 +232,48 @@ export default function AvailableLockers() {
     return `Tòa ${locker.building} - Block ${locker.block}`;
   };
 
+  const handleFilterChange = (id: string, value: string) => {
+    setFilters(prev => ({ ...prev, [id]: value }));
+  };
+
+  const filterConfig: FilterConfig[] = [
+    {
+      id: 'searchTerm',
+      type: 'search',
+      placeholder: 'Tìm kiếm theo mã tủ, tòa, block...',
+      icon: null,
+      className: 'relative',
+    },
+    {
+      id: 'building',
+      type: 'select',
+      placeholder: 'Lọc theo tòa',
+      options: [
+        { value: 'all', label: 'Tất cả tòa' },
+        ...uniqueBuildings.map(b => ({ value: b, label: `Tòa ${b}` })),
+      ],
+    },
+    {
+      id: 'block',
+      type: 'select',
+      placeholder: 'Lọc theo block',
+      options: [
+        { value: 'all', label: 'Tất cả block' },
+        ...uniqueBlocks.map(b => ({ value: b, label: `Block ${b}` })),
+      ],
+    },
+    {
+      id: 'size',
+      type: 'select',
+      placeholder: 'Lọc theo kích thước',
+      options: [
+        { value: 'all', label: 'Tất cả kích thước' },
+        ...uniqueSizes.map(s => ({ value: s, label: formatSize(s) })),
+      ],
+    },
+    { id: 'status', type: 'select', placeholder: 'Lọc theo trạng thái', options: [{ value: 'all', label: 'Tất cả trạng thái' }, { value: 'available', label: 'Hoạt động' }, { value: 'maintenance', label: 'Bảo trì' }, { value: 'locked', label: 'Tạm khóa' }] },
+  ];
+
   if (fetchLoading) {
     return <div className="p-6 max-w-7xl mx-auto">Đang tải dữ liệu tủ...</div>;
   }
@@ -298,62 +343,12 @@ export default function AvailableLockers() {
       </div>
 
       {/* Filters */}
-      <Card className="p-6 mb-6">
-        <div className="grid md:grid-cols-5 gap-4">
-          <div className="relative">
-            <Input
-              placeholder="Tìm kiếm theo mã tủ, tòa, block..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-3"
-            />
-          </div>
-          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo tòa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả tòa</SelectItem>
-              {uniqueBuildings.map(building => (
-                <SelectItem key={building} value={building}>{`Tòa ${building}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterBlock} onValueChange={setFilterBlock}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo block" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả block</SelectItem>
-              {uniqueBlocks.map(block => (
-                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterSize} onValueChange={setFilterSize}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo kích thước" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả kích thước</SelectItem>
-              {uniqueSizes.map(size => (
-                <SelectItem key={size} value={size}>{formatSize(size)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="available">Hoạt động</SelectItem>
-              <SelectItem value="maintenance">Bảo trì</SelectItem>
-              <SelectItem value="locked">Tạm khóa</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+      <FilterBar
+        filters={filterConfig}
+        filterValues={filters}
+        onFilterChange={handleFilterChange}
+        gridClass="grid md:grid-cols-5 gap-4"
+      />
 
       {/* Lockers Table */}
       <Card>

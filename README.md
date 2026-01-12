@@ -5,7 +5,7 @@ npm run dev
 git pull
 
 git add .
-git commit -m "Update cancel locker"
+git commit -m "Update Component"
 git push
 
 Password@12345

@@ -1,121 +1,42 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import useSWR from "swr";
-import { Package, Clock, CreditCard, Plus, Smartphone, MapPin, Unlock, Lock, User as UserIcon, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
+import { Smartphone, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
-import { useToast } from '../ui/toast-context';
+import MyLockersPreview, { MyLockerItem, Locker } from './MyLockersPreview';
+import AvailableLockersPreview from './AvailableLockersPreview';
+import useSWR from 'swr';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
-
   if (!res.ok) {
     const error = new Error("An error occurred while fetching the data.") as Error & { info?: unknown; status?: number };
-    try {
-      error.info = await res.json();
-    } catch {
-      // Ignore if response body is not JSON
-    }
+    try { error.info = await res.json(); } catch { /* ignore */ }
     error.status = res.status;
     throw error;
   }
-
   const json = await res.json();
-  if (!json.success) {
-    throw new Error(json.message || "API returned an error");
-  }
+  if (!json.success) throw new Error(json.message || "API returned an error");
   return json.data;
 };
 
-export interface Locker {
-  _id: string;
-  lockerId: string;
-  building: string;
-  block: string;
-  status: string;
-  floor?: string | number;
-  size?: string;
-  price?: string | number;
-}
-
-export interface Booking {
-  _id: string;
-  userId: string;
-  lockerId: string;
-  startTime?: string | Date;
-  endTime?: string | Date;
-  pickupExpiryTime?: string | Date;
-  status?: string;
-  cost?: number;
-  paymentStatus?: string;
-}
-
-// === Quan trọng: Kiểu gộp trả về từ API ===
-interface MyLockerItem {
-  locker: Locker;
-  booking: Booking;
-}
-
-const formatSize = (size?: string) => {
-  if (!size) return 'N/A';
-  switch (size) {
-    case 'S':
-      return 'Small - Nhỏ';
-    case 'M':
-      return 'Medium - Trung bình';
-    case 'L':
-      return 'Large - Lớn';
-    case 'XL':
-      return 'Extra Large - Rất lớn';
-    default:
-      return size;
-  }
-};
-  export default function ResidentDashboard({
-    onNavigate, // Assuming onNavigate is passed from a parent component
-  }: { onNavigate: (page: string, locker?: Locker) => void }) {
-  const { showToast } = useToast();
+export default function ResidentDashboard({
+  onNavigate,
+}: { onNavigate: (page: string, locker?: Locker) => void }) {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const {
-    data: myLockers = [],
-    error: myLockersError,
-    isLoading: myLockersLoading,
-    mutate: mutateMyLockers,
-  } = useSWR<MyLockerItem[]>(
+  // Fetch myLockers count for the banner
+  const { data } = useSWR<MyLockerItem[]>(
     session?.user?.id ? `/api/lockers/resident/mylocker` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
-
-  // SWR for Available Lockers
-  const {
-    data: availableLockers = [],
-    error: availableLockersError,
-    isLoading: availableLockersLoading,
-    mutate: mutateAvailableLockers,
-  } = useSWR<Locker[]>(
-    session?.user?.id ? `/api/lockers/resident/available` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-
-  const isLoading = myLockersLoading || availableLockersLoading;
-  const error = myLockersError || availableLockersError;
+  const myLockers = data || [];
 
   const userName = session?.user?.name;
-
-  const [selectedMyLocker, setSelectedMyLocker] = useState<MyLockerItem | null>(null);
-  const [selectedAvailableLocker, setSelectedAvailableLocker] = useState<Locker | null>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [registering, setRegistering] = useState<boolean>(false);
 
   // Draggable Carousel states
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -153,42 +74,6 @@ const formatSize = (size?: string) => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
 
-  // Lắng nghe sự kiện từ các trang khác (ví dụ: RegisterLocker) để cập nhật danh sách tủ của tôi
-  useEffect(() => {
-    const handleMyLockersUpdate = (event: CustomEvent<MyLockerItem>) => {
-      const newLockerItem = event.detail;
-      if (newLockerItem) {
-        // Cập nhật cache của SWR ngay lập tức với dữ liệu mới mà không cần gọi lại API
-        mutateMyLockers((currentData = []) => [...currentData, newLockerItem], false);
-        showToast(`Đã thêm tủ ${newLockerItem.locker.lockerId} vào danh sách của bạn!`, 'info');
-      }
-    };
-
-    window.addEventListener('myLockersUpdated', handleMyLockersUpdate as EventListener);
-
-    return () => {
-      window.removeEventListener('myLockersUpdated', handleMyLockersUpdate as EventListener);
-    };
-  }, [mutateMyLockers, showToast]);
-
-  const sortedMyLockers = useMemo(() => {
-    // Define sort order priority from MyLockers.tsx
-    const getSortPriority = (item: MyLockerItem) => {
-      if (item.booking.status === 'stored' && item.booking.paymentStatus === 'paid') {
-        return 1; // 1. Đã thanh toán
-      }
-      if (item.booking.status === 'stored' && item.booking.paymentStatus === 'pending') {
-        return 2; // 2. Chưa thanh toán
-      }
-      if (item.booking.status === 'active') {
-        return 3; // 3. Chưa dùng
-      }
-      return 4; // Others
-    };
-
-    return [...myLockers].sort((a, b) => getSortPriority(a) - getSortPriority(b));
-  }, [myLockers]);
-
   const stopAutoSlide = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -205,6 +90,14 @@ const formatSize = (size?: string) => {
     startAutoSlide();
     return stopAutoSlide;
   }, [startAutoSlide, stopAutoSlide, slides.length]);
+
+  // Xử lý trạng thái tải session
+  if (status === "loading") {
+    return <div className="p-6 max-w-7xl mx-auto">Đang tải phiên làm việc...</div>;
+  }
+  if (!session?.user) {
+    return <div className="p-6 max-w-7xl mx-auto text-red-600">Lỗi: Không thể tải dữ liệu người dùng. Vui lòng đăng nhập lại.</div>;
+  }
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     stopAutoSlide();
@@ -236,206 +129,6 @@ const formatSize = (size?: string) => {
     
     setDragOffset(0);
   };
-
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentTime(new Date());
-      }, 60000); // Update every minute
-
-      return () => clearInterval(interval);
-    }, []);
-    
-    // Helper functions
-    const formatDate = (date: string | Date | undefined): string => {
-      if (!date) return 'N/A';
-      try {
-        const d = new Date(date);
-        return d.toLocaleString('vi-VN', { 
-          year: 'numeric', 
-          month: '2-digit', 
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      } catch {
-        return String(date);
-      }
-    };
-
-    const calculateCost = (item: MyLockerItem): number => {
-      const { booking, locker } = item;
-      const dailyRate = Number(locker?.price) || 10000;
-      if (booking.status === 'stored' && booking.paymentStatus === 'paid' && booking.cost && booking.cost > 0) {
-        return booking.cost;
-      }
-      if (booking.status === 'stored' && booking.paymentStatus === 'pending' && booking.startTime) {
-        const startTime = new Date(booking.startTime);
-        const now = new Date();
-        const daysDiff = Math.ceil((now.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24));
-        return Math.max(1, daysDiff) * dailyRate;
-      }
-      return booking.cost || 0;
-    };
-
-    const getRemainingPickupTime = (booking: Booking): number | null => {
-      if (booking.status === 'stored' && booking.paymentStatus === 'paid') {
-        if (!booking.pickupExpiryTime) {
-          return null;
-        }
-        const expiry = new Date(booking.pickupExpiryTime);
-        const diffMs = expiry.getTime() - currentTime.getTime();
-        const diffMinutes = Math.ceil(diffMs / (1000 * 60));
-        return diffMinutes > 0 ? diffMinutes : 0;
-      }
-      return null;
-    };
-
-    const formatRemainingTime = (minutes: number | null): string => {
-      if (minutes === null) return '';
-      if (minutes <= 0) return 'Đã hết hạn';
-      if (minutes < 60) return `Còn ${minutes} phút`;
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `Còn ${hours} giờ ${mins} phút`;
-    };
-
-    // Handler functions
-    const handleOpen = async () => {
-      if (!selectedMyLocker) return;
-      
-      setActionLoading('open');
-      
-      try {
-        const res = await fetch('/api/lockers/resident/open', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedMyLocker.booking._id }),
-        });
-
-        const json = await res.json();
-        
-        if (!res.ok || !json.success) {
-          if (json.message && json.message.includes('hết hạn')) {
-            mutateMyLockers();
-          }
-          throw new Error(json.message || 'Lỗi mở tủ');
-        }
-
-        showToast('Tủ đã được mở thành công!', 'success');
-        mutateMyLockers();
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Lỗi mở tủ', 'error');
-      } finally {
-        setActionLoading(null);
-      }
-    };
-
-    const handleLock = async () => {
-      if (!selectedMyLocker) return;
-      
-      setActionLoading('lock');
-      
-      try {
-        const res = await fetch('/api/lockers/resident/lock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedMyLocker.booking._id }),
-        });
-
-        const json = await res.json();
-        
-        if (!res.ok || !json.success) {
-          throw new Error(json.message || 'Lỗi khóa tủ');
-        }
-
-        showToast(json.message || 'Khóa tủ thành công!', 'success');
-        mutateMyLockers();
-        setSelectedMyLocker(null);
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Lỗi khóa tủ', 'error');
-      } finally {
-        setActionLoading(null);
-      }
-    };
-
-    const handlePayment = async () => {
-      if (!selectedMyLocker) return;
-      
-      setActionLoading('payment');
-      
-      try {
-        const res = await fetch('/api/lockers/resident/payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            bookingId: selectedMyLocker.booking._id,
-            paymentMethod: 'virtual'
-          }),
-        });
-
-        const json = await res.json();
-        
-        if (!res.ok || !json.success) {
-          throw new Error(json.message || 'Lỗi thanh toán');
-        }
-
-        showToast('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.', 'success');
-        mutateMyLockers();
-        setSelectedMyLocker(null);
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
-      } finally {
-        setActionLoading(null);
-      }
-    };
-
-    const handleCancel = async () => {
-      if (!selectedMyLocker) return;
-      
-      setActionLoading('cancel');
-      
-      try {
-        const res = await fetch('/api/lockers/resident/cancel', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedMyLocker.booking._id }),
-        });
-
-        const json = await res.json();
-        
-        if (!res.ok || !json.success) {
-          throw new Error(json.message || 'Lỗi hủy lượt đặt');
-        }
-
-        showToast('Hủy lượt đặt thành công!', 'success');
-        mutateMyLockers();
-        mutateAvailableLockers();
-        setSelectedMyLocker(null);
-        setIsCancelDialogOpen(false);
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Lỗi hủy lượt đặt', 'error');
-      } finally {
-        setActionLoading(null);
-      }
-    };
-
-    // Xử lý trạng thái tải session
-    if (status === "loading") {
-      return <div className="p-6 max-w-7xl mx-auto">Đang tải phiên làm việc...</div>;
-    }
-
-    // Xử lý khi không có session hoặc user
-    if (!session?.user) {
-      return <div className="p-6 max-w-7xl mx-auto text-red-600">Lỗi: Không thể tải dữ liệu người dùng. Vui lòng đăng nhập lại.</div>;
-    }
-
-    if (isLoading) {
-      return <div className="p-6">Đang tải dữ liệu...</div>;
-    }
-
-    if (error) {
-      return <div className="p-6 text-red-600">Lỗi: {error.message}</div>;
-    }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -511,400 +204,10 @@ const formatSize = (size?: string) => {
       </Card>
 
       {/* My Lockers Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-gray-900">Tủ của tôi</h2>
-            <p className="text-sm text-gray-500">Xem các tủ đang thuê hoặc đang sử dụng</p>
-          </div>
-          <Button variant="outline" onClick={() => onNavigate('my-lockers')}>
-            Xem tất cả
-          </Button>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4">
-          {myLockers.length > 0 ? (
-            sortedMyLockers.slice(0, 3).map((mylocker) => (
-              <Card key={mylocker.booking._id} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Package className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-gray-900">Tủ {mylocker.locker?.lockerId || 'N/A'}</p>
-                      <p className="text-sm text-gray-500">Tòa {mylocker.locker?.building || 'N/A'} - Block {mylocker.locker?.block || 'N/A'}</p>
-                    </div>
-                  </div>
-                  {mylocker.booking.status === 'active' ? (
-                    <Badge className="bg-gray-100 text-gray-700">Đang thuê</Badge>
-                  ) : mylocker.booking.paymentStatus === 'pending' ? (
-                    <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
-                  ) : mylocker.booking.paymentStatus === 'paid' ? (
-                    <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
-                  ) : (
-                    <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
-                  )}
-                </div>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    {mylocker.booking.status === 'active' ? (
-                      <span className="text-gray-600">Chưa tính tiền</span>
-                    ) : mylocker.booking.paymentStatus === 'pending' ? (
-                      <span className="text-gray-600">Chờ thanh toán</span>
-                    ): mylocker.booking.paymentStatus === 'paid' ? (
-                      <span className="text-gray-600">Đã thanh toán</span>
-                    ) : (
-                      <span className="text-gray-600">Không có</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CreditCard className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">
-                      {mylocker.booking.status === 'stored'
-                        ? calculateCost(mylocker).toLocaleString()
-                        : (mylocker.booking.cost || 0).toLocaleString()}đ
-                    </span>
-                  </div>
-                </div>
-                {mylocker.booking.status === 'active' ? (
-                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
-                    Chi tiết
-                  </Button>
-                ) : mylocker.booking.paymentStatus === 'pending' ? (
-                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
-                    Thanh toán ngay
-                  </Button>
-                ) : mylocker.booking.paymentStatus === 'paid' ? (
-                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
-                    Mở tủ
-                  </Button>
-                ) : (
-                  <Button className="w-full" variant="default" onClick={() => setSelectedMyLocker(mylocker)}>
-                    Không có
-                  </Button>
-                )}
-              </Card>
-            ))
-          ) : (
-            <p className="text-gray-500 col-span-3">Bạn chưa có tủ nào</p>
-          )}
-        </div>
-      </div>
-      <div>
-        <Dialog open={!!selectedMyLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedMyLocker(null); }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Chi tiết tủ {selectedMyLocker?.locker?.lockerId ?? ''}</DialogTitle>
-              <DialogDescription>Thông tin chi tiết và các tùy chọn cho tủ của bạn</DialogDescription>
-            </DialogHeader>
-
-            {selectedMyLocker ? (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Mã tủ</p>
-                    <p className="text-gray-900">{selectedMyLocker.locker?.lockerId ?? 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Tòa</p>
-                    <p className="text-gray-900">{selectedMyLocker.locker?.building ?? 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Block</p>
-                    <p className="text-gray-900">{selectedMyLocker.locker?.block ?? 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Trạng thái đặt</p>
-                    {selectedMyLocker.booking?.status === 'active' ? (
-                      <p className="text-gray-900">Chưa dùng</p>
-                    ) : selectedMyLocker.booking?.status === 'stored' ? (
-                      <p className="text-gray-900">Đã dùng</p>
-                    ) : (
-                      <p className="text-gray-900">Không có</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Thời gian bắt đầu</p>
-                    <p className="text-gray-900">{formatDate(selectedMyLocker.booking?.startTime)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Thời gian kết thúc</p>
-                    <p className="text-gray-900">{formatDate(selectedMyLocker.booking?.endTime)}</p>
-                  </div>
-                  {selectedMyLocker.booking?.status === 'stored' && selectedMyLocker.booking?.paymentStatus === 'paid' && (
-                    <div>
-                      <p className="text-sm text-gray-500">Thời gian lấy đồ còn lại</p>
-                      {selectedMyLocker.booking?.pickupExpiryTime ? (
-                        <p className={`text-gray-900 ${getRemainingPickupTime(selectedMyLocker.booking) !== null && getRemainingPickupTime(selectedMyLocker.booking)! <= 0 ? 'text-red-600 font-semibold' : 'text-orange-600 font-semibold'}`}>
-                          {formatRemainingTime(getRemainingPickupTime(selectedMyLocker.booking)) || 'Đã hết hạn'}
-                        </p>
-                      ) : (
-                        <p className="text-red-600 font-semibold">Chưa có thời gian hết hạn</p>
-                      )}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm text-gray-500">Số tiền</p>
-                    <p className="text-blue-600">
-                      {selectedMyLocker && selectedMyLocker.booking?.status === 'stored'
-                        ? calculateCost(selectedMyLocker).toLocaleString()
-                        : (selectedMyLocker.booking?.cost || 0).toLocaleString()}đ
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
-                    {selectedMyLocker.booking?.paymentStatus === 'paid' ? (
-                      <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
-                    ) : selectedMyLocker.booking?.status === 'stored' ? (
-                      <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
-                    ) : (
-                      <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-4">Không có dữ liệu</div>
-            )}
-
-            <DialogFooter className="flex-col sm:flex-col gap-2">
-              {selectedMyLocker && selectedMyLocker.booking?.status === 'active' ? (
-                // GRID 2x2 cho trạng thái 'active'
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleOpen} disabled={actionLoading !== null}>
-                    <Unlock className="w-4 h-4 mr-2" />
-                    {actionLoading === 'open' ? 'Đang mở...' : 'Mở tủ'}
-                  </Button>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleLock} disabled={actionLoading !== null}>
-                    <Lock className="w-4 h-4 mr-2" />
-                    {actionLoading === 'lock' ? 'Đang khóa...' : 'Khóa tủ'}
-                  </Button>
-                  <Button variant="destructive" className="w-full" onClick={() => setIsCancelDialogOpen(true)} disabled={actionLoading !== null}>
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Hủy tủ
-                  </Button>
-                  <Button variant="outline" className="w-full" onClick={() => { if (selectedMyLocker) { router.push(`/resident/report?lockerId=${selectedMyLocker.locker.lockerId}&locker_id=${selectedMyLocker.locker._id}`); } }} disabled={actionLoading !== null}>
-                    Báo Cáo Lỗi
-                  </Button>
-                </div>
-              ) : selectedMyLocker && selectedMyLocker.booking?.status === 'stored' ? (
-                // Layout dọc cho trạng thái 'stored'
-                <>
-                  {selectedMyLocker.booking?.paymentStatus === 'pending' ? (
-                    <Button 
-                      className="w-full bg-yellow-600 hover:bg-yellow-700" 
-                      onClick={handlePayment}
-                      disabled={actionLoading !== null}
-                    >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      {actionLoading === 'payment' ? 'Đang xử lý...' : 'Thanh toán (Tạm thanh toán ảo)'}
-                    </Button>
-                  ) : (
-                    <>
-                      {getRemainingPickupTime(selectedMyLocker.booking) !== null && getRemainingPickupTime(selectedMyLocker.booking)! <= 0 ? (
-                        <Button 
-                          className="w-full bg-gray-400 cursor-not-allowed" 
-                          disabled={true}
-                        >
-                          <Unlock className="w-4 h-4 mr-2" />
-                          Đã hết hạn lấy đồ
-                        </Button>
-                      ) : (
-                        <Button 
-                          className="w-full bg-green-600 hover:bg-green-700" 
-                          onClick={handleOpen}
-                          disabled={actionLoading !== null}
-                        >
-                          <Unlock className="w-4 h-4 mr-2" />
-                          {actionLoading === 'open' ? 'Đang mở...' : 'Mở tủ'}
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={() => {
-                      if (selectedMyLocker) {
-                        router.push(`/resident/report?lockerId=${selectedMyLocker.locker.lockerId}&locker_id=${selectedMyLocker.locker._id}`);
-                      }
-                    }}
-                    disabled={actionLoading !== null}
-                  >
-                    Báo Cáo Lỗi
-                  </Button>
-                </>
-              ) : null}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Xác nhận hủy lượt đặt</DialogTitle>
-              <DialogDescription>
-                Bạn có chắc chắn muốn hủy lượt đặt cho tủ {selectedMyLocker?.locker?.lockerId}? Thao tác này sẽ giải phóng tủ và không thể hoàn tác.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)} disabled={actionLoading === 'cancel'}>
-                Không
-              </Button>
-              <Button variant="destructive" onClick={handleCancel} disabled={actionLoading === 'cancel'}>
-                {actionLoading === 'cancel' ? 'Đang hủy...' : 'Có, hủy tủ'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <MyLockersPreview onNavigate={onNavigate} />
 
       {/* Available Lockers Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-gray-900">Tủ trống gợi ý</h2>
-            <p className="text-sm text-gray-500">Đăng ký nhanh các tủ đang trống</p>
-          </div>
-          <Button onClick={() => onNavigate('register-locker')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Đăng ký tủ mới
-          </Button>
-        </div>
-        {/* Lockers Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableLockers.length > 0 ? (
-            availableLockers.slice(0, 3).map((locker) => (
-              <Card key={locker._id} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <Package className="w-6 h-6 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-gray-900">Tủ {locker.lockerId}</p>
-                      <p className="text-xs text-gray-500">Block {locker.block}</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-green-100 text-green-700">Trống</Badge>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-gray-600">Tòa {locker.building}</p>
-                      <p className="text-xs text-gray-500">Block {locker.block}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CreditCard className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-gray-600">{(Number(locker.price) || 10000).toLocaleString('vi-VN')} VNĐ/Ngày</p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button className="w-full" onClick={() => setSelectedAvailableLocker(locker)}>
-                  Thuê tủ ngay
-                </Button>
-              </Card>
-            ))
-          ) : (
-            <Card className="p-12 text-center col-span-full">
-              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-900 mb-2">Không tìm thấy tủ trống</p>
-              <p className="text-gray-500">Tất cả các tủ trong block của bạn hiện đã được đặt</p>
-            </Card>
-          )}
-        </div>
-
-        {/* Lockers Pop-up */}
-        <Dialog open={!!selectedAvailableLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedAvailableLocker(null); }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Đăng ký tủ {selectedAvailableLocker?.lockerId ?? ''}</DialogTitle>
-              <DialogDescription>Xem lại thông tin trước khi xác nhận thuê</DialogDescription>
-            </DialogHeader>
-
-            {selectedAvailableLocker ? (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Mã tủ</p>
-                    <p className="text-gray-900">{selectedAvailableLocker.lockerId}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Tòa</p>
-                    <p className="text-gray-900">{selectedAvailableLocker.building}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Block</p>
-                    <p className="text-gray-900">{selectedAvailableLocker.block}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Tầng</p>
-                    <p className="text-gray-900">{selectedAvailableLocker.floor ?? '1'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Kích thước</p>
-                    <p className="text-gray-900">{formatSize(selectedAvailableLocker.size)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Giá</p>
-                    <p className="text-blue-600">{selectedAvailableLocker.price ? `${Number(selectedAvailableLocker.price).toLocaleString('vi-VN')} VNĐ/Ngày` : '10,000 VNĐ/Ngày'}</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-4">Không có dữ liệu</div>
-            )}
-
-              <DialogFooter className="flex-col sm:flex-col gap-2">
-              <Button className="w-full" disabled={registering} onClick={async () => {
-                if (!selectedAvailableLocker) return;
-                setRegistering(true);
-                try {
-                  const res = await fetch('/api/lockers/resident/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lockerId: selectedAvailableLocker._id })
-                  });
-
-                  const json = await res.json();
-                  if (!res.ok || !json.success) {
-                    const msg = json?.message || `Server error (${res.status})`;
-                    throw new Error(msg);
-                  }
-
-                  showToast('Đăng ký tủ thành công!', 'success');
-                  // Cập nhật giao diện ngay lập tức thay vì tải lại
-                  const newMyLockerItem = json.data as MyLockerItem;
-                  mutateMyLockers(
-                    (currentData = []) => [...currentData, newMyLockerItem],
-                    false // false = không revalidate lại từ server
-                  );
-                  mutateAvailableLockers(
-                    (currentLockers = []) => currentLockers.filter(l => l._id !== selectedAvailableLocker._id),
-                    false
-                  );
-                  setSelectedAvailableLocker(null);
-                } catch (err) {
-                  console.error('Register error', err);
-                  showToast(err instanceof Error ? err.message : String(err), 'error');
-                } finally {
-                  setRegistering(false);
-                }
-              }}>
-                {registering ? 'Đang xử lý...' : 'Xác nhận thuê'}
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => setSelectedAvailableLocker(null)}>
-                Hủy
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <AvailableLockersPreview onNavigate={onNavigate} />
     </div>
   );
 }

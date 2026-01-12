@@ -1,4 +1,4 @@
-import { Package, Clock, CreditCard, Unlock, Lock, Search, XCircle } from 'lucide-react';
+import { Package, Clock, CreditCard, Unlock, Lock, XCircle } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -10,17 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../ui/toast-context';
 import { useRouter } from 'next/navigation';
-import { Input } from '../ui/input';
+import { FilterBar, FilterConfig } from '../ui/FilterBar';
 
 export interface Locker {
   _id?: string;
@@ -59,8 +53,10 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   const [loading, setLoading] = useState<string | null>(null); // Track which action is loading
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date()); // For realtime countdown
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'pending', 'paid', 'active'
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    status: 'all', // 'all', 'pending', 'paid', 'active'
+  });
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const { showToast } = useToast();
   const router = useRouter();
@@ -316,17 +312,32 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
     return myLockers
       .filter(item => {
         const matchesFilter =
-          activeFilter === 'all' ||
-          (activeFilter === 'pending' && item.booking.status === 'stored' && item.booking.paymentStatus === 'pending') ||
-          (activeFilter === 'paid' && item.booking.status === 'stored' && item.booking.paymentStatus === 'paid') ||
-          (activeFilter === 'active' && item.booking.status === 'active');
+          filters.status === 'all' ||
+          (filters.status === 'pending' && item.booking.status === 'stored' && item.booking.paymentStatus === 'pending') ||
+          (filters.status === 'paid' && item.booking.status === 'stored' && item.booking.paymentStatus === 'paid') ||
+          (filters.status === 'active' && item.booking.status === 'active');
 
-        const matchesSearch = item.locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = item.locker.lockerId.toLowerCase().includes(filters.searchTerm.toLowerCase());
 
         return matchesFilter && matchesSearch;
       })
       .sort((a, b) => getSortPriority(a) - getSortPriority(b));
-  }, [myLockers, searchTerm, activeFilter]);
+  }, [myLockers, filters]);
+
+  const handleFilterChange = (id: string, value: string) => {
+    const newId = id === 'status' ? 'status' : id;
+    setFilters(prev => ({ ...prev, [newId]: value }));
+  };
+
+  const filterConfig: FilterConfig[] = [
+    { id: 'searchTerm', type: 'search', placeholder: 'Tìm theo mã tủ...' },
+    {
+      id: 'status',
+      type: 'select',
+      placeholder: 'Lọc theo trạng thái',
+      options: [{ value: 'all', label: 'Tất cả' }, { value: 'paid', label: 'Đã thanh toán' }, { value: 'pending', label: 'Chưa thanh toán' }, { value: 'active', label: 'Chưa dùng' }],
+    },
+  ];
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -336,30 +347,13 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
       </div>
 
       {/* Filters and Search */}
-      <Card className="p-4 mb-6">
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Tìm theo mã tủ..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="paid">Đã thanh toán</SelectItem>
-              <SelectItem value="pending">Chưa thanh toán</SelectItem>
-              <SelectItem value="active">Chưa dùng</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+      <FilterBar
+        filters={filterConfig}
+        filterValues={{ searchTerm: filters.searchTerm, status: filters.status }}
+        onFilterChange={handleFilterChange}
+        gridClass="grid md:grid-cols-3 gap-4"
+        className="p-4 mb-6"
+      />
 
       <div className="grid md:grid-cols-3 gap-4">
         {filteredAndSortedLockers.length > 0 ? (

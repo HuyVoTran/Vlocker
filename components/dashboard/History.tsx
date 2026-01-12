@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { Package, Clock, User, Phone, Mail, MapPin, Search } from "lucide-react";
+import { Package, Clock, User, Phone, Mail, MapPin} from "lucide-react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import {
@@ -17,14 +17,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Input } from "../ui/input";
+import { FilterBar, FilterConfig } from "../ui/FilterBar";
 
 type BookingStatus = "active" | "stored" | "completed" | "cancelled";
 
@@ -112,13 +105,15 @@ export default function History() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Filters
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [period, setPeriod] = useState<PeriodFilter>("all");
-  const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [quarter, setQuarter] = useState<number>(1);
-  const [activeTab, setActiveTab] = useState<BookingStatus | "all">("all");
+  const [filters, setFilters] = useState({
+    searchTerm: "",
+    period: "all" as PeriodFilter,
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    quarter: 1,
+    activeTab: "all" as BookingStatus | "all",
+  });
+  const debouncedSearchTerm = useDebounce(filters.searchTerm, 500);
 
   const loadHistory = useCallback(async (loadMore = false) => {
     if (!loadMore) {
@@ -134,7 +129,7 @@ export default function History() {
       const params = new URLSearchParams();
       params.set("page", String(currentPage));
       params.set("limit", String(ITEMS_PER_PAGE));
-      params.set("status", activeTab);
+      params.set("status", filters.activeTab);
       params.set("searchTerm", debouncedSearchTerm);
 
       if (role === "resident") {
@@ -145,13 +140,13 @@ export default function History() {
         }
         url = `/api/history/resident?${params.toString()}`;
       } else { // manager
-        params.set("period", period);
-        params.set("year", String(year));
-        if (period === "month") {
-          params.set("month", String(month));
+        params.set("period", filters.period);
+        params.set("year", String(filters.year));
+        if (filters.period === "month") {
+          params.set("month", String(filters.month));
         }
-        if (period === "quarter") {
-          params.set("quarter", String(quarter));
+        if (filters.period === "quarter") {
+          params.set("quarter", String(filters.quarter));
         }
         url = `/api/history/manager?${params.toString()}`;
       }
@@ -179,14 +174,14 @@ export default function History() {
       setLoading(false);
       setIsLoadingMore(false);
     }
-  }, [page, role, userId, activeTab, debouncedSearchTerm, period, year, month, quarter]);
+  }, [page, role, userId, filters.activeTab, debouncedSearchTerm, filters.period, filters.year, filters.month, filters.quarter]);
 
   useEffect(() => {
     // Fetch data when filters change
     if ((role === "resident" && userId) || role === "manager") {
       loadHistory(false);
     }
-  }, [role, userId, period, year, month, quarter, activeTab, debouncedSearchTerm]);
+  }, [role, userId, filters.period, filters.year, filters.month, filters.quarter, filters.activeTab, debouncedSearchTerm]);
 
   // State for lazy loading
   const ITEMS_PER_PAGE = 10;
@@ -222,6 +217,75 @@ export default function History() {
   }
 
   const years = Array.from({ length: 5 }).map((_, i) => new Date().getFullYear() - i);
+  const handleFilterChange = (id: string, value: string) => {
+    setFilters(prev => {
+      let processedValue: string | number = value;
+      if (id === 'year' || id === 'month' || id === 'quarter') {
+        const numValue = parseInt(value, 10);
+        if (!isNaN(numValue)) {
+          processedValue = numValue;
+        }
+      }
+      return { ...prev, [id]: processedValue };
+    });
+  };
+
+  const handleTabChange = (v: string) => {
+    setFilters(prev => ({ ...prev, activeTab: v as BookingStatus | "all" }));
+  };
+
+  const managerFilterConfig: FilterConfig[] = [
+    {
+      id: 'searchTerm',
+      type: 'search',
+      label: 'Tìm kiếm',
+      placeholder: 'Mã tủ, tên, email, SĐT...',
+      className: 'md:col-span-2',
+    },
+    {
+      id: 'period',
+      type: 'select',
+      label: 'Khoảng thời gian',
+      placeholder: 'Chọn khoảng thời gian',
+      options: [
+        { value: 'all', label: 'Tất cả' },
+        { value: 'month', label: 'Theo tháng' },
+        { value: 'quarter', label: 'Theo quý' },
+        { value: 'year', label: 'Theo năm' },
+      ],
+    },
+    {
+      id: 'year',
+      type: 'select',
+      label: 'Năm',
+      placeholder: 'Chọn năm',
+      shouldRender: filters.period !== 'all',
+      options: years.map(y => ({ value: y, label: String(y) })),
+    },
+    {
+      id: 'month',
+      type: 'select',
+      label: 'Tháng',
+      placeholder: 'Chọn tháng',
+      shouldRender: filters.period === 'month',
+      options: Array.from({ length: 12 }).map((_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` })),
+    },
+    {
+      id: 'quarter',
+      type: 'select',
+      label: 'Quý',
+      placeholder: 'Chọn quý',
+      shouldRender: filters.period === 'quarter',
+      options: [
+        { value: 1, label: 'Quý 1' },
+        { value: 2, label: 'Quý 2' },
+        { value: 3, label: 'Quý 3' },
+        { value: 4, label: 'Quý 4' },
+      ],
+    },
+  ];
+
+  const residentFilterConfig: FilterConfig[] = [{ id: 'searchTerm', type: 'search', label: 'Tìm kiếm', placeholder: 'Tìm theo mã tủ...' }];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -237,118 +301,29 @@ export default function History() {
       </div>
 
       {role === "manager" && (
-        <Card className="p-4">
-          <div className="grid md:grid-cols-5 gap-4 items-end">
-            <div className="md:col-span-2">
-              <p className="text-xs text-gray-500 mb-1">Tìm kiếm</p>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Mã tủ, tên, email, SĐT..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Khoảng thời gian</p>
-              <Select
-                value={period}
-                onValueChange={(val: PeriodFilter) => setPeriod(val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn khoảng thời gian" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="month">Theo tháng</SelectItem>
-                  <SelectItem value="quarter">Theo quý</SelectItem>
-                  <SelectItem value="year">Theo năm</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {period !== "all" && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Năm</p>
-                <Select
-                  value={String(year)}
-                  onValueChange={(val: string) => setYear(parseInt(val, 10))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn năm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((y) => (
-                      <SelectItem key={y} value={String(y)}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {period === "month" && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Tháng</p>
-                <Select
-                  value={String(month)}
-                  onValueChange={(val: string) => setMonth(parseInt(val, 10))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn tháng" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>
-                        Tháng {i + 1}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {period === "quarter" && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Quý</p>
-                <Select
-                  value={String(quarter)}
-                  onValueChange={(val: string) => setQuarter(parseInt(val, 10))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn quý" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Quý 1</SelectItem>
-                    <SelectItem value="2">Quý 2</SelectItem>
-                    <SelectItem value="3">Quý 3</SelectItem>
-                    <SelectItem value="4">Quý 4</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        </Card>
+        <FilterBar
+          filters={managerFilterConfig}
+          filterValues={filters}
+          onFilterChange={handleFilterChange}
+          gridClass="grid md:grid-cols-5 gap-4 items-end"
+          className="p-4"
+        />
       )}
 
       {role === "resident" && (
-        <Card className="p-4">
-          <div className="max-w-sm">
-            <p className="text-xs text-gray-500 mb-1">Tìm kiếm</p>
-            <Input placeholder="Tìm theo mã tủ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          </div>
-        </Card>
+        <FilterBar
+          filters={residentFilterConfig}
+          filterValues={filters}
+          onFilterChange={handleFilterChange}
+          gridClass="max-w-sm"
+          className="p-4"
+        />
       )}
 
       <Tabs
         defaultValue="all"
-        value={activeTab}
-        onValueChange={(v: string) =>
-          setActiveTab(v as BookingStatus | "all")
-        }
+        value={filters.activeTab}
+        onValueChange={handleTabChange}
         className="space-y-4"
       >
         <TabsList className="grid w-full max-w-xl grid-cols-5">
@@ -359,7 +334,7 @@ export default function History() {
           <TabsTrigger value="cancelled">Đã hủy</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab}>
+        <TabsContent value={filters.activeTab}>
           <Card className="p-4 md:p-6">
             {bookings.length === 0 && !loading ? (
               <p className="text-gray-500 text-sm">

@@ -1,5 +1,5 @@
 'use client';
-import { User, Edit, Search } from 'lucide-react';
+import { User, Edit } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -20,16 +20,10 @@ import {
   DialogTitle,
   DialogFooter
 } from "../ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { useToast } from '../ui/toast-context';
+import { FilterBar, FilterConfig } from '../ui/FilterBar';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -58,9 +52,11 @@ interface ResidentUser {
 }
 
 export default function ManagerUser() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterBuilding, setFilterBuilding] = useState('all');
-  const [filterBlock, setFilterBlock] = useState('all');
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    building: 'all',
+    block: 'all',
+  });
   const [selectedUser, setSelectedUser] = useState<ResidentUser | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ building: '', block: '', floor: '', unit: '' });
@@ -74,19 +70,19 @@ export default function ManagerUser() {
 
   const filteredUsers = useMemo(() => {
     return allUsers.filter((user) => {
-      const search = searchTerm.toLowerCase();
+      const search = filters.searchTerm.toLowerCase();
       const matchesSearch =
         user.name.toLowerCase().includes(search) ||
         user.email.toLowerCase().includes(search) ||
         (user.phone && user.phone.includes(search));
 
       const matchesBuilding =
-        filterBuilding === "all" || user.building === filterBuilding;
-      const matchesBlock = filterBlock === "all" || user.block === filterBlock;
+        filters.building === "all" || user.building === filters.building;
+      const matchesBlock = filters.block === "all" || user.block === filters.block;
 
       return matchesSearch && matchesBuilding && matchesBlock;
     });
-  }, [allUsers, searchTerm, filterBuilding, filterBlock]);
+  }, [allUsers, filters]);
 
   const uniqueBuildings = useMemo(() => {
     return Array.from(new Set(allUsers.map(u => u.building).filter((b): b is string => !!b))).sort();
@@ -142,6 +138,31 @@ export default function ManagerUser() {
     }
   };
 
+  const handleFilterChange = (id: string, value: string) => {
+    setFilters(prev => ({ ...prev, [id]: value }));
+  };
+
+  const filterConfig: FilterConfig[] = [
+    {
+      id: 'searchTerm',
+      type: 'search',
+      placeholder: 'Tìm kiếm theo tên, email, hoặc SĐT...',
+      className: 'md:col-span-1',
+    },
+    {
+      id: 'building',
+      type: 'select',
+      placeholder: 'Lọc theo tòa nhà',
+      options: [{ value: 'all', label: 'Tất cả tòa nhà' }, ...uniqueBuildings.map(b => ({ value: b, label: `Tòa ${b}` }))],
+    },
+    {
+      id: 'block',
+      type: 'select',
+      placeholder: 'Lọc theo block',
+      options: [{ value: 'all', label: 'Tất cả block' }, ...uniqueBlocks.map(b => ({ value: b, label: `Block ${b}` }))],
+    },
+  ];
+
   if (isLoading) return <div className="p-6">Đang tải danh sách người dùng...</div>;
   if (error) return <div className="p-6 text-red-500">Lỗi: {error.message}</div>;
 
@@ -153,37 +174,12 @@ export default function ManagerUser() {
       </div>
 
       {/* Filters */}
-      <Card className="p-6 mb-6">
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Tìm kiếm theo tên, email, hoặc SĐT..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo tòa nhà" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả tòa nhà</SelectItem>
-              {uniqueBuildings.map(b => <SelectItem key={b} value={b}>Tòa {b}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterBlock} onValueChange={setFilterBlock}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo block" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả block</SelectItem>
-              {uniqueBlocks.map(b => <SelectItem key={b} value={b}>Block {b}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+      <FilterBar
+        filters={filterConfig}
+        filterValues={filters}
+        onFilterChange={handleFilterChange}
+        gridClass="grid md:grid-cols-3 gap-4"
+      />
 
       <Card>
         <Table>

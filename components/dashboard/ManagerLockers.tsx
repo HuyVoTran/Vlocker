@@ -1,9 +1,6 @@
 'use client';
 import { Package, Clock, X } from 'lucide-react';
 import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Input } from '../ui/input';
 import {
   Table,
   TableBody,
@@ -23,6 +20,8 @@ import {
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { useToast } from '../ui/toast-context';
+import { FilterBar, FilterConfig } from '../ui/FilterBar';
+import { Button } from '../ui/button';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -61,10 +60,12 @@ interface BookingDetails {
 }
 
 export default function ManagerLockers() {
-  const [filterBuilding, setFilterBuilding] = useState('all');
-  const [filterBlock, setFilterBlock] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    status: 'all',
+    building: 'all',
+    block: 'all',
+  });
   const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<BookingDetails | null>(null);
   const { showToast } = useToast();
@@ -81,15 +82,15 @@ export default function ManagerLockers() {
       const user = booking.userId;
       if (!locker || !user) return false;
 
-      const matchesBuilding = filterBuilding === 'all' || locker.building === filterBuilding;
-      const matchesBlock = filterBlock === 'all' || locker.block === filterBlock;
-      const matchesStatus = filterStatus === 'all' || (filterStatus === 'reserved' && booking.status === 'active') || (filterStatus === 'in-use' && booking.status === 'stored');
-      const matchesSearch = searchTerm.trim() === '' ||
-                            locker.lockerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            user.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBuilding = filters.building === 'all' || locker.building === filters.building;
+      const matchesBlock = filters.block === 'all' || locker.block === filters.block;
+      const matchesStatus = filters.status === 'all' || (filters.status === 'reserved' && booking.status === 'active') || (filters.status === 'in-use' && booking.status === 'stored');
+      const matchesSearch = filters.searchTerm.trim() === '' ||
+                            locker.lockerId.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                            user.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
       return matchesBuilding && matchesBlock && matchesStatus && matchesSearch;
     });
-  }, [allBookings, filterBuilding, filterBlock, filterStatus, searchTerm]);
+  }, [allBookings, filters]);
 
   const uniqueBlocks = useMemo(() => {
     const blocks = Array.from(new Set(allBookings.map(b => b.lockerId?.block).filter(Boolean)));
@@ -143,6 +144,41 @@ export default function ManagerLockers() {
     }
   };
 
+  const handleFilterChange = (id: string, value: string) => {
+    setFilters(prev => ({ ...prev, [id]: value }));
+  };
+
+  const filterConfig: FilterConfig[] = [
+    {
+      id: 'searchTerm',
+      type: 'search',
+      placeholder: 'Tìm kiếm theo mã tủ hoặc người dùng...',
+      className: 'md:col-span-1',
+    },
+    {
+      id: 'status',
+      type: 'select',
+      placeholder: 'Lọc theo trạng thái',
+      options: [
+        { value: 'all', label: 'Tất cả trạng thái' },
+        { value: 'reserved', label: 'Đã đặt' },
+        { value: 'in-use', label: 'Đang sử dụng' },
+      ],
+    },
+    {
+      id: 'building',
+      type: 'select',
+      placeholder: 'Lọc theo tòa',
+      options: [{ value: 'all', label: 'Tất cả tòa' }, ...uniqueBuildings.map(b => ({ value: b, label: `Tòa ${b}` }))],
+    },
+    {
+      id: 'block',
+      type: 'select',
+      placeholder: 'Lọc theo block',
+      options: [{ value: 'all', label: 'Tất cả block' }, ...uniqueBlocks.map(b => ({ value: b, label: `Block ${b}` }))],
+    },
+  ];
+
   if (isLoading) return <div className="p-6">Đang tải dữ liệu...</div>;
   if (error) return <div className="p-6 text-red-500">Lỗi: {error.message}</div>;
 
@@ -154,43 +190,12 @@ export default function ManagerLockers() {
       </div>
 
       {/* Filters */}
-      <Card className="p-6 mb-6">
-        <div className="grid md:grid-cols-4 gap-4">
-          <Input placeholder="Tìm kiếm theo mã tủ hoặc người dùng..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="reserved">Đã đặt</SelectItem>
-              <SelectItem value="in-use">Đang sử dụng</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterBuilding} onValueChange={setFilterBuilding}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo tòa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả tòa</SelectItem>
-              {uniqueBuildings.map((building: string) => (
-                <SelectItem key={building} value={building}>{`Tòa ${building}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterBlock} onValueChange={setFilterBlock}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lọc theo block" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả block</SelectItem>
-              {uniqueBlocks.map((block: string) => (
-                <SelectItem key={block} value={block}>{`Block ${block}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+      <FilterBar
+        filters={filterConfig}
+        filterValues={filters}
+        onFilterChange={handleFilterChange}
+        gridClass="grid md:grid-cols-4 gap-4"
+      />
 
       <Card>
         <Table>
