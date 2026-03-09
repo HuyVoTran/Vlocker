@@ -6,11 +6,18 @@ import { Card } from '@/components/ui/card';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 
 export default function Page() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = session?.user?.role || "resident";
+      router.replace(`/${role}/dashboard`);
+    }
+  }, [status, session, router]);
   const features = [
     {
       icon: <Shield className="w-8 h-8 text-black" />,
@@ -56,6 +63,10 @@ export default function Page() {
       description: 'Đóng tủ, kết thúc phiên sử dụng và cập nhật trạng thái tủ.'
     }
   ];
+
+  if (status === "authenticated") {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#1e1e1e] select-none">

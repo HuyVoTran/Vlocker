@@ -4,6 +4,7 @@ import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { broadcastLockerEvent } from "@/lib/lockerEvents";
 
 export async function PATCH(req) {
   try {
@@ -40,6 +41,12 @@ export async function PATCH(req) {
     await Locker.findByIdAndUpdate(booking.lockerId, {
       currentBookingId: null,
       isLocked: true,
+    });
+
+    broadcastLockerEvent({
+      action: "manager-cancel",
+      lockerId: booking.lockerId?.toString(),
+      bookingId: updatedBooking?._id?.toString(),
     });
 
     return NextResponse.json({ success: true, message: "Booking cancelled successfully", data: updatedBooking });

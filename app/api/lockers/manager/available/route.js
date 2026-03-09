@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Locker from "@/models/Locker";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { broadcastLockerEvent } from "@/lib/lockerEvents";
 
 // GET handler to fetch all lockers not currently in use by a resident
 export async function GET() {
@@ -55,6 +56,12 @@ export async function POST(req) {
 
     await newLocker.save();
 
+    broadcastLockerEvent({
+      action: "create",
+      lockerId: newLocker._id?.toString(),
+      status: newLocker.status,
+    });
+
     return NextResponse.json({ success: true, data: newLocker, message: "Tủ mới đã được tạo thành công." }, { status: 201 });
 
   } catch (error) {
@@ -96,6 +103,11 @@ export async function DELETE(req) {
     }
 
     await Locker.findByIdAndDelete(lockerId);
+
+    broadcastLockerEvent({
+      action: "delete",
+      lockerId: lockerId?.toString(),
+    });
 
     return NextResponse.json({ success: true, message: "Tủ đã được xóa thành công." });
 

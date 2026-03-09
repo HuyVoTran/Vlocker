@@ -55,6 +55,14 @@ export default function AvailableLockersPreview({ onNavigate }: AvailableLockers
     return () => window.removeEventListener('availableLockersUpdated', handleUpdate);
   }, [mutateAvailableLockers]);
 
+  useEffect(() => {
+    const eventSource = new EventSource('/api/lockers/stream');
+    const handleEvent = () => mutateAvailableLockers();
+    eventSource.addEventListener('locker', handleEvent as EventListener);
+    eventSource.onerror = () => eventSource.close();
+    return () => eventSource.close();
+  }, [mutateAvailableLockers]);
+
   const handleRegister = async () => {
     if (!selectedAvailableLocker) return;
     setRegistering(true);

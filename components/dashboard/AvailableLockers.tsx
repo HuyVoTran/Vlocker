@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Label } from '../ui/label';
 import { useToast } from '../ui/toast-context';
 import { FilterBar, FilterConfig } from '../ui/FilterBar';
@@ -102,6 +102,14 @@ export default function AvailableLockers() {
     fetcher,
     { revalidateOnFocus: false }
   );
+
+  useEffect(() => {
+    const eventSource = new EventSource('/api/lockers/stream');
+    const handleEvent = () => mutate();
+    eventSource.addEventListener('locker', handleEvent as EventListener);
+    eventSource.onerror = () => eventSource.close();
+    return () => eventSource.close();
+  }, [mutate]);
 
   // Lấy danh sách block và size duy nhất từ dữ liệu đã fetch
   const uniqueBuildings = useMemo(() => {

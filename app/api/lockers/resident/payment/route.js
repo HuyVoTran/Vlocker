@@ -40,9 +40,9 @@ export async function POST(req) {
       );
     }
 
-    // For now, we'll do virtual payment (simulate payment)
+    // For now, we'll do virtual or momo payment (simulate payment)
     // In production, integrate with MoMo/VNPay APIs here
-    if (paymentMethod === 'virtual' || !paymentMethod) {
+    if (paymentMethod === 'virtual' || paymentMethod === 'momo' || !paymentMethod) {
       // Calculate final cost from startTime to now (5,000 VNĐ per day)
       const dailyRate = Number(booking.lockerId?.price) || 10000;
       const startTime = booking.startTime || new Date();
@@ -88,7 +88,7 @@ export async function POST(req) {
       );
     }
 
-    // TODO: Integrate with MoMo/VNPay APIs
+    // TODO: Integrate with VNPay APIs
     // For now, return error for real payment methods
     return NextResponse.json(
       { success: false, message: "Payment method not implemented yet" },

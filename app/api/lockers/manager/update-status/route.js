@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Locker from "@/models/Locker";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { broadcastLockerEvent } from "@/lib/lockerEvents";
 
 export async function PATCH(req) {
   try {
@@ -40,6 +41,12 @@ export async function PATCH(req) {
     if (!updatedLocker) {
       return NextResponse.json({ success: false, message: "Locker not found" }, { status: 404 });
     }
+
+    broadcastLockerEvent({
+      action: "status-update",
+      lockerId: updatedLocker._id?.toString(),
+      status: updatedLocker.status,
+    });
 
     return NextResponse.json({ success: true, data: updatedLocker }, { status: 200 });
   } catch (err) {

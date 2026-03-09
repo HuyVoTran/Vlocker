@@ -4,6 +4,7 @@ import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { broadcastLockerEvent } from "@/lib/lockerEvents";
 
 export async function POST(req) {
   try {
@@ -62,6 +63,12 @@ export async function POST(req) {
         pickupExpiryTime: newBooking.pickupExpiryTime || null,
       },
     };
+
+    broadcastLockerEvent({
+      action: "register",
+      lockerId: updatedLocker?._id?.toString() || lockerId,
+      bookingId: newBooking._id?.toString(),
+    });
 
     return NextResponse.json({ success: true, data: responseData }, { status: 201 });
   } catch (err) {

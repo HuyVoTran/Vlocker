@@ -15,6 +15,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../ui/toast-context';
 import { useRouter } from 'next/navigation';
 import { FilterBar, FilterConfig } from '../ui/FilterBar';
+import { useSearchParams } from 'next/navigation';
+import DemoPayment from '@/components/payment/demo/DemoPayment';
+import {
+  RealLockerPaymentCard,
+  RealPaymentSuccessState,
+} from '@/components/payment/real/RealPaymentComponents';
 
 export interface Locker {
   _id?: string;
@@ -53,6 +59,14 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   const [loading, setLoading] = useState<string | null>(null); // Track which action is loading
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date()); // For realtime countdown
+  const [paymentView, setPaymentView] = useState<'summary' | 'success' | null>(null);
+  const [isPayingWithMoMo, setIsPayingWithMoMo] = useState(false);
+  const [isPayingWithPayPal, setIsPayingWithPayPal] = useState(false);
+  const [isPayingWithVNPay, setIsPayingWithVNPay] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [paymentProcessedOrderId, setPaymentProcessedOrderId] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'paypal' | 'vnpay'>('momo');
+  const paymentMode = (process.env.NEXT_PUBLIC_PAYMENT_MODE || 'demo') as 'demo' | 'real';
   const [filters, setFilters] = useState({
     searchTerm: '',
     status: 'all', // 'all', 'pending', 'paid', 'active'
@@ -60,6 +74,7 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const { showToast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Update time every minute for countdown
   useEffect(() => {
@@ -213,51 +228,271 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
     }
   };
 
-  // Handle payment action
-  const handlePayment = async () => {
+  const handlePayWithMoMo = async () => {
     if (!selectedLocker) return;
-    
-    setLoading('payment');
+
+    setIsPayingWithMoMo(true);
     setError(null);
-    
+
     try {
-      const res = await fetch('/api/lockers/resident/payment', {
+      const amount = calculateCost(selectedLocker);
+      const orderInfo = `Thanh toán trả tủ ${selectedLocker.locker?.lockerId || ''}`.trim();
+      const redirectUrl = `${window.location.origin}/resident/my-lockers`;
+      const extraData = JSON.stringify({
+        bookingId: selectedLocker.booking._id,
+        lockerId: selectedLocker.locker?._id,
+      });
+
+      const res = await fetch('/api/payment/momo/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          bookingId: selectedLocker.booking._id,
-          paymentMethod: 'virtual' // Tạm thanh toán ảo
+        body: JSON.stringify({
+          amount,
+          orderInfo,
+          orderId: selectedLocker.booking._id,
+          redirectUrl,
+          extraData,
         }),
       });
 
       const json = await res.json();
-      
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Lỗi thanh toán');
+      if (!res.ok || !json.success || !json.payUrl) {
+        throw new Error(json.message || 'Không thể tạo thanh toán MoMo.');
       }
 
-      // Debug log
-      console.log('Payment response:', json);
-      console.log('Booking data from payment:', json.data?.booking);
-      console.log('pickupExpiryTime:', json.data?.booking?.pickupExpiryTime);
-
-      showToast('Thanh toán thành công! Bạn có thể mở tủ ngay bây giờ.', 'success');
-      
-      // Refresh data
-      if (onUpdate) {
-        onUpdate();
-      } else {
-        window.location.reload();
-      }
-      
-      setSelectedLocker(null);
+      window.location.href = json.payUrl as string;
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
       setError(err instanceof Error ? err.message : 'Lỗi thanh toán');
     } finally {
-      setLoading(null);
+      setIsPayingWithMoMo(false);
     }
   };
+
+  const handlePayWithPayPal = async () => {
+    if (!selectedLocker) return;
+
+    setIsPayingWithPayPal(true);
+    setError(null);
+
+    try {
+      const amount = calculateCost(selectedLocker);
+      const orderInfo = `Thanh toán trả tủ ${selectedLocker.locker?.lockerId || ''}`.trim();
+      const returnUrl = `${window.location.origin}/resident/my-lockers?paypal=success&bookingId=${selectedLocker.booking._id}`;
+      const cancelUrl = `${window.location.origin}/resident/my-lockers?paypal=cancel`;
+
+      const res = await fetch('/api/payment/paypal/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          orderInfo,
+          bookingId: selectedLocker.booking._id,
+          returnUrl,
+          cancelUrl,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success || !json.approveUrl) {
+        throw new Error(json.message || 'Không thể tạo thanh toán PayPal.');
+      }
+
+      window.location.href = json.approveUrl as string;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
+      setError(err instanceof Error ? err.message : 'Lỗi thanh toán');
+    } finally {
+      setIsPayingWithPayPal(false);
+    }
+  };
+
+  const handlePayWithVNPay = async () => {
+    if (!selectedLocker) return;
+
+    setIsPayingWithVNPay(true);
+    setError(null);
+
+    try {
+      const amount = calculateCost(selectedLocker);
+      const orderInfo = `Thanh toán trả tủ ${selectedLocker.locker?.lockerId || ''}`.trim();
+
+      const res = await fetch('/api/payment/vnpay/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          orderInfo,
+          bookingId: selectedLocker.booking._id,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success || !json.paymentUrl) {
+        throw new Error(json.message || 'Không thể tạo thanh toán VNPay.');
+      }
+
+      window.location.href = json.paymentUrl as string;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi thanh toán', 'error');
+      setError(err instanceof Error ? err.message : 'Lỗi thanh toán');
+    } finally {
+      setIsPayingWithVNPay(false);
+    }
+  };
+
+  useEffect(() => {
+    const resultCode = searchParams?.get('resultCode');
+    const orderId = searchParams?.get('orderId');
+    const paypalStatus = searchParams?.get('paypal');
+    const vnpayStatus = searchParams?.get('vnpay');
+    const vnpayBookingId = searchParams?.get('bookingId');
+    const paypalOrderId = searchParams?.get('token');
+    const paypalBookingId = searchParams?.get('bookingId');
+
+    if (resultCode === '0' && orderId && paymentProcessedOrderId !== orderId) {
+      const processPayment = async () => {
+        setIsConfirmingPayment(true);
+        setPaymentProcessedOrderId(orderId);
+        setError(null);
+
+        try {
+          const res = await fetch('/api/lockers/resident/payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: orderId, paymentMethod: 'momo' }),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.success) {
+            throw new Error(json.message || 'Xác nhận thanh toán thất bại.');
+          }
+
+          showToast('Payment successful. Locker is opening.', 'success');
+
+          const lockerItem = myLockers.find(item => item.booking._id === orderId) || null;
+          if (lockerItem) {
+            setSelectedLocker(lockerItem);
+          }
+          setPaymentView('success');
+
+          await fetch('/api/lockers/resident/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: orderId }),
+          });
+
+          if (onUpdate) {
+            onUpdate();
+          }
+
+          router.replace('/resident/my-lockers', { scroll: false });
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : 'Lỗi xác nhận thanh toán', 'error');
+          setError(err instanceof Error ? err.message : 'Lỗi xác nhận thanh toán');
+        } finally {
+          setIsConfirmingPayment(false);
+        }
+      };
+
+      processPayment();
+      return;
+    }
+
+    if (paypalStatus === 'success' && paypalOrderId && paypalBookingId && paymentProcessedOrderId !== paypalOrderId) {
+      const processPayPal = async () => {
+        setIsConfirmingPayment(true);
+        setPaymentProcessedOrderId(paypalOrderId);
+        setError(null);
+
+        try {
+          const captureRes = await fetch('/api/payment/paypal/capture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: paypalOrderId }),
+          });
+          const captureJson = await captureRes.json();
+          if (!captureRes.ok || !captureJson.success) {
+            throw new Error(captureJson.message || 'Xác nhận thanh toán PayPal thất bại.');
+          }
+
+          const res = await fetch('/api/lockers/resident/payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: paypalBookingId, paymentMethod: 'paypal' }),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.success) {
+            throw new Error(json.message || 'Xác nhận thanh toán thất bại.');
+          }
+
+          showToast('Payment successful. Locker is opening.', 'success');
+
+          const lockerItem = myLockers.find(item => item.booking._id === paypalBookingId) || null;
+          if (lockerItem) {
+            setSelectedLocker(lockerItem);
+          }
+          setPaymentView('success');
+
+          await fetch('/api/lockers/resident/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: paypalBookingId }),
+          });
+
+          if (onUpdate) {
+            onUpdate();
+          }
+
+          router.replace('/resident/my-lockers', { scroll: false });
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : 'Lỗi xác nhận thanh toán', 'error');
+          setError(err instanceof Error ? err.message : 'Lỗi xác nhận thanh toán');
+        } finally {
+          setIsConfirmingPayment(false);
+        }
+      };
+
+      processPayPal();
+      return;
+    }
+
+    if (vnpayStatus === 'success' && vnpayBookingId && paymentProcessedOrderId !== `vnpay-${vnpayBookingId}`) {
+      const processVNPay = async () => {
+        setIsConfirmingPayment(true);
+        setPaymentProcessedOrderId(`vnpay-${vnpayBookingId}`);
+        setError(null);
+
+        try {
+          showToast('Payment successful. Locker is opening.', 'success');
+
+          const lockerItem = myLockers.find(item => item.booking._id === vnpayBookingId) || null;
+          if (lockerItem) {
+            setSelectedLocker(lockerItem);
+          }
+          setPaymentView('success');
+
+          await fetch('/api/lockers/resident/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: vnpayBookingId }),
+          });
+
+          if (onUpdate) {
+            onUpdate();
+          }
+
+          router.replace('/resident/my-lockers', { scroll: false });
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : 'Lỗi xác nhận thanh toán', 'error');
+          setError(err instanceof Error ? err.message : 'Lỗi xác nhận thanh toán');
+        } finally {
+          setIsConfirmingPayment(false);
+        }
+      };
+
+      processVNPay();
+    }
+  }, [searchParams, paymentProcessedOrderId, myLockers, onUpdate, router, showToast]);
 
   const handleCancel = async () => {
     if (!selectedLocker) return;
@@ -406,8 +641,8 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                   Chi tiết
                 </Button>
               ) : mylocker.booking.paymentStatus === 'pending' ? (
-                <Button className="w-full" variant="default" onClick={() => setSelectedLocker(mylocker)}>
-                  Thanh toán ngay
+                <Button className="w-full" variant="default" onClick={() => { setSelectedLocker(mylocker); setPaymentView('summary'); }}>
+                  Trả tủ
                 </Button>
               ) : mylocker.booking.paymentStatus === 'paid' ? (
                 <Button className="w-full" variant="default" onClick={() => setSelectedLocker(mylocker)}>
@@ -450,80 +685,130 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
         </Dialog>
       </div>
       <div>
-        <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) setSelectedLocker(null); }}>
+        <Dialog open={!!selectedLocker} onOpenChange={(open: boolean) => { if (!open) { setSelectedLocker(null); setPaymentView(null); } }}>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Chi tiết tủ {selectedLocker?.locker?.lockerId ?? ''}</DialogTitle>
-              <DialogDescription>Thông tin chi tiết và các tùy chọn cho tủ của bạn</DialogDescription>
-            </DialogHeader>
-
-            {selectedLocker ? (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Mã tủ</p>
-                    <p className="text-gray-900">{selectedLocker.locker?.lockerId ?? 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Tòa</p>
-                    <p className="text-gray-900">{selectedLocker.locker?.building ?? 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Block</p>
-                    <p className="text-gray-900">{selectedLocker.locker?.block ?? 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Trạng thái đặt</p>
-                    {selectedLocker.booking?.status === 'active' ? (
-                      <p className="text-gray-900">Chưa dùng</p>
-                    ) : selectedLocker.booking?.status === 'stored' ? (
-                      <p className="text-gray-900">Đã dùng</p>
-                    ) : (
-                      <p className="text-gray-900">Không có</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Thời gian bắt đầu</p>
-                    <p className="text-gray-900">{formatDate(selectedLocker.booking?.startTime)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Thời gian kết thúc</p>
-                    <p className="text-gray-900">{formatDate(selectedLocker.booking?.endTime)}</p>
-                  </div>
-                  {selectedLocker.booking?.status === 'stored' && selectedLocker.booking?.paymentStatus === 'paid' && (
-                    <div>
-                      <p className="text-sm text-gray-500">Thời gian lấy đồ còn lại</p>
-                      {selectedLocker.booking?.pickupExpiryTime ? (
-                        <p className={`text-gray-900 ${getRemainingPickupTime(selectedLocker.booking) !== null && getRemainingPickupTime(selectedLocker.booking)! <= 0 ? 'text-red-600 font-semibold' : 'text-orange-600 font-semibold'}`}>
-                          {formatRemainingTime(getRemainingPickupTime(selectedLocker.booking)) || 'Đã hết hạn'}
-                        </p>
-                      ) : (
-                        <p className="text-red-600 font-semibold">Chưa có thời gian hết hạn</p>
-                      )}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm text-gray-500">Số tiền</p>
-                    <p className="text-blue-600">
-                      {selectedLocker && selectedLocker.booking?.status === 'stored'
-                        ? calculateCost(selectedLocker).toLocaleString()
-                        : (selectedLocker.booking?.cost || 0).toLocaleString()}đ
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
-                    {selectedLocker.booking?.paymentStatus === 'paid' ? (
-                      <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
-                    ) : selectedLocker.booking?.paymentStatus === 'pending' ? (
-                      <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
-                    ) : (
-                      <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
+            {paymentView === 'summary' && selectedLocker ? (
+              paymentMode === 'real' ? (
+                <RealLockerPaymentCard
+                  lockerItem={selectedLocker}
+                  amount={calculateCost(selectedLocker)}
+                  usageTime={formatDate(selectedLocker.booking?.startTime)}
+                  paymentMethod={paymentMethod}
+                  onPaymentMethodChange={setPaymentMethod}
+                  isPaying={isPayingWithMoMo || isPayingWithPayPal || isPayingWithVNPay}
+                  onPay={paymentMethod === 'paypal' ? handlePayWithPayPal : paymentMethod === 'vnpay' ? handlePayWithVNPay : handlePayWithMoMo}
+                />
+              ) : (
+                <DemoPayment
+                  lockerItem={selectedLocker}
+                  amount={calculateCost(selectedLocker)}
+                  usageTime={formatDate(selectedLocker.booking?.startTime)}
+                  onSuccess={async () => {
+                    setIsConfirmingPayment(true);
+                    try {
+                      showToast('Payment successful. Locker is opening.', 'success');
+                      await fetch('/api/lockers/resident/payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookingId: selectedLocker.booking._id, paymentMethod: 'virtual' }),
+                      });
+                      await fetch('/api/lockers/resident/open', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookingId: selectedLocker.booking._id }),
+                      });
+                      if (onUpdate) {
+                        onUpdate();
+                      }
+                      setPaymentView('success');
+                    } finally {
+                      setIsConfirmingPayment(false);
+                    }
+                  }}
+                />
+              )
+            ) : paymentView === 'success' ? (
+              paymentMode === 'real' ? (
+                <RealPaymentSuccessState isProcessing={isConfirmingPayment} />
+              ) : (
+                <RealPaymentSuccessState isProcessing={isConfirmingPayment} />
+              )
             ) : (
-              <div className="py-4">Không có dữ liệu</div>
+              <>
+                <DialogHeader>
+                  <DialogTitle>Chi tiết tủ {selectedLocker?.locker?.lockerId ?? ''}</DialogTitle>
+                  <DialogDescription>Thông tin chi tiết và các tùy chọn cho tủ của bạn</DialogDescription>
+                </DialogHeader>
+
+                {selectedLocker ? (
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Mã tủ</p>
+                        <p className="text-gray-900">{selectedLocker.locker?.lockerId ?? 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Tòa</p>
+                        <p className="text-gray-900">{selectedLocker.locker?.building ?? 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Block</p>
+                        <p className="text-gray-900">{selectedLocker.locker?.block ?? 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Trạng thái đặt</p>
+                        {selectedLocker.booking?.status === 'active' ? (
+                          <p className="text-gray-900">Chưa dùng</p>
+                        ) : selectedLocker.booking?.status === 'stored' ? (
+                          <p className="text-gray-900">Đã dùng</p>
+                        ) : (
+                          <p className="text-gray-900">Không có</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Thời gian bắt đầu</p>
+                        <p className="text-gray-900">{formatDate(selectedLocker.booking?.startTime)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Thời gian kết thúc</p>
+                        <p className="text-gray-900">{formatDate(selectedLocker.booking?.endTime)}</p>
+                      </div>
+                      {selectedLocker.booking?.status === 'stored' && selectedLocker.booking?.paymentStatus === 'paid' && (
+                        <div>
+                          <p className="text-sm text-gray-500">Thời gian lấy đồ còn lại</p>
+                          {selectedLocker.booking?.pickupExpiryTime ? (
+                            <p className={`text-gray-900 ${getRemainingPickupTime(selectedLocker.booking) !== null && getRemainingPickupTime(selectedLocker.booking)! <= 0 ? 'text-red-600 font-semibold' : 'text-orange-600 font-semibold'}`}>
+                              {formatRemainingTime(getRemainingPickupTime(selectedLocker.booking)) || 'Đã hết hạn'}
+                            </p>
+                          ) : (
+                            <p className="text-red-600 font-semibold">Chưa có thời gian hết hạn</p>
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-gray-500">Số tiền</p>
+                        <p className="text-blue-600">
+                          {selectedLocker && selectedLocker.booking?.status === 'stored'
+                            ? calculateCost(selectedLocker).toLocaleString()
+                            : (selectedLocker.booking?.cost || 0).toLocaleString()}đ
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Trạng thái thanh toán</p>
+                        {selectedLocker.booking?.paymentStatus === 'paid' ? (
+                          <Badge className="bg-green-100 text-green-700">Đã thanh toán</Badge>
+                        ) : selectedLocker.booking?.paymentStatus === 'pending' ? (
+                          <Badge className="bg-yellow-100 text-yellow-700">Chờ thanh toán</Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-700">Không có</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-4">Không có dữ liệu</div>
+                )}
+              </>
             )}
 
             {error && (
@@ -532,8 +817,9 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
               </div>
             )}
 
-            <DialogFooter className="flex-col sm:flex-col gap-2">
-              {selectedLocker && selectedLocker.booking?.status === 'active' ? (
+            {paymentView === null && (
+              <DialogFooter className="flex-col sm:flex-col gap-2">
+                {selectedLocker && selectedLocker.booking?.status === 'active' ? (
                 // GRID 2x2 cho trạng thái 'active'
                 <div className="grid grid-cols-2 gap-2 w-full">
                   <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleOpen} disabled={loading !== null}>
@@ -552,19 +838,10 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                     Báo Cáo Lỗi
                   </Button>
                 </div>
-              ) : selectedLocker && selectedLocker.booking?.status === 'stored' ? (
+                ) : selectedLocker && selectedLocker.booking?.status === 'stored' ? (
                 // Layout dọc cho trạng thái 'stored'
                 <>
-                  {selectedLocker.booking?.paymentStatus === 'pending' ? (
-                    <Button 
-                      className="w-full bg-yellow-600 hover:bg-yellow-700" 
-                      onClick={handlePayment}
-                      disabled={loading !== null}
-                    >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      {loading === 'payment' ? 'Đang xử lý...' : 'Thanh toán (Tạm thanh toán ảo)'}
-                    </Button>
-                  ) : (
+                  {selectedLocker.booking?.paymentStatus === 'pending' ? null : (
                     <>
                       {getRemainingPickupTime(selectedLocker.booking) !== null && getRemainingPickupTime(selectedLocker.booking)! <= 0 ? (
                         <Button 
@@ -599,11 +876,13 @@ export default function MyLockers({ myLockers, onUpdate }: MyLockersProps) {
                     Báo Cáo Lỗi
                   </Button>
                 </>
-              ) : null}
-            </DialogFooter>
+                ) : null}
+              </DialogFooter>
+            )}
           </DialogContent>
         </Dialog>
       </div>
     </div>
   );
 }
+

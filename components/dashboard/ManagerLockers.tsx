@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogFooter
 } from "../ui/dialog";
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
 import { useToast } from '../ui/toast-context';
 import { FilterBar, FilterConfig } from '../ui/FilterBar';
@@ -75,6 +75,14 @@ export default function ManagerLockers() {
     fetcher,
     { revalidateOnFocus: false }
   );
+
+  useEffect(() => {
+    const eventSource = new EventSource('/api/lockers/stream');
+    const handleEvent = () => mutate();
+    eventSource.addEventListener('locker', handleEvent as EventListener);
+    eventSource.onerror = () => eventSource.close();
+    return () => eventSource.close();
+  }, [mutate]);
 
   const filteredBookings = useMemo(() => {
     return allBookings.filter(booking => {

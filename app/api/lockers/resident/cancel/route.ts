@@ -5,6 +5,7 @@ import { connectDB } from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import Locker from '@/models/Locker';
 import mongoose from 'mongoose';
+import { broadcastLockerEvent } from '@/lib/lockerEvents';
 
 export async function PATCH(req: Request) {
   try {
@@ -53,6 +54,12 @@ export async function PATCH(req: Request) {
       );
 
       await dbSession.commitTransaction();
+
+      broadcastLockerEvent({
+        action: 'cancel',
+        lockerId: booking.lockerId?.toString(),
+        bookingId: booking._id?.toString(),
+      });
 
       return NextResponse.json({ success: true, message: 'Hủy lượt đặt thành công' });
     } catch (error) {

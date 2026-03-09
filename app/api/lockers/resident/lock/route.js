@@ -4,6 +4,7 @@ import Booking from "@/models/Booking";
 import Locker from "@/models/Locker";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { broadcastLockerEvent } from "@/lib/lockerEvents";
 
 export async function POST(req) {
   try {
@@ -54,6 +55,12 @@ export async function POST(req) {
     // Update locker: lock it
     await Locker.findByIdAndUpdate(booking.lockerId, {
       isLocked: true,
+    });
+
+    broadcastLockerEvent({
+      action: "lock",
+      lockerId: booking.lockerId?._id?.toString?.() || booking.lockerId?.toString?.(),
+      bookingId: booking._id?.toString(),
     });
 
     return NextResponse.json(
