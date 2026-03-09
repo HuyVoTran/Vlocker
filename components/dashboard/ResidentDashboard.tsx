@@ -9,6 +9,8 @@ import MyLockersPreview, { MyLockerItem, Locker } from './MyLockersPreview';
 import AvailableLockersPreview from './AvailableLockersPreview';
 import useSWR from 'swr';
 
+export type { Locker };
+
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) {
