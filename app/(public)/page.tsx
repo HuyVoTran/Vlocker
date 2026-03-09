@@ -194,13 +194,9 @@ export default function Page() {
           <div className="flex gap-4 justify-center">
             {status === "loading" ? (
               <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" disabled aria-busy="true" />
-            ) : status === "authenticated" ? (
-              <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" onClick={() => router.push(`/${session?.user?.role || 'resident'}/dashboard`)}>
-                Dashboard
-              </Button>
             ) : (
               <Button className="bg-white text-black hover:bg-neutral-300 hover:text-black" onClick={() => router.push("auth/login")}>
-                  Đăng nhập
+                Đăng nhập
               </Button>
             )}
           </div>
